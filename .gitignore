@@ -1,0 +1,31 @@
+# Umbraco
+umbraco/Data/
+umbraco/Logs/
+umbraco/mediacache/
+
+# ASP.NET Core
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Secrets - never commit these
+appsettings.Production.json
+appsettings.*.secret.json
+
+# uSync - only schema in repo, not content
+uSync/content/
+
+# Rider / JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Azure publish profiles
+*.PublishSettings
+*.pubxml.user
