@@ -1,4 +1,7 @@
-# Umbraco
+# Existing local installation (not part of this repo)
+Sporthalle-Sulzerallee/
+
+# Umbraco runtime data
 umbraco/Data/
 umbraco/Logs/
 umbraco/mediacache/
