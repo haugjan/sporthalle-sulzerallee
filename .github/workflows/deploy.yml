@@ -28,10 +28,13 @@ jobs:
         run: dotnet publish src/SporthalleWeb/SporthalleWeb.csproj --configuration Release --output ./publish --no-build
 
       - name: Package and deploy via Kudu ZipDeploy
+        env:
+          KUDU_USER: ${{ secrets.KUDU_USER }}
+          KUDU_PASS: ${{ secrets.KUDU_PASS }}
         run: |
           cd ./publish && zip -r ../app.zip . && cd ..
           curl -X POST \
-            -u "${{ secrets.KUDU_USER }}:${{ secrets.KUDU_PASS }}" \
+            -u "$KUDU_USER:$KUDU_PASS" \
             "https://app-sporthalle-sulzerallee.scm.azurewebsites.net/api/zipdeploy" \
             --data-binary @app.zip \
             --fail \
