@@ -1,0 +1,35 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '13.x'
+
+      - name: Restore
+        run: dotnet restore src/SporthalleWeb/SporthalleWeb.csproj
+
+      - name: Build
+        run: dotnet build src/SporthalleWeb/SporthalleWeb.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish src/SporthalleWeb/SporthalleWeb.csproj --configuration Release --output ./publish --no-build
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: app-sporthalle-sulzerallee
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
