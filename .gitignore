@@ -17,6 +17,10 @@ appsettings.*.secret.json
 # uSync - only schema in repo, not page content
 **/uSync/**/Content/
 
+# uSync state file: contains HMAC of last-synced files.
+# Excluding it ensures uSync always runs a full import on startup after each deploy.
+**/uSync/v17/usync.config
+
 # Rider / JetBrains
 .idea/
 
