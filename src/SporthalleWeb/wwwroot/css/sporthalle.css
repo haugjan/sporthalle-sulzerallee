@@ -1,0 +1,374 @@
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Allgemeines Styling */
+body {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  color: #333;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Fester Header mit Navigation */
+header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+}
+
+nav .logo img {
+  max-width: 150px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #333;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  color: rgb(235, 80, 75);
+}
+
+/* Hamburger Icon */
+.menu-toggle {
+  display: none;
+  font-size: 2rem;
+  cursor: pointer;
+}
+
+/* Hero-Bereich */
+.hero {
+  position: relative;
+  flex: none;
+  height: 100vh;
+  background: url("/media/halle.jpg") center/cover no-repeat;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.hero h1 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 900;
+  font-size: 5rem;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  line-height: 1.1;
+}
+
+.hero p {
+  font-size: 1.5rem;
+  max-width: 800px;
+  color: white;
+  margin: 0 auto;
+}
+
+/* Eröffnungsfest-Overlay im Hero */
+.hero-announcement {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  background: rgba(235, 80, 75, 0.92);
+  color: white;
+  text-align: center;
+  padding: 2rem 3.5rem;
+  z-index: 10;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 90%;
+  max-width: 900px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.hero-announcement::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 300px 300px;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.hero-announcement > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-announcement .pre-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-bottom: 0.5rem;
+}
+
+.hero-announcement h2 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 3.2rem;
+  font-weight: 900;
+  margin: 0 0 0.5rem 0;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.hero-announcement .date {
+  font-size: 1.3rem;
+  font-weight: 600;
+  opacity: 0.95;
+  margin: 0;
+}
+
+/* Seiteninhalt (alle Seiten ausser Startseite) */
+.page-content {
+  flex: 1;
+  padding-top: 90px;
+}
+
+.page-header {
+  position: relative;
+  background: #1a1a1a;
+  height: 320px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 2rem 2rem;
+  max-width: 100%;
+}
+
+.page-header img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0.35;
+}
+
+.page-header h2 {
+  position: relative;
+  z-index: 1;
+  color: white;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.5rem, 10vw, 5.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  line-height: 1;
+  max-width: 1100px;
+  width: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .35 .65'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-header-bar {
+  background: rgb(235, 80, 75);
+  height: 6px;
+  width: 100%;
+}
+
+/* Abschnitte */
+section {
+  padding: 4rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+section img {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: 320px;
+  object-fit: cover;
+  object-position: center 30%;
+  margin-bottom: 2.5rem;
+  display: block;
+}
+
+h2 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 900;
+  color: rgb(235, 80, 75);
+  font-size: clamp(2.5rem, 10vw, 5.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px solid rgb(235, 80, 75);
+  display: inline-block;
+}
+
+section h2 {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-color: rgb(235, 80, 75);
+  background-size: 200px 200px;
+  background-blend-mode: soft-light;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+section h2::after {
+  content: '';
+  display: block;
+  height: 3px;
+  margin-top: 0.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-color: rgb(235, 80, 75);
+  background-size: 100% 200px;
+  background-blend-mode: overlay;
+}
+
+p {
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: #444;
+}
+
+a {
+  color: rgb(235, 80, 75);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Footer */
+footer {
+  background: #1a1a1a;
+  color: #aaa;
+  text-align: center;
+  padding: 1.5rem 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  border-top: 3px solid rgb(235, 80, 75);
+  flex-shrink: 0;
+}
+
+footer a {
+  color: rgb(235, 80, 75);
+}
+
+body.page-home footer {
+  display: none;
+}
+
+/* Logos nebeneinander */
+.logos {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.logos img {
+  max-width: 150px;
+  height: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-announcement {
+    padding: 1.5rem 1.5rem;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  .hero-announcement h2 {
+    font-size: 2rem;
+  }
+
+  .hero-announcement .date {
+    font-size: 1rem;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+  }
+
+  .hero p {
+    font-size: 1.2rem;
+    max-width: 90%;
+  }
+
+  .logos {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logos img {
+    max-width: 80%;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    background-color: white;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+
+  nav ul li {
+    margin-bottom: 1rem;
+  }
+}

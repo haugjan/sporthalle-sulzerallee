@@ -1,6 +1,3 @@
-# Existing local installation (not part of this repo)
-Sporthalle-Sulzerallee/
-
 # Umbraco runtime data
 umbraco/Data/
 umbraco/Logs/
@@ -17,8 +14,8 @@ obj/
 appsettings.Production.json
 appsettings.*.secret.json
 
-# uSync - only schema in repo, not content
-uSync/content/
+# uSync - only schema in repo, not page content
+**/uSync/**/Content/
 
 # Rider / JetBrains
 .idea/

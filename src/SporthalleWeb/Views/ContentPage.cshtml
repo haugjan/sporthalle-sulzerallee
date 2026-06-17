@@ -1,0 +1,25 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@{
+  Layout = "~/Views/Shared/_Layout.cshtml";
+  var heading = Model.Value<string>("pageHeading") ?? Model.Name;
+  var body = Model.Value<string>("bodyContent");
+  var imageUrl = Model.Value<string>("pageImage");
+  ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+}
+
+<div class="page-content">
+  <div class="page-header">
+    @if (!string.IsNullOrEmpty(imageUrl))
+    {
+      <img src="@imageUrl" alt="" aria-hidden="true" />
+    }
+    <h2>@heading</h2>
+  </div>
+  <div class="page-header-bar"></div>
+  <section>
+    @if (!string.IsNullOrEmpty(body))
+    {
+      @Html.Raw(body)
+    }
+  </section>
+</div>

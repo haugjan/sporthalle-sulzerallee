@@ -1,0 +1,51 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Umbraco.Extensions
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" href="/fav.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/css/sporthalle.css" />
+  <title>@ViewBag.Title</title>
+</head>
+<body class="@ViewBag.BodyClass">
+  <header>
+    <nav>
+      @{
+        var root = Umbraco.ContentAtRoot()?.FirstOrDefault();
+        var navItems = root?.Children() ?? Enumerable.Empty<IPublishedContent>();
+      }
+      <!-- DEBUG nav: root=@root?.Id/@root?.Name children=@navItems.Count() -->
+      <div class="logo">
+        <a href="/"><img src="/media/sporthalle_sulzerallee_logo_neu.png" alt="Sporthalle Sulzerallee Logo" /></a>
+      </div>
+      <div class="menu-toggle" id="menu-toggle">☰</div>
+      <ul class="nav-links" id="nav-links">
+        @foreach (var item in navItems)
+        {
+          var isActive = ViewContext.HttpContext.Request.Path.Value?.TrimEnd('/').Equals(item.Url()?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ?? false;
+          <li><a href="@item.Url()" class="@(isActive ? "active" : "")">@item.Name</a></li>
+        }
+      </ul>
+    </nav>
+  </header>
+
+  @RenderBody()
+
+  <footer>
+    &copy; 2025 Sporthalle Sulzerallee. Alle Rechte vorbehalten.
+  </footer>
+
+  <script src="/js/sporthalle.js"></script>
+</body>
+</html>

@@ -478,5 +478,8 @@ umbraco-package-schema.json
 # Log files
 /umbraco/Logs/
 
-# Media files
+# Media files (uploaded through backoffice - stored in Azure Blob Storage in production)
 /wwwroot/media/
+
+# uSync - only schema in git, not page content
+/uSync/v17/Content/
