@@ -157,7 +157,7 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         var roots = _contentService.GetRootContent().ToList();
         foreach (var root in roots)
         {
-            if (homeTemplate != null && (!root.TemplateId.HasValue || root.TemplateId.Value == 0))
+            if (homeTemplate != null)
             {
                 root.TemplateId = homeTemplate.Id;
                 PublishContent(root);
@@ -169,12 +169,9 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
             var children = _contentService.GetPagedChildren(root.Id, 0, 100, out _).ToList();
             foreach (var child in children)
             {
-                if (!child.TemplateId.HasValue || child.TemplateId.Value == 0)
-                {
-                    child.TemplateId = contentPageTemplate.Id;
-                    PublishContent(child);
-                    _logger.LogInformation("ContentSeeder: republished child '{Name}' with templateId={Id}.", child.Name, contentPageTemplate.Id);
-                }
+                child.TemplateId = contentPageTemplate.Id;
+                PublishContent(child);
+                _logger.LogInformation("ContentSeeder: republished child '{Name}' with templateId={Id}.", child.Name, contentPageTemplate.Id);
             }
         }
     }
