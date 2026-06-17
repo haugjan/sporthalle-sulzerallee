@@ -53,6 +53,9 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         // Always ensure content types have templates, even if content already exists.
         EnsureContentTypeTemplates(homeTemplate, contentPageTemplate);
 
+        // Republish any existing content nodes that were published without a template ID.
+        EnsureContentTemplates(homeTemplate, contentPageTemplate);
+
         if (_contentService.GetRootContent().Any())
         {
             _logger.LogInformation("ContentSeeder: root content already exists, skipping seed.");
@@ -142,6 +145,36 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
                 contentPage.SetDefaultTemplate(contentPageTemplate);
                 _contentTypeService.Save(contentPage, Constants.Security.SuperUserId);
                 _logger.LogInformation("ContentSeeder: assigned template to existing contentPage content type.");
+            }
+        }
+    }
+
+    private void EnsureContentTemplates(ITemplate? homeTemplate, ITemplate? contentPageTemplate)
+    {
+        if (homeTemplate == null && contentPageTemplate == null)
+            return;
+
+        var roots = _contentService.GetRootContent().ToList();
+        foreach (var root in roots)
+        {
+            if (homeTemplate != null && (!root.TemplateId.HasValue || root.TemplateId.Value == 0))
+            {
+                root.TemplateId = homeTemplate.Id;
+                PublishContent(root);
+                _logger.LogInformation("ContentSeeder: republished root '{Name}' with templateId={Id}.", root.Name, homeTemplate.Id);
+            }
+
+            if (contentPageTemplate == null) continue;
+
+            var children = _contentService.GetPagedChildren(root.Id, 0, 100, out _).ToList();
+            foreach (var child in children)
+            {
+                if (!child.TemplateId.HasValue || child.TemplateId.Value == 0)
+                {
+                    child.TemplateId = contentPageTemplate.Id;
+                    PublishContent(child);
+                    _logger.LogInformation("ContentSeeder: republished child '{Name}' with templateId={Id}.", child.Name, contentPageTemplate.Id);
+                }
             }
         }
     }
