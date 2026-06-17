@@ -39,7 +39,7 @@ jobs:
             -u "$KUDU_USER:$KUDU_PASS" \
             "https://app-sporthalle-sulzerallee.scm.azurewebsites.net/api/zipdeploy?async=true" \
             --data-binary @app.zip \
-            --max-time 60)
+            --max-time 300)
           echo "ZipDeploy HTTP status: $HTTP_STATUS"
           if [ "$HTTP_STATUS" != "202" ] && [ "$HTTP_STATUS" != "200" ]; then
             echo "Unexpected HTTP status from ZipDeploy: $HTTP_STATUS"
