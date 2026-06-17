@@ -1,6 +1,13 @@
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+// Prevent app crash when a background service hits a transient SQL timeout.
+// Without this, HostOptions defaults to StopHost, which kills the entire process.
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+});
+
 var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddBackOffice()
     .AddWebsite()
