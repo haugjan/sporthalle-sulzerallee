@@ -5,6 +5,7 @@ using Umbraco.Cms.Core.Events;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core.Services;
+using Umbraco.Cms.Core.Strings;
 
 namespace SporthalleWeb;
 
@@ -18,12 +19,24 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
 {
     private readonly IContentService _contentService;
     private readonly IContentTypeService _contentTypeService;
+    private readonly IDataTypeService _dataTypeService;
+    private readonly IFileService _fileService;
+    private readonly IShortStringHelper _shortStringHelper;
     private readonly ILogger<ContentSeeder> _logger;
 
-    public ContentSeeder(IContentService contentService, IContentTypeService contentTypeService, ILogger<ContentSeeder> logger)
+    public ContentSeeder(
+        IContentService contentService,
+        IContentTypeService contentTypeService,
+        IDataTypeService dataTypeService,
+        IFileService fileService,
+        IShortStringHelper shortStringHelper,
+        ILogger<ContentSeeder> logger)
     {
         _contentService = contentService;
         _contentTypeService = contentTypeService;
+        _dataTypeService = dataTypeService;
+        _fileService = fileService;
+        _shortStringHelper = shortStringHelper;
         _logger = logger;
     }
 
@@ -37,13 +50,15 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
             return Task.CompletedTask;
         }
 
+        EnsureContentTypes();
+
         var homeType = _contentTypeService.Get("homePage");
         var pageType = _contentTypeService.Get("contentPage");
         _logger.LogInformation("ContentSeeder: homeType={HomeType}, pageType={PageType}",
             homeType?.Alias ?? "NULL", pageType?.Alias ?? "NULL");
         if (homeType == null || pageType == null)
         {
-            _logger.LogWarning("ContentSeeder: one or more content types not found, skipping.");
+            _logger.LogWarning("ContentSeeder: content types still missing after creation attempt, aborting seed.");
             return Task.CompletedTask;
         }
 
@@ -66,6 +81,81 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
 
         _logger.LogInformation("ContentSeeder: seeding complete.");
         return Task.CompletedTask;
+    }
+
+    private void EnsureContentTypes()
+    {
+        var existingContentPage = _contentTypeService.Get("contentPage");
+        var existingHomePage = _contentTypeService.Get("homePage");
+
+        if (existingContentPage != null && existingHomePage != null)
+        {
+            _logger.LogInformation("ContentSeeder: both content types already exist, skipping creation.");
+            return;
+        }
+
+        var textBox = _dataTypeService.GetByEditorAlias("Umbraco.TextBox").FirstOrDefault();
+        var textArea = _dataTypeService.GetByEditorAlias("Umbraco.TextArea").FirstOrDefault();
+        _logger.LogInformation("ContentSeeder: textBox={TextBox}, textArea={TextArea}",
+            textBox?.Name ?? "NULL", textArea?.Name ?? "NULL");
+
+        if (textBox == null || textArea == null)
+        {
+            _logger.LogWarning("ContentSeeder: required data types not found, cannot create content types.");
+            return;
+        }
+
+        var homeTemplate = _fileService.GetTemplate("Home");
+        var contentPageTemplate = _fileService.GetTemplate("ContentPage");
+        _logger.LogInformation("ContentSeeder: homeTemplate={Home}, contentPageTemplate={ContentPage}",
+            homeTemplate?.Alias ?? "NULL", contentPageTemplate?.Alias ?? "NULL");
+
+        if (existingContentPage == null)
+        {
+            _logger.LogInformation("ContentSeeder: creating contentPage content type.");
+            var contentPage = new ContentType(_shortStringHelper, Constants.System.Root)
+            {
+                Alias = "contentPage",
+                Name = "Content Page",
+                AllowedAsRoot = false,
+            };
+            if (contentPageTemplate != null)
+            {
+                contentPage.AllowedTemplates = new[] { contentPageTemplate };
+                contentPage.SetDefaultTemplate(contentPageTemplate);
+            }
+            var pageHeading = new PropertyType(_shortStringHelper, textBox) { Alias = "pageHeading", Name = "Page Heading" };
+            var bodyContent = new PropertyType(_shortStringHelper, textArea) { Alias = "bodyContent", Name = "Body Content" };
+            var pageImage = new PropertyType(_shortStringHelper, textBox) { Alias = "pageImage", Name = "Page Image" };
+            contentPage.AddPropertyType(pageHeading, "content", "Content");
+            contentPage.AddPropertyType(bodyContent, "content", "Content");
+            contentPage.AddPropertyType(pageImage, "content", "Content");
+            _contentTypeService.Save(contentPage, Constants.Security.SuperUserId);
+            _logger.LogInformation("ContentSeeder: contentPage saved, id={Id}.", contentPage.Id);
+            existingContentPage = contentPage;
+        }
+
+        if (existingHomePage == null)
+        {
+            _logger.LogInformation("ContentSeeder: creating homePage content type.");
+            var homePage = new ContentType(_shortStringHelper, Constants.System.Root)
+            {
+                Alias = "homePage",
+                Name = "Home Page",
+                AllowedAsRoot = true,
+            };
+            if (homeTemplate != null)
+            {
+                homePage.AllowedTemplates = new[] { homeTemplate };
+                homePage.SetDefaultTemplate(homeTemplate);
+            }
+            homePage.AllowedContentTypes = new[]
+            {
+                new ContentTypeSort(existingContentPage.Key, 0, existingContentPage.Alias)
+            };
+            _contentTypeService.Save(homePage, Constants.Security.SuperUserId);
+            _logger.LogInformation("ContentSeeder: homePage saved, id={Id}.", homePage.Id);
+        }
     }
 
     private void PublishContent(IContent content)
