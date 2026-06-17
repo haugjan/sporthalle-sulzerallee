@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Composing;
@@ -22,6 +23,7 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
     private readonly IDataTypeService _dataTypeService;
     private readonly IFileService _fileService;
     private readonly IShortStringHelper _shortStringHelper;
+    private readonly IWebHostEnvironment _hostEnvironment;
     private readonly ILogger<ContentSeeder> _logger;
 
     public ContentSeeder(
@@ -30,6 +32,7 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         IDataTypeService dataTypeService,
         IFileService fileService,
         IShortStringHelper shortStringHelper,
+        IWebHostEnvironment hostEnvironment,
         ILogger<ContentSeeder> logger)
     {
         _contentService = contentService;
@@ -37,6 +40,7 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         _dataTypeService = dataTypeService;
         _fileService = fileService;
         _shortStringHelper = shortStringHelper;
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -44,13 +48,18 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
     {
         _logger.LogInformation("ContentSeeder: HandleAsync called.");
 
+        var (homeTemplate, contentPageTemplate) = EnsureTemplates();
+
+        // Always ensure content types have templates, even if content already exists.
+        EnsureContentTypeTemplates(homeTemplate, contentPageTemplate);
+
         if (_contentService.GetRootContent().Any())
         {
-            _logger.LogInformation("ContentSeeder: root content already exists, skipping.");
+            _logger.LogInformation("ContentSeeder: root content already exists, skipping seed.");
             return Task.CompletedTask;
         }
 
-        EnsureContentTypes();
+        EnsureContentTypes(homeTemplate, contentPageTemplate);
 
         var homeType = _contentTypeService.Get("homePage");
         var pageType = _contentTypeService.Get("contentPage");
@@ -83,7 +92,61 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         return Task.CompletedTask;
     }
 
-    private void EnsureContentTypes()
+    private (ITemplate? home, ITemplate? contentPage) EnsureTemplates()
+    {
+        var home = EnsureTemplate("Home", "Home");
+        var contentPage = EnsureTemplate("ContentPage", "Content Page");
+        _logger.LogInformation("ContentSeeder: homeTemplate={Home}, contentPageTemplate={ContentPage}",
+            home?.Alias ?? "NULL", contentPage?.Alias ?? "NULL");
+        return (home, contentPage);
+    }
+
+    private ITemplate? EnsureTemplate(string alias, string name)
+    {
+        var existing = _fileService.GetTemplate(alias);
+        if (existing != null)
+            return existing;
+
+        var viewPath = System.IO.Path.Combine(_hostEnvironment.ContentRootPath, "Views", $"{alias}.cshtml");
+        if (!System.IO.File.Exists(viewPath))
+        {
+            _logger.LogWarning("ContentSeeder: view file not found at {Path}, cannot register template.", viewPath);
+            return null;
+        }
+
+        var content = System.IO.File.ReadAllText(viewPath);
+        _logger.LogInformation("ContentSeeder: registering template '{Alias}' from disk.", alias);
+        return _fileService.CreateTemplateWithIdentity(name, alias, content, null, Constants.Security.SuperUserId);
+    }
+
+    private void EnsureContentTypeTemplates(ITemplate? homeTemplate, ITemplate? contentPageTemplate)
+    {
+        if (homeTemplate != null)
+        {
+            var homePage = _contentTypeService.Get("homePage");
+            if (homePage != null && !homePage.AllowedTemplates.Any())
+            {
+                homePage.AllowedTemplates = new[] { homeTemplate };
+                homePage.SetDefaultTemplate(homeTemplate);
+                _contentTypeService.Save(homePage, Constants.Security.SuperUserId);
+                _logger.LogInformation("ContentSeeder: assigned template to existing homePage content type.");
+            }
+        }
+
+        if (contentPageTemplate != null)
+        {
+            var contentPage = _contentTypeService.Get("contentPage");
+            if (contentPage != null && !contentPage.AllowedTemplates.Any())
+            {
+                contentPage.AllowedTemplates = new[] { contentPageTemplate };
+                contentPage.SetDefaultTemplate(contentPageTemplate);
+                _contentTypeService.Save(contentPage, Constants.Security.SuperUserId);
+                _logger.LogInformation("ContentSeeder: assigned template to existing contentPage content type.");
+            }
+        }
+    }
+
+    private void EnsureContentTypes(ITemplate? homeTemplate, ITemplate? contentPageTemplate)
     {
         var existingContentPage = _contentTypeService.Get("contentPage");
         var existingHomePage = _contentTypeService.Get("homePage");
@@ -104,11 +167,6 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
             _logger.LogWarning("ContentSeeder: required data types not found, cannot create content types.");
             return;
         }
-
-        var homeTemplate = _fileService.GetTemplate("Home");
-        var contentPageTemplate = _fileService.GetTemplate("ContentPage");
-        _logger.LogInformation("ContentSeeder: homeTemplate={Home}, contentPageTemplate={ContentPage}",
-            homeTemplate?.Alias ?? "NULL", contentPageTemplate?.Alias ?? "NULL");
 
         if (existingContentPage == null)
         {
