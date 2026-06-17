@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Events;
@@ -17,25 +18,39 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
 {
     private readonly IContentService _contentService;
     private readonly IContentTypeService _contentTypeService;
+    private readonly ILogger<ContentSeeder> _logger;
 
-    public ContentSeeder(IContentService contentService, IContentTypeService contentTypeService)
+    public ContentSeeder(IContentService contentService, IContentTypeService contentTypeService, ILogger<ContentSeeder> logger)
     {
         _contentService = contentService;
         _contentTypeService = contentTypeService;
+        _logger = logger;
     }
 
     public Task HandleAsync(UmbracoApplicationStartedNotification notification, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("ContentSeeder: HandleAsync called.");
+
         if (_contentService.GetRootContent().Any())
+        {
+            _logger.LogInformation("ContentSeeder: root content already exists, skipping.");
             return Task.CompletedTask;
+        }
 
         var homeType = _contentTypeService.Get("homePage");
         var pageType = _contentTypeService.Get("contentPage");
+        _logger.LogInformation("ContentSeeder: homeType={HomeType}, pageType={PageType}",
+            homeType?.Alias ?? "NULL", pageType?.Alias ?? "NULL");
         if (homeType == null || pageType == null)
+        {
+            _logger.LogWarning("ContentSeeder: one or more content types not found, skipping.");
             return Task.CompletedTask;
+        }
 
+        _logger.LogInformation("ContentSeeder: creating root page.");
         var root = _contentService.Create("Sporthalle Sulzerallee", Constants.System.Root, homeType.Alias);
         PublishContent(root);
+        _logger.LogInformation("ContentSeeder: root page published, id={Id}.", root.Id);
 
         foreach (var (name, sortOrder, heading, body, image) in ChildPages())
         {
@@ -46,8 +61,10 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
             if (!string.IsNullOrEmpty(image))
                 page.SetValue("pageImage", image);
             PublishContent(page);
+            _logger.LogInformation("ContentSeeder: published child page '{Name}'.", name);
         }
 
+        _logger.LogInformation("ContentSeeder: seeding complete.");
         return Task.CompletedTask;
     }
 
