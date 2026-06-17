@@ -33,3 +33,6 @@ appsettings.*.secret.json
 # Azure publish profiles
 *.PublishSettings
 *.pubxml.user
+
+# Local planning docs (not for version control)
+/docs/
