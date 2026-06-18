@@ -39,11 +39,15 @@ jobs:
             -u "$KUDU_USER:$KUDU_PASS" \
             "https://app-sporthalle-sulzerallee.scm.azurewebsites.net/api/zipdeploy?async=true" \
             --data-binary @app.zip \
-            --max-time 300)
+            --max-time 600)
           echo "ZipDeploy HTTP status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" != "202" ] && [ "$HTTP_STATUS" != "200" ]; then
+          # 202/200 = accepted; 504 = gateway timeout but upload may have succeeded
+          if [ "$HTTP_STATUS" != "202" ] && [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "504" ]; then
             echo "Unexpected HTTP status from ZipDeploy: $HTTP_STATUS"
             exit 1
+          fi
+          if [ "$HTTP_STATUS" = "504" ]; then
+            echo "Gateway timeout on upload — polling deployment status to check if it succeeded."
           fi
 
       - name: Wait for deployment to complete
