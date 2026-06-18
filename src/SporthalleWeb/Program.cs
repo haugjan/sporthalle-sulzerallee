@@ -27,6 +27,9 @@ WebApplication app = builder.Build();
 
 await app.BootUmbracoAsync();
 
+// Serve wwwroot static files before Umbraco's media middleware so that
+// /media/* files committed to wwwroot/media/ are reachable directly.
+app.UseStaticFiles();
 
 app.UseUmbraco()
     .WithMiddleware(u =>
