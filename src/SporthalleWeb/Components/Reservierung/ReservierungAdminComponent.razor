@@ -1,92 +1,307 @@
 @inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
 @inject SporthalleWeb.Application.Reservierung.ConfirmBookingUseCase ConfirmUseCase
 @inject SporthalleWeb.Application.Reservierung.RejectBookingUseCase RejectUseCase
+@inject SporthalleWeb.Application.Reservierung.CreateRecurringRuleUseCase RecurringUseCase
+@inject SporthalleWeb.Domain.Reservierung.Ports.IRecurringRuleRepository RuleRepo
+@inject SporthalleWeb.Application.Reservierung.GetWeekSlotsQuery WeekSlotsQuery
 
 <div class="reservierung-admin">
-    <h2>Ausstehende Buchungsanfragen</h2>
+    <h2>Reservierungsverwaltung</h2>
 
-    @if (_loading)
+    <div class="admin-tabs d-flex gap-2 mb-4">
+        @foreach (var tab in _tabs)
+        {
+            <button class="btn btn-sm @(_activeTab == tab ? "btn-primary" : "btn-outline-secondary")"
+                    @onclick="() => SetTab(tab)">
+                @tab
+                @if (tab == "Pendente" && _pending.Count > 0)
+                {
+                    <span class="badge bg-danger ms-1">@_pending.Count</span>
+                }
+            </button>
+        }
+    </div>
+
+    @if (_message is not null)
     {
-        <p>Lade Anfragen…</p>
+        <div class="alert alert-success">@_message</div>
     }
-    else if (!_pending.Any())
+    @if (_error is not null)
     {
-        <div class="alert alert-info">Keine ausstehenden Anfragen.</div>
+        <div class="alert alert-danger">@_error</div>
     }
-    else
+
+    @switch (_activeTab)
     {
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Datum/Zeit</th>
-                        <th>Mieter</th>
-                        <th>Anlass</th>
-                        <th>Preis (CHF)</th>
-                        <th>Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in _pending)
-                    {
-                        var slot = item.Slot;
-                        var member = item.Member;
-                        <tr>
-                            <td>
-                                @FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)
-                            </td>
-                            <td>
-                                @if (member is not null)
-                                {
-                                    <span>@member.ContactPerson</span><br />
-                                    <small class="text-muted">@member.Email</small>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">–</span>
-                                }
-                            </td>
-                            <td>@(slot.EventType ?? "–")</td>
-                            <td>@(slot.TotalPrice?.ToString("0.–") ?? "–")</td>
-                            <td>
-                                <button class="btn btn-sm btn-success me-1"
-                                        @onclick="() => Confirm(slot.Id)">
-                                    Bestätigen
-                                </button>
-                                <button class="btn btn-sm btn-danger"
-                                        @onclick="() => ShowRejectDialog(slot.Id)">
-                                    Ablehnen
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        case "Pendente":
+            @if (_loading)
+            {
+                <p>Lade Anfragen…</p>
+            }
+            else if (!_pending.Any())
+            {
+                <div class="alert alert-info">Keine ausstehenden Anfragen.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Datum / Zeit</th>
+                                <th>Mieter</th>
+                                <th>Anlass</th>
+                                <th>CHF</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _pending)
+                            {
+                                var slot = item.Slot;
+                                var member = item.Member;
+                                <tr>
+                                    <td>@FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)</td>
+                                    <td>
+                                        @if (member is not null)
+                                        {
+                                            <span>@member.ContactPerson</span><br />
+                                            <small class="text-muted">@member.Email</small>
+                                        }
+                                        else { <span class="text-muted">–</span> }
+                                    </td>
+                                    <td>@(slot.EventType ?? "–")</td>
+                                    <td>@(slot.TotalPrice?.ToString("0.–") ?? "–")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success me-1"
+                                                @onclick="() => ConfirmAsync(slot.Id)">
+                                            Bestätigen
+                                        </button>
+                                        <button class="btn btn-sm btn-danger"
+                                                @onclick="() => OpenRejectDialog(slot.Id)">
+                                            Ablehnen
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            break;
+
+        case "Alle Buchungen":
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <button class="btn btn-sm btn-outline-secondary"
+                        @onclick="() => ShiftWeekAsync(-7)">&#8249; Vorwoche</button>
+                <strong>KW @GetIsoWeek(_adminWeek): @_adminWeek.ToString("d. MMM") – @_adminWeek.AddDays(6).ToString("d. MMM yyyy")</strong>
+                <button class="btn btn-sm btn-outline-secondary"
+                        @onclick="() => ShiftWeekAsync(7)">Nächste Woche &#8250;</button>
+            </div>
+            @if (_loadingWeek)
+            {
+                <p>Lade…</p>
+            }
+            else if (!_weekSlots.Any())
+            {
+                <p class="text-muted">Keine Buchungen in dieser Woche.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Zeit</th><th>Dauer</th><th>Anlass</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @foreach (var ws in _weekSlots)
+                            {
+                                <tr>
+                                    <td>@FormatSlot(ws.StartUtc, ws.EndUtc)</td>
+                                    <td>@((int)(ws.EndUtc - ws.StartUtc).TotalMinutes) min</td>
+                                    <td>@(ws.EventType ?? "–")</td>
+                                    <td><span class="badge @StatusBadge(ws.Status)">@ws.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            <div class="mt-3">
+                <strong>CSV-Export:</strong>
+                <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
+                    <input type="date" class="form-control form-control-sm" style="width:160px"
+                           @bind="_exportFrom" />
+                    <span>bis</span>
+                    <input type="date" class="form-control form-control-sm" style="width:160px"
+                           @bind="_exportTo" />
+                    <a href="@($"/api/reservierung/admin/export?von={_exportFrom:yyyy-MM-dd}&bis={_exportTo:yyyy-MM-dd}&nurBestaetigt=true")"
+                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                        CSV herunterladen
+                    </a>
+                </div>
+            </div>
+            break;
+
+        case "Serien-Regeln":
+            <h4>Bestehende Regeln</h4>
+            @if (!_rules.Any())
+            {
+                <p class="text-muted">Keine aktiven Serien-Regeln.</p>
+            }
+            else
+            {
+                @foreach (var rule in _rules)
+                {
+                    <div class="card mb-2 p-2 d-flex flex-row align-items-center gap-3">
+                        @if (!string.IsNullOrEmpty(rule.Color))
+                        {
+                            <span class="d-inline-block rounded" style="width:12px;height:12px;background:@rule.Color"></span>
+                        }
+                        <span><strong>@rule.Description</strong></span>
+                        <span class="text-muted small">@((DayOfWeek)rule.DayOfWeek), @rule.StartTime.ToString("HH:mm") – @rule.EndTime.ToString("HH:mm")</span>
+                        <span class="text-muted small">@rule.ValidFrom.ToString("dd.MM.yy") – @rule.ValidUntil.ToString("dd.MM.yy")</span>
+                        <button class="btn btn-sm btn-outline-danger ms-auto"
+                                @onclick="() => DeactivateRuleAsync(rule.Id)">
+                            Deaktivieren
+                        </button>
+                    </div>
+                }
+            }
+            <h4 class="mt-4">Neue Serien-Regel</h4>
+            <div class="row g-2" style="max-width:640px">
+                <div class="col-12">
+                    <label class="form-label">Beschreibung *</label>
+                    <input class="form-control" @bind="_newRule.Description" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Wochentag *</label>
+                    <select class="form-select" @bind="_newRule.DayOfWeek">
+                        <option value="1">Montag</option>
+                        <option value="2">Dienstag</option>
+                        <option value="3">Mittwoch</option>
+                        <option value="4">Donnerstag</option>
+                        <option value="5">Freitag</option>
+                        <option value="6">Samstag</option>
+                        <option value="0">Sonntag</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Von *</label>
+                    <input type="time" class="form-control"
+                           value="@_newRule.StartTime"
+                           @onchange="e => _newRule.StartTime = e.Value?.ToString() ?? _newRule.StartTime" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Bis *</label>
+                    <input type="time" class="form-control"
+                           value="@_newRule.EndTime"
+                           @onchange="e => _newRule.EndTime = e.Value?.ToString() ?? _newRule.EndTime" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Gültig von *</label>
+                    <input type="date" class="form-control" @bind="_ruleValidFrom" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Gültig bis *</label>
+                    <input type="date" class="form-control" @bind="_ruleValidUntil" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Rhythmus</label>
+                    <select class="form-select" @bind="_newRule.IntervalWeeks">
+                        <option value="1">Wöchentlich</option>
+                        <option value="2">Zweiwöchentlich</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Farbe</label>
+                    <input type="color" class="form-control form-control-color" @bind="_newRule.Color" />
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="excl-holidays"
+                               @bind="_newRule.ExcludeSchoolHolidays" />
+                        <label class="form-check-label" for="excl-holidays">Schulferien ausschliessen</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notizen (optional)</label>
+                    <input class="form-control" @bind="_newRule.Notes" />
+                </div>
+                @if (_ruleError is not null)
+                {
+                    <div class="col-12"><div class="alert alert-danger py-2">@_ruleError</div></div>
+                }
+                <div class="col-12">
+                    <button class="btn btn-primary" @onclick="CreateRuleAsync">
+                        Regel erstellen + Slots generieren
+                    </button>
+                </div>
+            </div>
+            break;
+
+        case "Schulferien":
+            <h4>Schulferienperioden</h4>
+            <p class="text-muted small">Ferienzeiträume werden vom Seriengenerator ausgelassen, wenn «Schulferien ausschliessen» aktiv ist.</p>
+            @if (!_holidays.Any())
+            {
+                <p class="text-muted">Keine Ferienperioden erfasst.</p>
+            }
+            else
+            {
+                <table class="table table-sm" style="max-width:540px">
+                    <thead><tr><th>Bezeichnung</th><th>Von</th><th>Bis</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var h in _holidays)
+                        {
+                            <tr>
+                                <td>@h.Name</td>
+                                <td>@h.HolidayFrom.ToString("dd.MM.yyyy")</td>
+                                <td>@h.HolidayUntil.ToString("dd.MM.yyyy")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => DeleteHolidayAsync(h.Id)">
+                                        Löschen
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            <h5 class="mt-3">Neue Ferienperiode</h5>
+            <div class="row g-2" style="max-width:480px">
+                <div class="col-12">
+                    <label class="form-label">Bezeichnung *</label>
+                    <input class="form-control" @bind="_newHolidayName" placeholder="z. B. Sommerferien 2026" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Von *</label>
+                    <input type="date" class="form-control" @bind="_newHolidayFrom" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Bis *</label>
+                    <input type="date" class="form-control" @bind="_newHolidayUntil" />
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" @onclick="AddHolidayAsync">Hinzufügen</button>
+                </div>
+            </div>
+            break;
     }
 
     @if (_rejectSlotId is not null)
     {
-        <div class="modal-overlay">
-            <div class="modal-box">
-                <h4>Buchung ablehnen</h4>
-                <textarea class="form-control" @bind="_rejectReason" rows="3"
-                          placeholder="Begründung (optional)"></textarea>
-                <div class="mt-2">
-                    <button class="btn btn-danger me-2" @onclick="ConfirmReject">Ablehnen</button>
+        <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+             style="background:rgba(0,0,0,.5);z-index:1050">
+            <div class="card p-4" style="min-width:340px;max-width:480px">
+                <h5>Buchung ablehnen</h5>
+                <textarea class="form-control mb-3" @bind="_rejectReason" rows="3"
+                          placeholder="Ablehnungsgrund (optional)"></textarea>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-danger" @onclick="ConfirmRejectAsync">Ablehnen</button>
                     <button class="btn btn-secondary" @onclick="CancelReject">Abbrechen</button>
                 </div>
             </div>
         </div>
-    }
-
-    @if (_message is not null)
-    {
-        <div class="alert alert-success mt-3">@_message</div>
-    }
-    @if (_error is not null)
-    {
-        <div class="alert alert-danger mt-3">@_error</div>
     }
 </div>
 
@@ -96,72 +311,159 @@
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
+    private static readonly string[] _tabs = ["Pendente", "Alle Buchungen", "Serien-Regeln", "Schulferien"];
+    private string _activeTab = "Pendente";
+
     private IReadOnlyList<(SporthalleWeb.Domain.Reservierung.BookingSlot Slot, SporthalleWeb.Domain.Reservierung.HallMember? Member)> _pending = [];
+    private IReadOnlyList<SporthalleWeb.Domain.Reservierung.RecurringRule> _rules = [];
+    private IReadOnlyList<SporthalleWeb.Infrastructure.Reservierung.Persistence.SchoolHoliday> _holidays = [];
+    private IReadOnlyList<SporthalleWeb.Application.Reservierung.WeekSlotDto> _weekSlots = [];
+
     private bool _loading = true;
-    private int? _rejectSlotId;
-    private string? _rejectReason;
+    private bool _loadingWeek;
     private string? _message;
     private string? _error;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    // Reject dialog
+    private int? _rejectSlotId;
+    private string? _rejectReason;
 
-    private async Task LoadAsync()
+    // Week view
+    private DateTime _adminWeek = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
+    private DateOnly _exportFrom = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateOnly _exportTo = DateOnly.FromDateTime(DateTime.Today);
+
+    // New recurring rule form
+    private SporthalleWeb.Application.Reservierung.CreateRecurringRuleCommand _newRule = new();
+    private DateTime _ruleValidFrom = DateTime.Today;
+    private DateTime _ruleValidUntil = DateTime.Today.AddMonths(12);
+    private string? _ruleError;
+
+    // New holiday form
+    private string _newHolidayName = "";
+    private DateOnly _newHolidayFrom = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _newHolidayUntil = DateOnly.FromDateTime(DateTime.Today.AddDays(7));
+
+    protected override async Task OnInitializedAsync() => await LoadAllAsync();
+
+    private async Task LoadAllAsync()
     {
         _loading = true;
+        _message = null;
+        _error = null;
         _pending = await AdminService.GetPendingAsync();
+        _rules = await RuleRepo.GetActiveRulesAsync();
+        _holidays = await AdminService.GetSchoolHolidaysAsync();
         _loading = false;
     }
 
-    private async Task Confirm(int slotId)
+    private async Task SetTab(string tab)
     {
-        _error = null;
-        _message = null;
+        _activeTab = tab;
+        if (tab == "Alle Buchungen" && !_weekSlots.Any())
+            await LoadWeekAsync();
+    }
+
+    private async Task LoadWeekAsync()
+    {
+        _loadingWeek = true;
+        var monday = DateOnly.FromDateTime(_adminWeek);
+        _weekSlots = await WeekSlotsQuery.ExecuteAsync(monday);
+        _loadingWeek = false;
+    }
+
+    private async Task ShiftWeekAsync(int days)
+    {
+        _adminWeek = _adminWeek.AddDays(days);
+        await LoadWeekAsync();
+    }
+
+    private async Task ConfirmAsync(int slotId)
+    {
+        ClearMessages();
         try
         {
             await ConfirmUseCase.ExecuteAsync(slotId, AdminUser);
             _message = $"Buchung #{slotId} wurde bestätigt.";
-            await LoadAsync();
+            await LoadAllAsync();
         }
-        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
-        {
-            _error = ex.Message;
-        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { _error = ex.Message; }
     }
 
-    private void ShowRejectDialog(int slotId)
-    {
-        _rejectSlotId = slotId;
-        _rejectReason = null;
-    }
+    private void OpenRejectDialog(int id) { _rejectSlotId = id; _rejectReason = null; }
 
-    private async Task ConfirmReject()
+    private async Task ConfirmRejectAsync()
     {
         if (_rejectSlotId is null) return;
-        _error = null;
-        _message = null;
+        ClearMessages();
         try
         {
             await RejectUseCase.ExecuteAsync(_rejectSlotId.Value, _rejectReason ?? "", AdminUser);
             _message = $"Buchung #{_rejectSlotId} wurde abgelehnt.";
             _rejectSlotId = null;
-            await LoadAsync();
+            await LoadAllAsync();
         }
-        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
-        {
-            _error = ex.Message;
-        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { _error = ex.Message; }
     }
 
-    private void CancelReject()
+    private void CancelReject() { _rejectSlotId = null; _rejectReason = null; }
+
+    private async Task CreateRuleAsync()
     {
-        _rejectSlotId = null;
-        _rejectReason = null;
+        _ruleError = null;
+        try
+        {
+            _newRule.ValidFrom = DateOnly.FromDateTime(_ruleValidFrom);
+            _newRule.ValidUntil = DateOnly.FromDateTime(_ruleValidUntil);
+            var rule = await RecurringUseCase.ExecuteAsync(_newRule, AdminUser);
+            _message = $"Serien-Regel «{rule.Description}» erstellt.";
+            _newRule = new SporthalleWeb.Application.Reservierung.CreateRecurringRuleCommand();
+            _rules = await RuleRepo.GetActiveRulesAsync();
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { _ruleError = ex.Message; }
     }
+
+    private async Task DeactivateRuleAsync(int id)
+    {
+        await RuleRepo.DeactivateAsync(id);
+        _rules = await RuleRepo.GetActiveRulesAsync();
+        _message = "Serien-Regel deaktiviert.";
+    }
+
+    private async Task AddHolidayAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newHolidayName)) return;
+        await AdminService.AddHolidayAsync(_newHolidayName, _newHolidayFrom, _newHolidayUntil);
+        _newHolidayName = "";
+        _holidays = await AdminService.GetSchoolHolidaysAsync();
+    }
+
+    private async Task DeleteHolidayAsync(int id)
+    {
+        await AdminService.DeleteHolidayAsync(id);
+        _holidays = await AdminService.GetSchoolHolidaysAsync();
+    }
+
+    private void ClearMessages() { _message = null; _error = null; }
 
     private string FormatSlot(DateTime startUtc, DateTime endUtc)
     {
         var start = TimeZoneInfo.ConvertTimeFromUtc(startUtc, Zurich);
         var end = TimeZoneInfo.ConvertTimeFromUtc(endUtc, Zurich);
         return $"{start:ddd d. MMM yyyy HH:mm} – {end:HH:mm}";
+    }
+
+    private static string StatusBadge(string status) => status switch
+    {
+        "Confirmed" => "bg-success",
+        "Provisional" => "bg-warning text-dark",
+        "Rejected" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static int GetIsoWeek(DateTime date)
+    {
+        var cal = System.Globalization.CultureInfo.GetCultureInfo("de-CH").Calendar;
+        return cal.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
     }
 }

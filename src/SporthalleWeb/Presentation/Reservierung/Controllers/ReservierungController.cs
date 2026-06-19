@@ -26,7 +26,8 @@ public sealed class ReservierungController(
     CreateRecurringRuleUseCase createRecurringRule,
     BookingAdminService adminService,
     IBookingSlotRepository slotRepo,
-    IBookingCsvPort csvExport) : ControllerBase
+    IBookingCsvPort csvExport,
+    IMemberManagerPort memberManager) : ControllerBase
 {
     // ── Calendar / week view ──────────────────────────────────────────────────
 
@@ -169,6 +170,19 @@ public sealed class ReservierungController(
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    // ── Current member ────────────────────────────────────────────────────────
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetCurrentMember()
+    {
+        var memberId = GetMemberId();
+        if (memberId is null) return Unauthorized();
+        var member = await memberManager.FindByIdAsync(memberId.Value);
+        if (member is null) return Unauthorized();
+        return Ok(HallMemberDto.From(member));
     }
 
     // ── Bookings (member) ─────────────────────────────────────────────────────

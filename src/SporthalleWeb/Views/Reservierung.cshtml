@@ -33,6 +33,11 @@
     @await Html.PartialAsync("~/Views/Partials/_ReservierungsKalender.cshtml")
   </section>
 
+  <section class="reservierung-section reservierung-picker-section">
+    <component type="typeof(SporthalleWeb.Components.Reservierung.BuchungsPickerComponent)"
+               render-mode="Server" />
+  </section>
+
   @if (!string.IsNullOrWhiteSpace(textAfter))
   {
     <section class="reservierung-intro reservierung-after">
