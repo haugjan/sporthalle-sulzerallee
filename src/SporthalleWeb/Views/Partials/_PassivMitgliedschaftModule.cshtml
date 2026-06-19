@@ -1,0 +1,161 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    var turnstileSiteKey = ViewData["TurnstileSiteKey"] as string
+        ?? Configuration["Turnstile:SiteKey"]
+        ?? "1x00000000000000000000AA";
+}
+
+<section class="pm-floor-section">
+  <p class="pm-counter"><span id="pm-counter">0 von 300 Feldern belegt</span></p>
+  <div id="pm-svg-container"></div>
+  <div class="pm-legend">
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--free"></span> Frei</div>
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--vip"></span> Torraum / Anspielkreis</div>
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--occupied"></span> Belegt</div>
+  </div>
+</section>
+
+<div class="pm-success-wrap">
+  <div id="pm-success" class="pm-message pm-message--success pm-message--hidden">
+    Herzlich willkommen! Deine Anmeldung ist eingegangen. Du erhältst in Kürze eine Bestätigungs-E-Mail.
+  </div>
+</div>
+
+<div id="pm-wizard-overlay" class="pm-wizard-overlay" role="dialog" aria-modal="true" aria-label="Anmeldung Passivmitgliedschaft">
+  <div id="pm-wizard-modal" class="pm-wizard__modal">
+
+    <div class="pm-wizard__header">
+      <h2 class="pm-wizard__title">Passivmitglied werden</h2>
+      <button id="pm-wizard-close" class="pm-wizard__close" aria-label="Schliessen">&times;</button>
+    </div>
+
+    <div class="pm-progress" aria-hidden="true">
+      <span class="pm-progress__dot pm-progress__dot--active" data-step="1"></span>
+      <span class="pm-progress__dot" data-step="2"></span>
+      <span class="pm-progress__dot" data-step="3"></span>
+      <span class="pm-progress__dot" data-step="4"></span>
+      <span class="pm-progress__dot" data-step="5"></span>
+      <span class="pm-progress__dot" data-step="6"></span>
+      <span class="pm-progress__label" id="pm-step-label">Schritt 1 von 6</span>
+    </div>
+
+    <div class="pm-wizard__body">
+
+      <div class="pm-step pm-step--active" data-step="1">
+        <h3>Dein Feld</h3>
+        <p>Du hast folgendes Feld gewählt:</p>
+        <div class="pm-field-preview" id="pm-step1-field">Feld Nr. –</div>
+        <p style="font-size:0.9rem;color:#666;">Klicke «Weiter» um fortzufahren, oder schliesse den Dialog um ein anderes Feld zu wählen.</p>
+      </div>
+
+      <div class="pm-step" data-step="2">
+        <h3>Mitgliedsstufe wählen</h3>
+        <div class="pm-wizard-levels">
+          <label class="pm-wizard-level pm-wizard-level--bronze">
+            <input type="radio" name="levelKey" value="Bronze" />
+            <span class="pm-wizard-level__badge">Bronze</span>
+            <span class="pm-wizard-level__info">
+              <span class="pm-wizard-level__name">Hallenbodenbesitzer</span>
+              <span class="pm-wizard-level__fee">CHF 50.–/Jahr</span>
+            </span>
+          </label>
+          <label class="pm-wizard-level pm-wizard-level--silber">
+            <input type="radio" name="levelKey" value="Silber" />
+            <span class="pm-wizard-level__badge">Silber</span>
+            <span class="pm-wizard-level__info">
+              <span class="pm-wizard-level__name">Chnebler</span>
+              <span class="pm-wizard-level__fee">CHF 100.–/Jahr</span>
+            </span>
+          </label>
+          <label class="pm-wizard-level pm-wizard-level--gold">
+            <input type="radio" name="levelKey" value="Gold" />
+            <span class="pm-wizard-level__badge">Gold</span>
+            <span class="pm-wizard-level__info">
+              <span class="pm-wizard-level__name">Cüpli-Chnebler</span>
+              <span class="pm-wizard-level__fee">CHF 200.–/Jahr</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="pm-step" data-step="3">
+        <h3>Deine Angaben</h3>
+        <div class="pm-form-group">
+          <label for="pm-firstName">Vorname <span class="pm-required">*</span></label>
+          <input type="text" id="pm-firstName" autocomplete="given-name" />
+        </div>
+        <div class="pm-form-group">
+          <label for="pm-lastName">Nachname <span class="pm-required">*</span></label>
+          <input type="text" id="pm-lastName" autocomplete="family-name" />
+        </div>
+        <div class="pm-form-group">
+          <label for="pm-email">E-Mail-Adresse <span class="pm-required">*</span></label>
+          <input type="email" id="pm-email" autocomplete="email" />
+        </div>
+      </div>
+
+      <div class="pm-step" data-step="4">
+        <h3>Adresse</h3>
+        <div class="pm-form-group">
+          <label for="pm-addressLine">Strasse und Hausnummer <span class="pm-required">*</span></label>
+          <input type="text" id="pm-addressLine" autocomplete="street-address" />
+        </div>
+        <div class="pm-form-group pm-form-row">
+          <div>
+            <label for="pm-postalCode">PLZ <span class="pm-required">*</span></label>
+            <input type="text" id="pm-postalCode" autocomplete="postal-code" />
+          </div>
+          <div>
+            <label for="pm-city">Ort <span class="pm-required">*</span></label>
+            <input type="text" id="pm-city" autocomplete="address-level2" />
+          </div>
+        </div>
+      </div>
+
+      <div class="pm-step" data-step="5">
+        <h3>Einstellungen & Einwilligung</h3>
+        <div class="pm-form-group">
+          <label class="pm-checkbox-label">
+            <input type="checkbox" id="pm-showName" />
+            Meinen Namen auf dem Bodenplan anzeigen
+          </label>
+        </div>
+        <div id="pm-displayName-wrap" class="pm-form-group pm-hidden">
+          <label for="pm-displayName">Anzeigename <span class="pm-hint">(leer = Vor- und Nachname)</span></label>
+          <input type="text" id="pm-displayName" placeholder="z.B. Familie Müller" />
+        </div>
+        <div class="pm-consent-block">
+          <label class="pm-checkbox-label">
+            <input type="checkbox" id="pm-consent" />
+            Ich stimme zu, dass meine Daten zur Abwicklung der Passivmitgliedschaft gespeichert und verwendet werden. Die Daten werden nicht an Dritte weitergegeben.
+          </label>
+        </div>
+        <div class="pm-turnstile-wrap">
+          <div class="cf-turnstile" data-sitekey="@turnstileSiteKey" data-theme="light"></div>
+        </div>
+      </div>
+
+      <div class="pm-step" data-step="6">
+        <h3>Zusammenfassung</h3>
+        <div class="pm-summary">
+          <div class="pm-summary__row"><span class="pm-summary__label">Feld</span><span class="pm-summary__value" id="pm-sum-field">–</span></div>
+          <div class="pm-summary__row"><span class="pm-summary__label">Stufe</span><span class="pm-summary__value" id="pm-sum-level">–</span></div>
+          <div class="pm-summary__row"><span class="pm-summary__label">Name</span><span class="pm-summary__value" id="pm-sum-name">–</span></div>
+          <div class="pm-summary__row"><span class="pm-summary__label">E-Mail</span><span class="pm-summary__value" id="pm-sum-email">–</span></div>
+          <div class="pm-summary__row"><span class="pm-summary__label">Adresse</span><span class="pm-summary__value" id="pm-sum-address">–</span></div>
+          <div class="pm-summary__row"><span class="pm-summary__label">Anzeige</span><span class="pm-summary__value" id="pm-sum-display">–</span></div>
+        </div>
+        <p style="font-size:0.85rem;color:#888;margin-top:1rem;">Mit «Jetzt anmelden» sendest du deine Anmeldung ab. Du erhältst eine Bestätigungs-E-Mail.</p>
+        <div id="pm-step-error" class="pm-message pm-message--error pm-message--hidden" style="margin-top:0.75rem;max-width:100%;"></div>
+      </div>
+
+    </div>
+
+    <div class="pm-wizard__footer">
+      <button class="pm-btn-back" type="button">Zurück</button>
+      <button class="pm-btn-next" type="button">Weiter</button>
+      <button id="pm-btn-submit" type="button" style="display:none">Jetzt anmelden</button>
+    </div>
+
+  </div>
+</div>

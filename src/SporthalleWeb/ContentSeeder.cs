@@ -125,15 +125,46 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
 
     private void EnsureContentTypeTemplates(ITemplate? homeTemplate, ITemplate? contentPageTemplate)
     {
+        var passivMitgliedschaftTemplate = EnsureTemplate("PassivMitgliedschaft", "Passiv Mitgliedschaft");
+
         if (homeTemplate != null)
         {
             var homePage = _contentTypeService.Get("homePage");
-            if (homePage != null && !homePage.AllowedTemplates.Any())
+            if (homePage != null)
             {
-                homePage.AllowedTemplates = new[] { homeTemplate };
-                homePage.SetDefaultTemplate(homeTemplate);
-                _contentTypeService.Save(homePage, Constants.Security.SuperUserId);
-                _logger.LogInformation("ContentSeeder: assigned template to existing homePage content type.");
+                var dirty = false;
+                if (!homePage.AllowedTemplates.Any())
+                {
+                    homePage.AllowedTemplates = new[] { homeTemplate };
+                    homePage.SetDefaultTemplate(homeTemplate);
+                    dirty = true;
+                }
+                var allowedAliases = homePage.AllowedContentTypes.Select(c => c.Alias).ToHashSet();
+                var sortOrder = homePage.AllowedContentTypes.Count();
+                var toAdd = new List<ContentTypeSort>();
+
+                var contentPageType = _contentTypeService.Get("contentPage");
+                if (contentPageType != null && !allowedAliases.Contains(contentPageType.Alias))
+                {
+                    toAdd.Add(new ContentTypeSort(contentPageType.Key, sortOrder++, contentPageType.Alias));
+                    _logger.LogInformation("ContentSeeder: adding contentPage as allowed child of homePage.");
+                }
+                var passivType = _contentTypeService.Get("passivMitgliedschaft");
+                if (passivType != null && !allowedAliases.Contains(passivType.Alias))
+                {
+                    toAdd.Add(new ContentTypeSort(passivType.Key, sortOrder++, passivType.Alias));
+                    _logger.LogInformation("ContentSeeder: adding passivMitgliedschaft as allowed child of homePage.");
+                }
+                if (toAdd.Count > 0)
+                {
+                    homePage.AllowedContentTypes = homePage.AllowedContentTypes.Concat(toAdd).ToArray();
+                    dirty = true;
+                }
+                if (dirty)
+                {
+                    _contentTypeService.Save(homePage, Constants.Security.SuperUserId);
+                    _logger.LogInformation("ContentSeeder: updated homePage content type.");
+                }
             }
         }
 
@@ -146,6 +177,18 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
                 contentPage.SetDefaultTemplate(contentPageTemplate);
                 _contentTypeService.Save(contentPage, Constants.Security.SuperUserId);
                 _logger.LogInformation("ContentSeeder: assigned template to existing contentPage content type.");
+            }
+        }
+
+        if (passivMitgliedschaftTemplate != null)
+        {
+            var passivMitgliedschaft = _contentTypeService.Get("passivMitgliedschaft");
+            if (passivMitgliedschaft != null && !passivMitgliedschaft.AllowedTemplates.Any())
+            {
+                passivMitgliedschaft.AllowedTemplates = new[] { passivMitgliedschaftTemplate };
+                passivMitgliedschaft.SetDefaultTemplate(passivMitgliedschaftTemplate);
+                _contentTypeService.Save(passivMitgliedschaft, Constants.Security.SuperUserId);
+                _logger.LogInformation("ContentSeeder: assigned template to passivMitgliedschaft content type.");
             }
         }
     }

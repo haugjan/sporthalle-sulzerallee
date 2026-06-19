@@ -1,25 +1,11 @@
-/* ===== Page-Header ohne Bild: Noise-Effekt ===== */
-.page-passivmitglied .page-header--noise {
-  background: #1a1a1a;
-  height: 320px;
-  display: flex;
-  align-items: flex-end;
+/* ===== Success-Meldung nach dem Modul ===== */
+.pm-success-wrap {
   padding: 0 2rem 2rem;
-  position: relative;
-  overflow: hidden;
+  max-width: 840px;
+  margin: 0 auto;
 }
 
-.page-passivmitglied .page-header--noise::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 300px 300px;
-  opacity: 0.07;
-  pointer-events: none;
-}
-
-/* ===== Intro-Abschnitt ===== */
+/* ===== Intro-Abschnitt (legacy, für evtl. eigene Klassen im Richtext) ===== */
 .pm-intro {
   padding: 4rem 2rem;
   max-width: 1100px;
@@ -293,14 +279,19 @@
 
 /* ===== Bodenplan-Abschnitt ===== */
 .pm-floor-section {
-  padding: 4rem 2rem;
+  padding: 3rem 0 0;
   background: #111;
+  max-width: 100%;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .pm-floor-section h2 {
   max-width: 840px;
   margin: 0 auto 0.5rem;
   color: #fff;
+  padding: 0 2rem;
 }
 
 .pm-floor-section .pm-counter {
@@ -308,11 +299,11 @@
   margin: 0 auto 1.5rem;
   color: #aaa;
   font-size: 0.95rem;
+  padding: 0 2rem;
 }
 
 #pm-svg-container {
-  max-width: 840px;
-  margin: 0 auto;
+  width: 100%;
   cursor: crosshair;
 }
 
@@ -320,8 +311,6 @@
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 6px;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.6);
 }
 
 /* SVG grid cells */
@@ -366,7 +355,8 @@
   display: flex;
   gap: 1.5rem;
   max-width: 840px;
-  margin: 1rem auto 0;
+  margin: 0 auto;
+  padding: 1.25rem 2rem 2rem;
   flex-wrap: wrap;
 }
 

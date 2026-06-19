@@ -1,6 +1,7 @@
 # Implementierungsplan: Passivmitgliedschaft
 
-Erstellt: 2026-06-17
+Erstellt: 2026-06-17  
+Blazor-Hybrid ergänzt: 2026-06-19
 
 ---
 
@@ -31,11 +32,30 @@ Administratoren verwalten die Mitglieder über einen geschützten Bereich.
 | Felder Torraum / Kreise | VIP-Felder: werden angezeigt und können gewählt werden, aber sind visuell hervorgehoben und namentlich bezeichnet (z.B. "Torraum", "Anspielkreis") |
 | Live-Zähler | Ja: "X von 300 Feldern belegt" wird auf der Seite angezeigt |
 | Page-Header-Bild | Keines vorhanden; Header zeigt nur dunklen Hintergrund mit Noise-Effekt |
+| Frontend | **Blazor Server** (Interactive Server Rendering) für alle interaktiven UI-Teile; Umbraco Razor für Layout-Shell |
+| Sprache (Typen) | Alle C#-Typen (Klassen, Records, Enums, Interfaces, Methoden, Properties) werden auf **Englisch** benannt. Deutsch nur in UI-Texten, Fehlermeldungen und Kommentaren. |
+
+### Hybridmodell: Umbraco + Blazor Server
+
+Diese Lösung ist ein **Hybrid** — kein Plattformwechsel. Umbraco bleibt das CMS, Blazor
+wird ausschliesslich für interaktive Komponenten-Inseln eingesetzt:
+
+| Schicht | Technologie | Verantwortung |
+|---------|-------------|---------------|
+| CMS & Routing | Umbraco 17 | Seiten, Content-Types, Templates, URL-Routing |
+| Layout & statische Inhalte | Razor-Templates (`.cshtml`) | Header, Footer, Umbraco-Felder, CSS-Einbindung |
+| Interaktive Komponenten-Inseln | Blazor Server (`.razor`) | SVG-Grid, Anmeldewizard, Admin-Dashboard |
+| Minimale JS-Brücke | Vanilla JS (stark reduziert) | Turnstile-Callback (JS-Interop-Stub) |
+| Backend | ASP.NET Core Controller + Use Cases | API-Endpunkte, CSV/Excel-Export |
+
+Blazor **ersetzt nicht** Umbraco oder das Razor-Templating-System. Blazor-Komponenten werden
+via `<component type="typeof(...)" render-mode="Server" />` in bestehende Umbraco-Razor-Views
+eingebettet. Alles ausserhalb der interaktiven Inseln bleibt klassisches Umbraco.
 
 ### Abgrenzung
 
 - Keine direkte Zahlungsintegration. Die Jahresrechnung wird separat verschickt (ausserhalb dieser Anwendung).
-- Admin-Bereich: per Umbraco-Login geschützte Razor Page, kein separates Backoffice-Extension-Plugin.
+- Admin-Bereich: per Umbraco-Login geschützte Razor Page, die eine Blazor-Komponente hostet.
 
 ---
 
@@ -43,16 +63,23 @@ Administratoren verwalten die Mitglieder über einen geschützten Bereich.
 
 ### 2.1 Hexagonale Architektur (Ports & Adapters)
 
-Der Kern (Domain + Application) kennt keine Infrastrukturdetails. Alles, was nach aussen geht
-(DB, E-Mail, Excel), wird über Ports (Interfaces im Domain-Kern) abstrahiert. Adapter-Klassen
-in der Infrastructure-Schicht implementieren diese Ports.
+Der Kern (Domain + Application) kennt keine Infrastrukturdetails. Die Blazor-Komponenten
+sind **Inbound Adapters** — sie rufen Application-Layer Use Cases direkt auf (kein HTTP-Roundtrip
+zur eigenen API nötig, da Blazor Server auf demselben Prozess läuft).
 
 ```
-                     ┌──────────────────────────────────────┐
-  HTTP-Request ─────►│  Presentation (Inbound Adapter)       │
-                     │  Controller / Razor Pages / Views     │
-                     └──────────────────┬───────────────────┘
-                                        │ ruft auf
+                     ┌──────────────────────────────────────────────────┐
+  Browser ──────────►│  Presentation (Inbound Adapters)                  │
+  (SignalR Circuit)  │  Blazor Server Components (InteractiveServer)     │
+                     │  BodenplanComponent.razor                         │
+                     │  RegistrierungsWizardComponent.razor              │
+                     │  PassivMitgliederAdminComponent.razor             │
+                     │                                                    │
+                     │  Umbraco Razor Template (Shell)                   │
+                     │  PassivMitgliedschaft.cshtml                      │
+                     │  PassivMitgliederAdmin.cshtml (dünner Wrapper)    │
+                     └──────────────────┬───────────────────────────────┘
+                                        │ ruft auf (direkte DI-Injektion)
                      ┌──────────────────▼───────────────────┐
                      │  Application Layer (Use Cases)        │
                      │  RegisterMemberUseCase                │
@@ -92,6 +119,8 @@ in der Infrastructure-Schicht implementieren diese Ports.
 
 ```
 src/SporthalleWeb/
+├── _Imports.razor                               Blazor-weite @using-Statements
+│
 ├── Domain/PassivMitgliedschaft/
 │   ├── PassivMitglied.cs                       Aggregate Root
 │   ├── FieldNumber.cs                          Value Object
@@ -127,33 +156,37 @@ src/SporthalleWeb/
 │       └── PassivMitgliederComposer.cs
 │
 └── Presentation/PassivMitgliedschaft/
-    ├── Controllers/
-    │   └── PassivMitgliederController.cs
-    ├── Pages/
-    │   ├── PassivMitgliederAdmin.cshtml
-    │   └── PassivMitgliederAdmin.cshtml.cs
-    └── Dtos/
-        ├── RegisterMemberRequest.cs
-        └── FieldStatusResponse.cs
+    ├── Components/                             Blazor-Komponenten (NEU)
+    │   ├── BodenplanComponent.razor            SVG-Grid + Live-Zähler
+    │   ├── RegistrierungsWizardComponent.razor 6-Schritt-Anmeldung
+    │   └── PassivMitgliederAdminComponent.razor Admin-Tabelle + Export
+    ├── Dtos/
+    │   ├── RegisterMemberRequest.cs            (bleibt für API-Fallback)
+    │   └── FieldStatusResponse.cs
+    └── Controllers/
+        └── PassivMitgliederController.cs       (bleibt für externe API-Nutzung)
 
 Views/
-└── PassivMitgliedschaft.cshtml             Umbraco Template (NEU)
-    Home.cshtml                             Teaser-Abschnitt (GEÄNDERT)
+└── PassivMitgliedschaft.cshtml                 Umbraco Template (Shell mit <component>)
+    Home.cshtml                                 Teaser-Abschnitt
+
+Pages/
+└── PassivMitgliederAdmin.cshtml               Dünner Razor-Page-Wrapper
+    PassivMitgliederAdmin.cshtml.cs            [UmbracoAdminAuthorize] + leeres Page-Model
 
 uSync/v17/
 ├── ContentTypes/
-│   ├── passivmitgliedschaft.config         NEU
-│   └── homepage.config                     GEÄNDERT (Structure erweitert)
+│   ├── passivmitgliedschaft.config
+│   └── homepage.config
 └── Templates/
-    └── passivmitgliedschaft.config         NEU
+    └── passivmitgliedschaft.config
 
 wwwroot/
-├── css/passivmitglied.css                  NEU
-├── js/passivmitglied.js                    NEU
-└── media/unihockey-boden.svg               NEU
+├── css/passivmitglied.css                     Verbleibt (Grid-Styles, Farben, Modal)
+└── media/unihockey-boden.svg                  Statische SVG-Basis (ohne Grid-Overlay)
 ```
 
-Geänderte bestehende Dateien: `appsettings.json`, `SporthalleWeb.csproj`
+*`wwwroot/js/passivmitglied.js` entfällt — Interaktionslogik liegt in den Blazor-Komponenten.*
 
 ---
 
@@ -168,10 +201,10 @@ public sealed class PassivMitglied
     public FieldNumber FieldNumber { get; private set; }
     public string FirstName { get; private set; }
     public string LastName { get; private set; }
-    public string AddressLine { get; private set; }   // Strasse + Hausnummer in einem Feld
+    public string AddressLine { get; private set; }
     public string PostalCode { get; private set; }
     public string City { get; private set; }
-    public string Country { get; private set; }        // immer "Schweiz"
+    public string Country { get; private set; }
     public MemberEmail Email { get; private set; }
     public MembershipLevel Level { get; private set; }
     public bool ShowNameOnFloor { get; private set; }
@@ -272,19 +305,10 @@ Das SVG-Grid ist 20 Spalten × 15 Zeilen = 300 Felder. Zellgrösse: 40 × 26.67 
 ```csharp
 public static class VipField
 {
-    // Torraum links: SVG x=77-157, y=170-270 → Relativkoord. x=57-137, y=150-250
-    // → col 1-3, row 5-9 (0-basiert)
-    private static readonly HashSet<int> GoalCreaseLeft = ComputeRange(cols: (1,3), rows: (5,9));
-
-    // Torraum rechts: gespiegelt → col 16-18, row 5-9
+    private static readonly HashSet<int> GoalCreaseLeft  = ComputeRange(cols: (1,3), rows: (5,9));
     private static readonly HashSet<int> GoalCreaseRight = ComputeRange(cols: (16,18), rows: (5,9));
-
-    // Anspielkreis Mitte: SVG cx=420, cy=220, r=60 → Relativmitte (400,200)
-    // → col 8-11, row 5-9 (Näherung)
-    private static readonly HashSet<int> CenterCircle = ComputeRange(cols: (8,11), rows: (5,9));
-
-    // Anspielpunkte (einzelne Felder): links (col 1, row 0/13), mitte (col 9, row 0/13), rechts (col 18, row 0/13)
-    private static readonly HashSet<int> FaceOffSpots = new() { 2, 182, 181, 200, 20, 199, 199 }; // wird exakt berechnet
+    private static readonly HashSet<int> CenterCircle    = ComputeRange(cols: (8,11), rows: (5,9));
+    private static readonly HashSet<int> FaceOffSpots    = new() { 2, 182, 181, 200, 20, 199 };
 
     public static string? GetLabel(int fieldNumber) =>
         GoalCreaseLeft.Contains(fieldNumber)   ? "Torraum" :
@@ -305,9 +329,6 @@ public static class VipField
     }
 }
 ```
-
-VIP-Felder sind regulär wählbar, werden aber im SVG-Overlay anders eingefärbt und tragen
-ein Tooltip-Label. In Phase 2 kann hier ein Aufpreis oder eine andere Stufe eingeführt werden.
 
 ### 4.4 Outbound Ports
 
@@ -366,7 +387,7 @@ public sealed class RegisterMemberUseCase(
             cmd.ShowNameOnFloor, cmd.DisplayName);
 
         await repo.SaveAsync(member);
-        await email.SendRegistrationConfirmationAsync(member);  // nach dem Speichern
+        await email.SendRegistrationConfirmationAsync(member);
 
         return member;
     }
@@ -374,7 +395,8 @@ public sealed class RegisterMemberUseCase(
 
 public record RegisterMemberCommand(
     int FieldNumber, string FirstName, string LastName,
-    string Address, string Email, string LevelKey,
+    string Address, string PostalCode, string City,
+    string Email, string LevelKey,
     bool ShowNameOnFloor, string? DisplayName, bool Consent);
 ```
 
@@ -435,12 +457,12 @@ CREATE TABLE PassivMitglieder (
     FieldNumber     INT NOT NULL UNIQUE,
     FirstName       NVARCHAR(100) NOT NULL,
     LastName        NVARCHAR(100) NOT NULL,
-    AddressLine     NVARCHAR(300) NOT NULL,   -- Strasse + Hausnummer
+    AddressLine     NVARCHAR(300) NOT NULL,
     PostalCode      NVARCHAR(20)  NOT NULL,
     City            NVARCHAR(100) NOT NULL,
     Country         NVARCHAR(100) NOT NULL DEFAULT 'Schweiz',
     Email           NVARCHAR(200) NOT NULL,
-    MembershipLevel NVARCHAR(20)  NOT NULL,   -- 'Bronze' | 'Silber' | 'Gold'
+    MembershipLevel NVARCHAR(20)  NOT NULL,
     ShowNameOnFloor BIT           NOT NULL DEFAULT 0,
     DisplayName     NVARCHAR(200) NULL,
     CreatedAt       DATETIME      NOT NULL,
@@ -515,50 +537,9 @@ public class BrevoEmailOptions
 }
 ```
 
-Konfiguration in `appsettings.json`:
-```json
-"Brevo": {
-  "ApiKey": ""
-}
-```
-
-`appsettings.Development.json` nutzt denselben Key (Dev-Account bei Brevo oder leer lassen für
-lokales Testen mit einem Log-Only-Stub). Der API-Key wird in Azure als
-App Service Environment Variable `Brevo__ApiKey` gesetzt.
-
 ### 6.3 AbaNinja-CSV-Adapter
 
-Der Export erzeugt eine Semicolon-CSV-Datei im AbaNinja-Kontakte-Importformat, die direkt
-unter "Kontakte > Importieren" in AbaNinja hochgeladen werden kann.
-
-**Format:** Semikolon-getrennt, Felder in doppelten Anführungszeichen, UTF-8 mit BOM
-(damit Excel und AbaNinja die Umlaute korrekt lesen).
-
-**Spalten-Mapping:**
-
-| AbaNinja-Spalte | Quelle |
-|----------------|--------|
-| `Benutzer` | leer (AbaNinja setzt den eigenen User) |
-| `Kundennummer` | `PM` + Id.ToString("D4") (z.B. `PM0042`) |
-| `Unternehmensname` | leer |
-| `Anrede` | leer (nicht erhoben) |
-| `Vorname` | `FirstName` |
-| `Nachname` | `LastName` |
-| `E-Mail Adresse` | `Email.Value` |
-| `Webseite` | leer |
-| `Telefon` | leer |
-| `Mobiltelefon` | leer |
-| `Strasse` | `AddressLine` (Strasse + Hausnummer kombiniert) |
-| `Hausnummer` | leer |
-| `Zusatzfeld` | leer |
-| `Adresszusatz` | leer |
-| `PLZ` | `PostalCode` |
-| `Stadt` | `City` |
-| `Land` | `Country` (immer "Schweiz") |
-| `Notizen` | `"Feld Nr. {X} – {Level.DisplayName} – CHF {YearlyFee}.–/Jahr – Anmeldung: {CreatedAt:dd.MM.yyyy}"` + interne Notes wenn vorhanden |
-| `Währung` | `CHF` |
-| `Kriterien` | `Passivmitglied` |
-| `Mitarbeiter 1`…`10` | alle leer |
+Der Export erzeugt eine Semicolon-CSV-Datei im AbaNinja-Kontakte-Importformat.
 
 ```csharp
 public class AbaninjaCsvAdapter : IAbaninjaCsvPort
@@ -570,7 +551,6 @@ public class AbaninjaCsvAdapter : IAbaninjaCsvPort
         "Telefon", "Mobiltelefon", "Strasse", "Hausnummer",
         "Zusatzfeld", "Adresszusatz", "PLZ", "Stadt", "Land",
         "Notizen", "Währung", "Kriterien",
-        // Mitarbeiter 1-10 (je 5 Felder) = 50 weitere leere Spalten
         .. Enumerable.Range(1, 10).SelectMany(i => new[]
         {
             $"Mitarbeiter {i}", $"Mitarbeiter {i} Webseite",
@@ -594,20 +574,17 @@ public class AbaninjaCsvAdapter : IAbaninjaCsvPort
 
             var cols = new List<string>
             {
-                "",                                // Benutzer
-                $"PM{m.Id:D4}",                   // Kundennummer
-                "", "", m.FirstName, m.LastName,   // Unternehmensname, Anrede, Vorname, Nachname
-                m.Email.Value, "", "", "",          // E-Mail, Webseite, Telefon, Mobiltelefon
-                m.AddressLine, "", "", "",          // Strasse, Hausnummer, Zusatzfeld, Adresszusatz
-                m.PostalCode, m.City, m.Country,   // PLZ, Stadt, Land
-                notes, "CHF", "Passivmitglied"    // Notizen, Währung, Kriterien
+                "", $"PM{m.Id:D4}", "", "", m.FirstName, m.LastName,
+                m.Email.Value, "", "", "",
+                m.AddressLine, "", "", "",
+                m.PostalCode, m.City, m.Country,
+                notes, "CHF", "Passivmitglied"
             };
-            cols.AddRange(Enumerable.Repeat("", 50)); // Mitarbeiter 1-10
+            cols.AddRange(Enumerable.Repeat("", 50));
 
             sb.AppendLine(string.Join(";", cols.Select(Q)));
         }
 
-        // UTF-8 mit BOM damit AbaNinja und Excel Umlaute korrekt lesen
         return Encoding.UTF8.GetPreamble()
             .Concat(Encoding.UTF8.GetBytes(sb.ToString()))
             .ToArray();
@@ -617,18 +594,11 @@ public class AbaninjaCsvAdapter : IAbaninjaCsvPort
 }
 ```
 
-### 6.4 Excel-Adapter (ClosedXML) — internes Verwaltungs-Export
+### 6.4 Excel-Adapter (ClosedXML)
 
-NuGet: `ClosedXML`. Dient der internen Verwaltung mit Bezahlstatus und Notizen.
-
-Spalten: Nr. | Feld-Nr. | VIP-Label | Stufe | CHF/Jahr | Vorname | Nachname | Adresse | PLZ | Stadt | E-Mail | Angemeldet am | Bezahlt am | Notizen
+NuGet: `ClosedXML`. Spalten: Nr. | Feld-Nr. | VIP-Label | Stufe | CHF/Jahr | Vorname | Nachname | Adresse | PLZ | Stadt | E-Mail | Angemeldet am | Bezahlt am | Notizen
 
 ### 6.5 CAPTCHA-Adapter (Cloudflare Turnstile)
-
-Cloudflare Turnstile ist kostenlos, setzt kein Cookie, und ist DSGVO-konformer als
-Google reCAPTCHA. Es gibt eine invisible- und eine managed-Variante (kurze Checkbox).
-
-**Adapter:**
 
 ```csharp
 public class TurnstileCaptchaAdapter(HttpClient http, IOptions<TurnstileOptions> opts) : ICaptchaPort
@@ -656,37 +626,26 @@ public class TurnstileOptions
 }
 ```
 
-Konfiguration in `appsettings.json`:
-```json
-"Turnstile": {
-  "SiteKey":   "",
-  "SecretKey": ""
-}
-```
-
-Azure App Service Environment Variables: `Turnstile__SiteKey`, `Turnstile__SecretKey`.
-
-Die Verifizierung findet im **Controller** statt (Presentation-Concern, nicht Domain):
+Die Verifizierung erfolgt in `RegistrierungsWizardComponent.razor` via direktem Inject von
+`ICaptchaPort`, bevor `RegisterMemberUseCase` aufgerufen wird:
 
 ```csharp
-[HttpPost("register")]
-public async Task<IActionResult> Register([FromBody] RegisterMemberRequest req)
-{
-    var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
-    if (!await _captcha.VerifyAsync(req.CaptchaToken, ip))
-        return BadRequest(new { error = "captcha_failed" });
+// In RegistrierungsWizardComponent.razor @code-Block:
+[Inject] private ICaptchaPort Captcha { get; set; } = default!;
 
-    // ... weiter mit RegisterMemberUseCase
+private async Task OnSubmitAsync()
+{
+    var remoteIp = ...; // via IHttpContextAccessor aus DI
+    if (!await Captcha.VerifyAsync(CaptchaToken, remoteIp))
+    {
+        ErrorMessage = "CAPTCHA-Überprüfung fehlgeschlagen. Bitte versuche es erneut.";
+        return;
+    }
+    // ... RegisterMemberUseCase.ExecuteAsync aufrufen
 }
 ```
 
-### 6.4 Excel-Adapter (ClosedXML)
-
-NuGet: `ClosedXML`
-
-Spalten: Nr. | Feld-Nr. | VIP-Label | Stufe | CHF/Jahr | Vorname | Nachname | Adresse | E-Mail | Angemeldet am | Bezahlt am | Notizen
-
-### 6.5 DI-Registrierung (`PassivMitgliederComposer`)
+### 6.6 DI-Registrierung (`PassivMitgliederComposer`)
 
 ```csharp
 public class PassivMitgliederComposer : IComposer
@@ -695,14 +654,14 @@ public class PassivMitgliederComposer : IComposer
     {
         builder.AddComponent<PassivMitgliederMigrationComponent>();
 
-        builder.Services.Configure<BrevoEmailOptions>(
-            builder.Config.GetSection("Brevo"));
-
+        builder.Services.Configure<BrevoEmailOptions>(builder.Config.GetSection("Brevo"));
         builder.Services.AddHttpClient<BrevoEmailAdapter>();
         builder.Services.AddScoped<IEmailPort, BrevoEmailAdapter>();
+
         builder.Services.Configure<TurnstileOptions>(builder.Config.GetSection("Turnstile"));
         builder.Services.AddHttpClient<TurnstileCaptchaAdapter>();
         builder.Services.AddScoped<ICaptchaPort, TurnstileCaptchaAdapter>();
+
         builder.Services.AddScoped<IPassivMitgliederRepository, PassivMitgliederRepository>();
         builder.Services.AddSingleton<IExcelPort, ClosedXmlExcelAdapter>();
         builder.Services.AddSingleton<IAbaninjaCsvPort, AbaninjaCsvAdapter>();
@@ -718,176 +677,545 @@ public class PassivMitgliederComposer : IComposer
 
 ## 7. API-Endpunkte (`PassivMitgliederController`)
 
+Die REST-API bleibt bestehen (für externe Nutzung und als Fallback). Die Blazor-Komponenten
+rufen die Application-Layer-Use-Cases jedoch **direkt** auf, ohne HTTP-Roundtrip.
+
 ```
 GET  /api/passivmitglieder/felder
      → { occupiedFields: [{fieldNumber, displayName, vipLabel}], totalFields: 300, occupiedCount: N }
-     Öffentlich, für SVG + Live-Zähler
 
 POST /api/passivmitglieder/register
      Body: RegisterMemberRequest
-     → 200 OK | 409 Conflict (Feld belegt) | 400 Bad Request
+     → 200 OK | 409 Conflict | 400 Bad Request
 
 POST /api/passivmitglieder/{id}/paid          [UmbracoAdminAuthorize]
-     → 204 No Content
-
 POST /api/passivmitglieder/{id}/notes         [UmbracoAdminAuthorize]
-     Body: { "notes": "..." }
-     → 204 No Content
-
 GET  /api/passivmitglieder/admin/members      [UmbracoAdminAuthorize]
-     → PassivMitglied[] vollständig
-
 GET  /api/passivmitglieder/admin/export/excel     [UmbracoAdminAuthorize]
-     → application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-     Dateiname: Passivmitglieder_YYYY-MM-DD.xlsx
-
 GET  /api/passivmitglieder/admin/export/abaninja  [UmbracoAdminAuthorize]
-     → text/csv; charset=utf-8-bom
-     Dateiname: Passivmitglieder_AbaNinja_YYYY-MM-DD.csv
 ```
-
-Der `RegisterMemberRequest` enthält zusätzlich ein `CaptchaToken`-Feld. Der Controller
-verifiziert dieses zuerst via `ICaptchaPort`, bevor der Use Case aufgerufen wird. Bei
-Fehlschlag → `400 Bad Request` mit `{ "error": "captcha_failed" }`.
-
-Server-seitige Validierung des `RegisterMemberRequest`:
-- `CaptchaToken` vorhanden + Turnstile-Verifikation erfolgreich
-- `FieldNumber` 1–300
-- `LevelKey` in { "Bronze", "Silber", "Gold" }
-- `Email` valides Format
-- `FirstName`, `LastName`, `Address` nicht leer
-- `Consent` muss `true` sein
-- `DisplayName` Pflicht wenn `ShowNameOnFloor = true`
 
 ---
 
-## 8. Frontend
+## 8. Frontend (Blazor Server Components)
 
-### 8.1 SVG-Bodenplan mit Grid
+### 8.1 Blazor-Setup in `Program.cs`
 
-`unihockey-boden.svg` wird inline in das Cshtml-Template gerendert. JavaScript legt
-ein interaktives `<g>`-Element als Grid-Overlay über das SVG.
+```csharp
+// Nach builder.CreateUmbracoBuilder(...)
+builder.Services.AddServerSideBlazor();
+builder.Services.AddHttpContextAccessor(); // für RemoteIp in Captcha
 
-**Grid-Konfiguration (konstant in JS):**
-```js
-const GRID = {
-  cols: 20, rows: 15,             // 300 Felder
-  fieldX: 20, fieldY: 20,         // SVG-Offset Spielfeld
-  cellW: 40, cellH: 800/15        // ≈40 × 26.67 px
-};
+// Im App-Pipeline-Block, nach app.UseUmbraco():
+app.MapBlazorHub();
 ```
 
-**Farbcodierung:**
+In `Views/_ViewImports.cshtml` (bereits vorhanden oder anlegen):
+```cshtml
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+```
+
+### 8.2 `_Imports.razor`
+
+```razor
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using SporthalleWeb.Application.PassivMitgliedschaft
+@using SporthalleWeb.Domain.PassivMitgliedschaft
+```
+
+### 8.3 `BodenplanComponent.razor`
+
+Ersetzt den kompletten SVG-Grid-Teil von `passivmitglied.js`. Die Komponente lädt den
+Feldzustand direkt über `GetFieldStatusesQuery` (kein HTTP-Aufruf an die eigene API),
+rendert das interaktive SVG-Grid und öffnet den Anmeldewizard bei Feldklick.
+
+```razor
+@rendermode InteractiveServer
+@inject GetFieldStatusesQuery FieldQuery
+
+<div class="bodenplan-container">
+
+    <p class="field-counter">
+        @if (IsLoading)
+        {
+            <span>…</span>
+        }
+        else
+        {
+            <span>@FieldData!.OccupiedFields.Count</span>
+        }
+        von 300 Feldern belegt
+    </p>
+
+    @if (IsLoading)
+    {
+        <div class="loading-spinner" role="status">Lade Bodenplan…</div>
+    }
+    else
+    {
+        <svg viewBox="0 0 840 440" width="100%"
+             xmlns="http://www.w3.org/2000/svg"
+             aria-label="Interaktiver Hallenbodenplan">
+
+            <!-- Statische Hallen-Grafik via <use> aus unihockey-boden.svg -->
+            <image href="/media/unihockey-boden.svg" x="0" y="0" width="840" height="440" />
+
+            <!-- Interaktives Feld-Grid (300 Zellen) -->
+            @for (var row = 0; row < Rows; row++)
+            {
+                @for (var col = 0; col < Cols; col++)
+                {
+                    var fieldNum = row * Cols + col + 1;
+                    var field    = GetField(fieldNum);
+                    var isVip    = VipField.IsVip(fieldNum);
+                    var isFree   = field is null;
+                    var cx       = FieldOffsetX + col * CellW;
+                    var cy       = FieldOffsetY + row * CellH;
+
+                    <rect x="@cx" y="@cy" width="@CellW" height="@CellH"
+                          fill="@GetFill(field, isVip)"
+                          stroke="@(isVip ? "#FFD700" : "transparent")"
+                          stroke-width="@(isVip ? "1.5" : "0")"
+                          class="grid-cell @(isFree ? "grid-cell--free" : "grid-cell--taken")"
+                          role="@(isFree ? "button" : "img")"
+                          aria-label="@GetAriaLabel(fieldNum, field, isVip)"
+                          style="cursor: @(isFree ? "pointer" : "default")"
+                          @onclick="() => OnFieldClick(fieldNum, isFree)" />
+
+                    @if (field?.DisplayName is not null)
+                    {
+                        <text x="@(cx + CellW / 2.0)" y="@(cy + CellH / 2.0)"
+                              text-anchor="middle" dominant-baseline="middle"
+                              font-size="6" fill="white" pointer-events="none">
+                            @TruncateName(field.DisplayName)
+                        </text>
+                    }
+                }
+            }
+        </svg>
+    }
+
+    @if (SelectedField.HasValue)
+    {
+        <RegistrierungsWizardComponent
+            FieldNumber="SelectedField.Value"
+            OnClose="() => SelectedField = null"
+            OnSuccess="OnRegistrationSuccess" />
+    }
+
+</div>
+
+@code {
+    private const int Rows = 15, Cols = 20;
+    private const double FieldOffsetX = 20, FieldOffsetY = 20;
+    private const double CellW = 40, CellH = 800.0 / 15;
+
+    private bool IsLoading = true;
+    private FieldStatusesResult? FieldData;
+    private int? SelectedField;
+
+    protected override async Task OnInitializedAsync()
+    {
+        FieldData = await FieldQuery.ExecuteAsync();
+        IsLoading = false;
+    }
+
+    private FieldStatusDto? GetField(int num) =>
+        FieldData?.OccupiedFields.FirstOrDefault(f => f.FieldNumber == num);
+
+    private void OnFieldClick(int fieldNum, bool isFree)
+    {
+        if (isFree) SelectedField = fieldNum;
+    }
+
+    private async Task OnRegistrationSuccess(int newlyOccupiedField)
+    {
+        SelectedField = null;
+        FieldData = await FieldQuery.ExecuteAsync(); // Grid sofort aktualisieren
+    }
+
+    private string GetFill(FieldStatusDto? field, bool isVip)
+    {
+        if (field is null)
+            return isVip ? "rgba(255,215,0,0.15)" : "rgba(255,255,255,0.08)";
+        return isVip
+            ? "rgba(255,215,0,0.5)"
+            : field.DisplayName is not null
+                ? "rgba(235,80,75,0.9)"
+                : "rgba(235,80,75,0.75)";
+    }
+
+    private string GetAriaLabel(int num, FieldStatusDto? field, bool isVip)
+    {
+        var label = isVip ? $" ({VipField.GetLabel(num)})" : "";
+        if (field is null) return $"Feld {num}{label} – verfügbar";
+        var name = field.DisplayName ?? "belegt (anonym)";
+        return $"Feld {num}{label} – {name}";
+    }
+
+    private static string TruncateName(string name) =>
+        name.Length > 5 ? name[..4] + "…" : name;
+}
+```
+
+**Farbcodierung (identisch zum alten JS-Plan):**
 
 | Zustand | Farbe |
 |---------|-------|
 | Verfügbar | `rgba(255,255,255,0.08)` |
-| Hover (verfügbar) | `rgba(255,255,255,0.25)` |
 | VIP (verfügbar) | `rgba(255,215,0,0.15)` + goldener Rahmen |
 | VIP (belegt) | `rgba(255,215,0,0.5)` |
 | Belegt, anonym | `rgba(235,80,75,0.75)` |
-| Belegt, mit Name | `rgba(235,80,75,0.9)` + Namelabel |
-| Ausgewählt | `rgba(255,215,0,0.65)` |
+| Belegt, mit Name | `rgba(235,80,75,0.9)` |
 
-VIP-Felder erhalten zusätzlich ein Tooltip mit dem Label ("Torraum", "Anspielkreis", etc.).
+### 8.4 `RegistrierungsWizardComponent.razor`
 
-**Beim Laden:**
-1. `GET /api/passivmitglieder/felder` abrufen
-2. Belegte Felder einfärben (mit oder ohne Name)
-3. VIP-Felder mittels `vipLabel`-Feld aus Response kennzeichnen
-4. Live-Zähler aktualisieren: "X von 300 Feldern belegt"
+Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudflare Turnstile.
 
-**Klick auf freies Feld:** Wizard öffnen mit vorausgewählter Feldnummer.
-**Touch-Support:** `touchstart`-Event zusätzlich zu `click` für Mobile.
+```razor
+@rendermode InteractiveServer
+@inject RegisterMemberUseCase RegisterUseCase
+@inject ICaptchaPort Captcha
+@inject IHttpContextAccessor HttpContextAccessor
 
-### 8.2 Multi-Step-Wizard (Modal, Vanilla JS)
+<div class="modal-overlay" @onclick="OnClose">
+    <div class="modal-content" @onclick:stopPropagation>
 
-**Schritt 1 – Feld bestätigen:**
+        <button class="modal-close" @onclick="OnClose" aria-label="Schliessen">×</button>
+        <div class="step-indicator">Schritt @((int)CurrentStep) von 6</div>
+
+        @switch (CurrentStep)
+        {
+            case WizardStep.FeldBestaetigen:
+                <h2>Feld Nr. @FieldNumber bestätigen</h2>
+                @if (VipField.IsVip(FieldNumber))
+                {
+                    <p class="badge-vip">@VipField.GetLabel(FieldNumber)</p>
+                }
+                <p class="hint">Der Hallenboden ist symbolisch – der physische Boden
+                    verbleibt im Eigentum des Vereins.</p>
+                <div class="wizard-actions">
+                    <button class="btn-primary" @onclick="NextStep">Weiter</button>
+                </div>
+                break;
+
+            case WizardStep.Stufe:
+                <h2>Mitgliedsstufe wählen</h2>
+                <div class="level-cards">
+                    @foreach (var level in new[] { MembershipLevel.Bronze, MembershipLevel.Silber, MembershipLevel.Gold })
+                    {
+                        <div class="level-card @(SelectedLevelKey == level.Key ? "level-card--active" : "")"
+                             @onclick="() => SelectedLevelKey = level.Key">
+                            <strong>@level.DisplayName</strong>
+                            <span class="price">CHF @level.YearlyFee.–/Jahr</span>
+                        </div>
+                    }
+                </div>
+                <div class="wizard-actions">
+                    <button @onclick="PrevStep">Zurück</button>
+                    <button class="btn-primary" disabled="@(SelectedLevelKey is null)"
+                            @onclick="NextStep">Weiter</button>
+                </div>
+                break;
+
+            case WizardStep.Daten:
+                <h2>Persönliche Angaben</h2>
+                <EditForm Model="this" OnValidSubmit="NextStep">
+                    <DataAnnotationsValidator />
+                    <div class="form-row">
+                        <label>Vorname *<InputText @bind-Value="FirstName" /></label>
+                        <label>Nachname *<InputText @bind-Value="LastName" /></label>
+                    </div>
+                    <label>Strasse + Nr. *<InputText @bind-Value="AddressLine" /></label>
+                    <div class="form-row">
+                        <label>PLZ *<InputText @bind-Value="PostalCode" /></label>
+                        <label>Ort *<InputText @bind-Value="City" /></label>
+                    </div>
+                    <label>E-Mail *<InputText @bind-Value="Email" type="email" /></label>
+                    <div class="wizard-actions">
+                        <button type="button" @onclick="PrevStep">Zurück</button>
+                        <button type="submit" class="btn-primary">Weiter</button>
+                    </div>
+                </EditForm>
+                break;
+
+            case WizardStep.NamensAnzeige:
+                <h2>Namensanzeige auf dem Bodenplan</h2>
+                <label>
+                    <input type="radio" name="showname" checked="@(!ShowNameOnFloor)"
+                           @onchange="() => ShowNameOnFloor = false" />
+                    Anonym bleiben
+                </label>
+                <label>
+                    <input type="radio" name="showname" checked="@ShowNameOnFloor"
+                           @onchange="() => ShowNameOnFloor = true" />
+                    Name anzeigen als: <InputText @bind-Value="DisplayName"
+                                                  placeholder='z.B. "Max M." oder "Familie Meier"'
+                                                  disabled="@(!ShowNameOnFloor)" />
+                </label>
+                <div class="wizard-actions">
+                    <button @onclick="PrevStep">Zurück</button>
+                    <button class="btn-primary" @onclick="NextStep">Weiter</button>
+                </div>
+                break;
+
+            case WizardStep.Zusammenfassung:
+                var level = MembershipLevel.FromKey(SelectedLevelKey!);
+                <h2>Zusammenfassung</h2>
+                <dl class="summary">
+                    <dt>Feld-Nr.</dt><dd>@FieldNumber @(VipField.IsVip(FieldNumber) ? $"({VipField.GetLabel(FieldNumber)})" : "")</dd>
+                    <dt>Stufe</dt><dd>@level.DisplayName – CHF @level.YearlyFee.–/Jahr</dd>
+                    <dt>Name</dt><dd>@FirstName @LastName</dd>
+                    <dt>Adresse</dt><dd>@AddressLine, @PostalCode @City (Schweiz)</dd>
+                    <dt>E-Mail</dt><dd>@Email</dd>
+                    <dt>Anzeige</dt><dd>@(ShowNameOnFloor ? $'"{DisplayName}"' : "Anonym")</dd>
+                </dl>
+                <p class="legal-notice">
+                    Der Hallenboden ist SYMBOLISCH. "Besitzer:in eines Quadratmeters" ist eine
+                    Metapher für die Mitgliedschaft. Der physische Boden verbleibt im Eigentum des Vereins.
+                </p>
+                <label class="checkbox-label">
+                    <input type="checkbox" @bind="Consent" />
+                    Ich möchte Passivmitglied werden und erkenne die jährliche Beitragspflicht
+                    (bis auf Widerruf) an.*
+                </label>
+
+                <!-- Cloudflare Turnstile Widget -->
+                <div class="cf-turnstile" data-sitekey="@TurnstileSiteKey"
+                     data-callback="onTurnstileSuccess"></div>
+
+                @if (ErrorMessage is not null)
+                {
+                    <p class="error-message" role="alert">@ErrorMessage</p>
+                }
+                <div class="wizard-actions">
+                    <button @onclick="PrevStep" disabled="@IsSubmitting">Zurück</button>
+                    <button class="btn-primary"
+                            disabled="@(!Consent || string.IsNullOrEmpty(CaptchaToken) || IsSubmitting)"
+                            @onclick="OnSubmitAsync">
+                        @(IsSubmitting ? "Wird angemeldet…" : "Jetzt anmelden")
+                    </button>
+                </div>
+                break;
+
+            case WizardStep.Bestaetigung:
+                <div class="success-banner">
+                    <h2>Vielen Dank, @FirstName!</h2>
+                    <p>Du erhältst in Kürze eine Bestätigung an @Email.</p>
+                    <p>Die Rechnung für den Jahresbeitrag wird separat zugestellt.</p>
+                    <button @onclick="OnCloseAfterSuccess">Schliessen</button>
+                </div>
+                break;
+        }
+    </div>
+</div>
+
+@code {
+    private enum WizardStep
+    {
+        FeldBestaetigen = 1, Stufe, Daten, NamensAnzeige, Zusammenfassung, Bestaetigung
+    }
+
+    [Parameter] public int FieldNumber { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<int> OnSuccess { get; set; }
+
+    [Inject] private IConfiguration Config { get; set; } = default!;
+
+    private string TurnstileSiteKey => Config["Turnstile:SiteKey"] ?? "";
+
+    private WizardStep CurrentStep = WizardStep.FeldBestaetigen;
+    private string? SelectedLevelKey;
+
+    [Required] private string FirstName = "";
+    [Required] private string LastName = "";
+    [Required] private string AddressLine = "";
+    [Required] private string PostalCode = "";
+    [Required] private string City = "";
+    [Required, EmailAddress] private string Email = "";
+    private bool ShowNameOnFloor;
+    private string? DisplayName;
+    private bool Consent;
+    private string? CaptchaToken;
+    private bool IsSubmitting;
+    private string? ErrorMessage;
+
+    private void NextStep() => CurrentStep++;
+    private void PrevStep() => CurrentStep--;
+
+    // Turnstile-Callback: JS ruft diese Methode via DotNetObjectReference auf
+    [JSInvokable]
+    public void SetCaptchaToken(string token) { CaptchaToken = token; StateHasChanged(); }
+
+    private async Task OnSubmitAsync()
+    {
+        IsSubmitting = true;
+        ErrorMessage = null;
+        try
+        {
+            var remoteIp = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "";
+            if (!await Captcha.VerifyAsync(CaptchaToken!, remoteIp))
+            {
+                ErrorMessage = "CAPTCHA-Überprüfung fehlgeschlagen.";
+                return;
+            }
+
+            var cmd = new RegisterMemberCommand(
+                FieldNumber, FirstName, LastName,
+                AddressLine, PostalCode, City,
+                Email, SelectedLevelKey!,
+                ShowNameOnFloor, DisplayName, Consent);
+
+            await RegisterUseCase.ExecuteAsync(cmd);
+            CurrentStep = WizardStep.Bestaetigung;
+        }
+        catch (FieldAlreadyTakenException)
+        {
+            ErrorMessage = "Dieses Feld wurde soeben von jemand anderem belegt. Bitte wähle ein anderes.";
+        }
+        catch (DomainException ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private async Task OnCloseAfterSuccess()
+    {
+        await OnSuccess.InvokeAsync(FieldNumber);
+    }
+}
 ```
-Feld Nr. 42 ausgewählt   [evtl. VIP-Label: "Anspielkreis"]
-Hinweis: "Der Boden ist symbolisch – der physische Boden
-          verbleibt im Eigentum des Vereins."
-[Weiter]
+
+**Hinweis Turnstile:** Das Cloudflare-Widget setzt `CaptchaToken` via `data-callback`. In `wwwroot/js/passivmitglied.js` (verbleibt als kleiner Stub) wird die globale Callback-Funktion registriert:
+
+```js
+// wwwroot/js/passivmitglied.js (stark reduziert)
+window.onTurnstileSuccess = (token) => {
+  if (window._blazorWizardRef) {
+    window._blazorWizardRef.invokeMethodAsync('SetCaptchaToken', token);
+  }
+};
 ```
 
-**Schritt 2 – Mitgliedsstufe:**
+Der `_blazorWizardRef` wird in `RegistrierungsWizardComponent` via `IJSRuntime.InvokeVoidAsync("registerBlazorRef", DotNetObjectReference.Create(this))` gesetzt.
+
+### 8.5 `PassivMitgliederAdminComponent.razor`
+
+Ersetzt `PassivMitgliederAdmin.cshtml` + alle AJAX-Snippets. Die Razor Page wird zum
+dünnen Wrapper (siehe Abschnitt 9.2).
+
+```razor
+@rendermode InteractiveServer
+@inject AdminService AdminSvc
+@inject IPassivMitgliederRepository Repo
+@inject NavigationManager Nav
+
+<div class="admin-panel">
+    <h1>Passivmitglieder-Verwaltung</h1>
+
+    <div class="admin-toolbar">
+        <a href="/api/passivmitglieder/admin/export/excel" class="btn-secondary">
+            Als Excel exportieren
+        </a>
+        <a href="/api/passivmitglieder/admin/export/abaninja" class="btn-secondary">
+            Als AbaNinja CSV exportieren
+        </a>
+    </div>
+
+    @if (IsLoading)
+    {
+        <p>Lade Mitglieder…</p>
+    }
+    else
+    {
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th @onclick='() => SortBy("FieldNumber")'>Feld-Nr.</th>
+                    <th>VIP</th>
+                    <th @onclick='() => SortBy("Level")'>Stufe</th>
+                    <th @onclick='() => SortBy("LastName")'>Name</th>
+                    <th>E-Mail</th>
+                    <th @onclick='() => SortBy("CreatedAt")'>Angemeldet</th>
+                    <th>Bezahlt</th>
+                    <th>Notizen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in SortedMembers)
+                {
+                    <tr class="@(m.PaidAt.HasValue ? "row-paid" : "")">
+                        <td>@m.FieldNumber.Value</td>
+                        <td>@(VipField.IsVip(m.FieldNumber.Value) ? VipField.GetLabel(m.FieldNumber.Value) : "")</td>
+                        <td>@m.Level.DisplayName</td>
+                        <td>@m.FirstName @m.LastName</td>
+                        <td>@m.Email.Value</td>
+                        <td>@m.CreatedAt.ToString("dd.MM.yyyy")</td>
+                        <td>
+                            @if (m.PaidAt.HasValue)
+                            {
+                                <span class="paid-checkmark" title="@m.PaidAt.Value.ToString("dd.MM.yyyy")">✓</span>
+                            }
+                            else
+                            {
+                                <button class="btn-small" @onclick="() => MarkAsPaidAsync(m.Id)">
+                                    Als bezahlt markieren
+                                </button>
+                            }
+                        </td>
+                        <td>
+                            <textarea rows="1"
+                                      @bind="NotesBuffer[m.Id]"
+                                      @onblur="() => SaveNotesAsync(m.Id)" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private bool IsLoading = true;
+    private IReadOnlyList<PassivMitglied> Members = [];
+    private string SortColumn = "FieldNumber";
+    private Dictionary<int, string?> NotesBuffer = [];
+
+    private IEnumerable<PassivMitglied> SortedMembers => SortColumn switch
+    {
+        "Level"     => Members.OrderBy(m => m.Level.YearlyFee),
+        "LastName"  => Members.OrderBy(m => m.LastName),
+        "CreatedAt" => Members.OrderByDescending(m => m.CreatedAt),
+        _           => Members.OrderBy(m => m.FieldNumber.Value)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Members = await Repo.GetAllAsync();
+        NotesBuffer = Members.ToDictionary(m => m.Id, m => m.Notes);
+        IsLoading = false;
+    }
+
+    private void SortBy(string column) => SortColumn = column;
+
+    private async Task MarkAsPaidAsync(int memberId)
+    {
+        await AdminSvc.MarkAsPaidAsync(memberId);
+        Members = await Repo.GetAllAsync();
+    }
+
+    private async Task SaveNotesAsync(int memberId)
+    {
+        if (NotesBuffer.TryGetValue(memberId, out var notes))
+            await AdminSvc.UpdateNotesAsync(memberId, notes);
+    }
+}
 ```
-Auswählbare Karten:
-  Bronze – Hallenbodenbesitzer    CHF 50/Jahr   [Benefits]
-  Silber – Chnebler               CHF 100/Jahr  [Benefits]
-  Gold   – Cüpli-Chnebler         CHF 200/Jahr  [Benefits]
-[Zurück] [Weiter]
-```
-
-**Schritt 3 – Persönliche Daten:**
-```
-Vorname*        [____________]   Nachname*  [____________]
-Strasse + Nr.*  [________________________________]
-PLZ*  [______]  Ort*           [____________________]
-E-Mail*         [________________________________]
-[Zurück] [Weiter]
-```
-Adresse ist aufgeteilt, damit der AbaNinja-Export direkt importierbar ist (PLZ/Stadt als
-eigene CSV-Spalten). Land ist immer "Schweiz" und wird nicht abgefragt.
-
-**Schritt 4 – Namensanzeige:**
-```
-Möchtest du deinen Namen auf dem Bodenplan sehen?
-( ) Ja → Anzeigename: [____] (z.B. "Max M.", "Familie Meier")
-(•) Nein, anonym bleiben
-[Zurück] [Weiter]
-```
-
-**Schritt 5 – Zusammenfassung, CAPTCHA & Zustimmung:**
-```
-Feld-Nr.:   42  Stufe: Chnebler (Silber) – CHF 100.–/Jahr
-Name:       Max Mustermann
-Adresse:    Musterstrasse 1, 8400 Winterthur (Schweiz)
-E-Mail:     max@example.com
-Anzeige:    "Max M." (sichtbar auf dem Bodenplan)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Der Hallenboden ist SYMBOLISCH. "Besitzer:in eines
-Quadratmeters" ist eine Metapher für die Mitgliedschaft.
-Der physische Boden verbleibt im Eigentum des Vereins.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-☐ Ich möchte Passivmitglied werden und erkenne die
-  jährliche Beitragspflicht (bis auf Widerruf) an.*
-
-[Cloudflare Turnstile Widget]   ← erscheint automatisch, kein Klick nötig
-
-[Zurück] [Jetzt anmelden]
-```
-
-**Schritt 6 – Bestätigung:**
-```
-✓ Vielen Dank, Max!
-Du erhältst in Kürze eine Bestätigung an max@example.com.
-Die Rechnung für den Jahresbeitrag wird separat zugestellt.
-[Schliessen]
-```
-
-Nach dem Schliessen: SVG und Zähler ohne Reload aktualisieren (das neue Feld einzeichnen).
-
-### 8.3 Live-Zähler
-
-```html
-<p class="field-counter">
-  <span id="fields-occupied">—</span> von 300 Feldern belegt
-</p>
-```
-
-Wird beim Laden via `GET /api/passivmitglieder/felder` → `occupiedCount` befüllt und nach
-erfolgreicher Anmeldung im selben Request-Callback sofort inkrementiert.
-
-### 8.4 Mobile-Optimierung
-
-- SVG: `width="100%"`, `viewBox="0 0 840 440"`, vollständig responsive
-- Formular-Inputs: `font-size: 16px` (verhindert iOS-Auto-Zoom)
-- Modal auf Mobile: `position: fixed; inset: 0` (Vollbild)
-- Stufenkarten: auf Mobile vertikal gestapelt
-- Touch-Events: `touchstart` registriert für SVG-Felder
 
 ---
 
@@ -899,53 +1227,68 @@ erfolgreicher Anmeldung im selben Request-Callback sofort inkrementiert.
 - Name: Passivmitgliedschaft
 - Icon: `icon-favorite`
 - Template: `PassivMitgliedschaft`
-- Darf unter `homePage` angelegt werden (`homepage.config` → `<Structure>` erweitern)
-- Eigenschaften: `pageHeading` (TextBox) – für den Header-Titel
+- Darf unter `homePage` angelegt werden
+- Eigenschaften: `pageHeading` (TextBox)
 
 ### 9.2 Template `Views/PassivMitgliedschaft.cshtml`
 
-```
-1. Page-Header (kein Bild – dunkler Hintergrund mit Noise-Effekt, Barlow-Condensed-Headline)
-2. Intro-Abschnitt: Text + Mitgliedsstufen-Cards
-3. Live-Zähler
-4. Interaktiver SVG-Bodenplan
-5. Registrierungs-Modal (initial versteckt)
+Das Template ist jetzt eine **Shell**: Layout, Header, statischer Intro-Text aus Umbraco.
+Die interaktiven Teile werden als Blazor-Komponenten eingebettet.
+
+```cshtml
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@{
+    Layout = "Layout.cshtml";
+}
+
+<section class="page-header page-header--dark">
+    <h1>@Model.Value("pageHeading")</h1>
+</section>
+
+<div class="content-narrow">
+    <p>Werde Teil der Sporthalle Sulzerallee …</p>
+    <!-- Mitgliedsstufen-Info-Cards (statischer HTML-Block) -->
+</div>
+
+<!-- Blazor-Komponente: SVG-Bodenplan + Live-Zähler + Wizard -->
+<component type="typeof(BodenplanComponent)" render-mode="Server" />
+
+<!-- Blazor Hub Script (einmalig im Layout oder hier) -->
+<script src="/_blazor"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="/js/passivmitglied.js"></script>
 ```
 
-Lädt `/css/passivmitglied.css` und `/js/passivmitglied.js` via `@section Scripts`.
-Lädt ausserdem das Cloudflare Turnstile Script:
-`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`
+### 9.3 Admin-Wrapper `Pages/PassivMitgliederAdmin.cshtml`
 
-Das Turnstile-Widget wird im letzten Wizard-Schritt als `<div class="cf-turnstile"
-data-sitekey="...">` eingebettet. Beim Submit liest JS das Token aus dem versteckten
-`cf-turnstile-response`-Input und schickt es als `captchaToken` im JSON-Body mit.
+```cshtml
+@page
+@model PassivMitgliederAdminModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head><title>Passivmitglieder Admin</title></head>
+<body>
+    <component type="typeof(PassivMitgliederAdminComponent)" render-mode="Server" />
+    <script src="/_blazor"></script>
+</body>
+</html>
+```
+
+```csharp
+// PassivMitgliederAdmin.cshtml.cs
+[UmbracoAdminAuthorize]
+public class PassivMitgliederAdminModel : PageModel
+{
+    public void OnGet() { }
+}
+```
 
 ---
 
-## 10. Admin-Bereich
-
-### 10.1 Razor Page `/passivmitglieder-admin`
-
-Zugriffsschutz: `[UmbracoAdminAuthorize]` (erst unter `/umbraco` einloggen).
-
-**Mitgliederliste:**
-- Tabellenansicht: Feld-Nr. | VIP | Stufe | Vorname | Nachname | E-Mail | Angemeldet | Bezahlt | Notizen
-- Filter: Stufe, Bezahlstatus
-- Sortierung: Feld-Nr., Stufe, Datum, Name
-
-**Bezahlung markieren:**
-Button/Checkbox → AJAX `POST /api/.../paid` → sofortiges visuelles Feedback (Haken, grüner Hintergrund)
-
-**Notizen:**
-Inline-`<textarea>` → AJAX-Save beim `blur`-Event
-
-**Export:**
-- "Als Excel exportieren" → `GET /api/.../admin/export/excel` (interne Verwaltung, inkl. Bezahlstatus)
-- "Als AbaNinja CSV exportieren" → `GET /api/.../admin/export/abaninja` (direkt importierbar in AbaNinja für Rechnungsstellung)
-
----
-
-## 11. Homepage-Teaser
+## 10. Homepage-Teaser
 
 Anpassung von `Views/Home.cshtml`: neuer Abschnitt nach dem Hero.
 
@@ -961,39 +1304,52 @@ Anpassung von `Views/Home.cshtml`: neuer Abschnitt nach dem Hero.
 </div>
 ```
 
-Design: Barlow-Condensed-Headline in Weiss auf Vereinsrot (`#EB504B`), Noise-Overlay wie
-`.hero-announcement`, CTA-Button hell auf dunklem Hintergrund.
+---
+
+## 11. Mobile-Optimierung
+
+- SVG: `width="100%"`, `viewBox="0 0 840 440"`, vollständig responsive
+- Formular-Inputs: `font-size: 16px` in `passivmitglied.css` (verhindert iOS-Auto-Zoom)
+- Modal auf Mobile: `.modal-overlay { position: fixed; inset: 0 }` (Vollbild)
+- Stufenkarten: auf Mobile via CSS Media Query vertikal gestapelt
+- Touch-Events: Blazor-`@onclick` funktioniert auf Touch-Geräten nativ
 
 ---
 
 ## 12. Implementierungsreihenfolge
 
 1. **Domain-Schicht** (Aggregate Root, Value Objects, `VipField`, Ports)
-2. **Infrastructure: Migration + Repository** (DB-Tabelle anlegen, CRUD via PetaPoco)
+2. **Infrastructure: Migration + Repository** (DB-Tabelle, PetaPoco-CRUD)
 3. **Application Use Cases** (`RegisterMemberUseCase`, `GetFieldStatusesQuery`, `AdminService`)
-4. **Brevo-Adapter** + Konfiguration; lokaler Test mit echtem Brevo-Dev-Account
-5. **API-Controller** (alle Endpunkte)
-6. **SVG-Bodenplan** (statische Anzeige belegter Felder + VIP-Felder + Live-Zähler)
-7. **Multi-Step-Wizard** (Frontend) + API-Integration
-8. **Passivmitgliedschaft-Template + uSync-Config**
-9. **Admin-Bereich** (Razor Page + Excel-Export via ClosedXML)
-10. **Homepage-Teaser**
-11. **Mobile-Tests + Cross-Browser-Tests** (Chrome, Safari iOS, Android Chrome)
-12. **Azure: `Brevo__ApiKey` setzen + End-to-End-Test**
-13. **Umbraco Backoffice: Seite anlegen und publizieren**
+4. **Brevo-Adapter + Captcha-Adapter** (Konfiguration, lokaler Test)
+5. **REST-Controller** (für API-Endpunkte + Export-Downloads)
+6. **Blazor-Setup** (`Program.cs`: `AddServerSideBlazor()`, `MapBlazorHub()`, `_Imports.razor`)
+7. **`BodenplanComponent.razor`** (SVG-Grid, Feldstatus, Live-Zähler, VIP-Highlighting)
+8. **`RegistrierungsWizardComponent.razor`** (6 Schritte, Formularvalidierung, Turnstile, Use-Case-Integration)
+9. **Umbraco-Template-Shell** (`PassivMitgliedschaft.cshtml` mit `<component>`)
+10. **`PassivMitgliederAdminComponent.razor`** (Tabelle, Inline-Bezahlung, Notizen, Export-Links)
+11. **Admin-Wrapper-Page** (`PassivMitgliederAdmin.cshtml` + `[UmbracoAdminAuthorize]`)
+12. **Homepage-Teaser**
+13. **Mobile-Tests** (Chrome, Safari iOS, Android Chrome)
+14. **Azure: `Brevo__ApiKey`, `Turnstile__SiteKey`, `Turnstile__SecretKey` setzen + End-to-End-Test**
+15. **Umbraco Backoffice: Seite anlegen und publizieren**
 
 ---
 
 ## 13. Deployment-Checkliste
 
 - [ ] `ClosedXML` NuGet zu `SporthalleWeb.csproj` hinzufügen
+- [ ] `Program.cs`: `AddServerSideBlazor()` und `MapBlazorHub()` eintragen
+- [ ] `_Imports.razor` anlegen (Blazor-weite Usings)
 - [ ] Azure App Service Environment Variable `Brevo__ApiKey` setzen
-- [ ] Azure App Service Environment Variables `Turnstile__SiteKey` und `Turnstile__SecretKey` setzen (aus dem Cloudflare Dashboard)
-- [ ] `wwwroot/media/unihockey-boden.svg` ins Repository kopieren
-- [ ] `appsettings.json`: `"Brevo"` und `"Turnstile"` Sektionen hinzufügen (Keys leer lassen, Werte nur via Env-Variable)
+- [ ] Azure App Service Environment Variables `Turnstile__SiteKey` und `Turnstile__SecretKey` setzen
+- [ ] `wwwroot/media/unihockey-boden.svg` ins Repository
+- [ ] `appsettings.json`: `"Brevo"` und `"Turnstile"` Sektionen hinzufügen (Keys leer)
 - [ ] DB-Migration läuft automatisch beim ersten App-Start
 - [ ] uSync importiert ContentType + Template automatisch
 - [ ] Umbraco Backoffice: Seite "Passivmitgliedschaft" anlegen, unter Homepage verschachteln, publizieren
-- [ ] End-to-End: Feld wählen, alle Wizard-Schritte, Brevo-E-Mail prüfen, BCC an alle 3 Adressen verifizieren
-- [ ] Admin-Bereich: Bezahlung markieren, Notiz speichern, Excel-Export prüfen
-- [ ] AbaNinja-CSV-Export prüfen: Datei in AbaNinja unter "Kontakte > Importieren" hochladen und Felder-Mapping verifizieren
+- [ ] End-to-End: Feld wählen, alle 6 Wizard-Schritte, Turnstile-Widget erscheint in Schritt 5, Brevo-E-Mail prüfen, BCC an alle 3 Adressen verifizieren
+- [ ] Blazor SignalR-Verbindung in Browser-DevTools prüfen (Network → WS → `/_blazor`)
+- [ ] Admin-Bereich: Bezahlung markieren, Notiz speichern, Excel-Export und AbaNinja-CSV prüfen
+- [ ] AbaNinja-CSV in AbaNinja unter "Kontakte > Importieren" hochladen und Felder-Mapping verifizieren
+- [ ] Mobile-Test: SVG responsiv, Modal Vollbild auf iOS Safari
