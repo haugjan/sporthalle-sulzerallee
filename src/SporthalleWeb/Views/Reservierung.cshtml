@@ -1,8 +1,10 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @{
   Layout = "~/Views/Shared/_Layout.cshtml";
-  var heading = Model.Value<string>("pageHeading") ?? Model.Name;
+  var heading   = Model.Value<string>("pageHeading") ?? Model.Name;
+  var imageUrl  = Model.Value<string>("pageImage");
   var introText = Model.Value<string>("introText");
+  var textAfter = Model.Value<string>("textAfter");
   ViewBag.Title = heading + " – Sporthalle Sulzerallee";
 }
 
@@ -12,6 +14,10 @@
 
 <div class="page-content">
   <div class="page-header">
+    @if (!string.IsNullOrWhiteSpace(imageUrl))
+    {
+      <img src="@imageUrl" alt="" aria-hidden="true" />
+    }
     <h2>@heading</h2>
   </div>
   <div class="page-header-bar"></div>
@@ -24,23 +30,15 @@
   }
 
   <section class="reservierung-section">
-    <div id="reservierung-app">
-      <div class="week-nav">
-        <button id="prev-week" aria-label="Vorherige Woche">&#8249;</button>
-        <span id="week-label"></span>
-        <button id="next-week" aria-label="Nächste Woche">&#8250;</button>
-      </div>
-      <div class="calendar-scroll-wrapper">
-        <div id="calendar-grid"></div>
-      </div>
-      <div class="calendar-legend">
-        <span class="legend-item"><span class="legend-dot confirmed"></span>Belegt</span>
-        <span class="legend-item"><span class="legend-dot provisional"></span>Angefragt</span>
-        <span class="legend-item"><span class="legend-dot recurring"></span>Dauerbelegung</span>
-        <span class="legend-item"><span class="legend-dot free"></span>Frei</span>
-      </div>
-    </div>
+    @await Html.PartialAsync("~/Views/Partials/_ReservierungsKalender.cshtml")
   </section>
+
+  @if (!string.IsNullOrWhiteSpace(textAfter))
+  {
+    <section class="reservierung-intro reservierung-after">
+      <p>@textAfter</p>
+    </section>
+  }
 </div>
 
 @section Scripts {

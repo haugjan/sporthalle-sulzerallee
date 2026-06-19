@@ -17,6 +17,11 @@
   margin: 0 auto;
 }
 
+.reservierung-after {
+  padding-top: 0;
+  padding-bottom: 3rem;
+}
+
 /* --- Wochen-Navigation --- */
 .week-nav {
   display: flex;
@@ -66,6 +71,7 @@
   gap: 1px;
   background: #e0e0e0;
   min-width: 560px;
+  position: relative;
 }
 
 /* --- Kopfzeile (Wochentage) --- */
@@ -113,33 +119,79 @@
   height: 20px;
   background: #fff;
   box-sizing: border-box;
-  transition: background 0.08s;
-  position: relative;
 }
 
 .cal-cell.is-past {
   background: #f8f8f8;
 }
 
-.cal-cell.status-confirmed {
-  background: #EB504B;
-}
-
-.cal-cell.status-provisional {
-  background: #F5A623;
-}
-
-.cal-cell.status-recurring {
-  background: #666;
-}
-
-/* Stundenlinie alle 2 Blöcke (obere Kante der vollen Stunde) */
+/* Stundenlinie alle 2 Blöcke */
 .cal-cell.hour-start {
   border-top: 1px solid #e8e8e8;
 }
 
 .cal-time.hour-start {
   border-top: 1px solid #e8e8e8;
+}
+
+/* --- Booking-Overlays --- */
+.booking-overlay {
+  position: absolute;
+  border-radius: 5px;
+  overflow: hidden;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 3px 6px;
+  pointer-events: none;
+}
+
+.booking-overlay--confirmed {
+  background: linear-gradient(160deg, #f07570 0%, #EB504B 100%);
+  box-shadow: 0 1px 5px rgba(235, 80, 75, 0.4);
+}
+
+.booking-overlay--provisional {
+  background: repeating-linear-gradient(
+    45deg,
+    #F5A623 0px,
+    #F5A623 5px,
+    #f8c97a 5px,
+    #f8c97a 10px
+  );
+  box-shadow: 0 1px 5px rgba(245, 166, 35, 0.4);
+}
+
+.booking-overlay--recurring {
+  background: linear-gradient(160deg, #888 0%, #555 100%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.booking-overlay__label {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 1px;
+  width: 100%;
+}
+
+.bol-title {
+  font-size: 0.63rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.bol-time {
+  font-size: 0.57rem;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 /* --- Legende --- */

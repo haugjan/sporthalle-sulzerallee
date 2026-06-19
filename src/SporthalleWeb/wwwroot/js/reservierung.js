@@ -1,21 +1,24 @@
 (function () {
   'use strict';
 
-  // --- Konfiguration (wird in Phase 6 aus Umbraco geladen) ---
   var OPENING_HOUR_START = 7;
   var OPENING_HOUR_END = 23;
   var BLOCK_MINUTES = 30;
   var TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
+  var CELL_HEIGHT = 20;
+  var CELL_GAP = 1;
+  var CELL_STEP = CELL_HEIGHT + CELL_GAP;
 
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
+  var resizeTimer;
 
   // --- Datum-Hilfsfunktionen ---
 
   function getMonday(d) {
     var date = new Date(d);
     date.setHours(0, 0, 0, 0);
-    var day = date.getDay(); // 0=So, 1=Mo, …, 6=Sa
+    var day = date.getDay();
     date.setDate(date.getDate() - (day + 6) % 7);
     return date;
   }
@@ -43,7 +46,7 @@
     var dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
     var d = String(date.getDate()).padStart(2, '0');
     var m = String(date.getMonth() + 1).padStart(2, '0');
-    return dayNames[date.getDay()] + ' ' + d + '.' + m + '.';
+    return dayNames[date.getDay()] + ' ' + d + '.' + m + '.';
   }
 
   function isToday(date) {
@@ -66,7 +69,15 @@
     return h + ':' + m;
   }
 
-  // --- Zeitzonen-Konvertierung UTC → Europe/Zurich ---
+  function fmtTime(h, m) {
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // --- Zeitzonen-Konvertierung UTC -> Europe/Zurich ---
 
   function getZurichParts(utcDate) {
     var parts = new Intl.DateTimeFormat('en-US', {
@@ -79,51 +90,11 @@
     parts.forEach(function (part) {
       if (part.type !== 'literal') p[part.type] = parseInt(part.value, 10);
     });
-    // Stunde 24 → 0 (Intl-Eigenart bei Mitternacht)
     if (p.hour === 24) p.hour = 0;
     return p;
   }
 
-  // Gibt true zurück wenn der Slot die gegebene Zelle (Tag + Block-Index) belegt.
-  function slotOccupiesCell(slot, dayDate, blockIdx) {
-    var slotStartUtc = new Date(slot.startUtc);
-    var slotEndUtc = new Date(slot.endUtc);
-
-    var startZ = getZurichParts(slotStartUtc);
-    var endZ = getZurichParts(slotEndUtc);
-
-    // Prüfen ob Slot-Start am gleichen Tag liegt
-    if (startZ.year !== dayDate.getFullYear() ||
-      startZ.month !== dayDate.getMonth() + 1 ||
-      startZ.day !== dayDate.getDate()) {
-      return false;
-    }
-
-    var cellStartMin = OPENING_HOUR_START * 60 + blockIdx * BLOCK_MINUTES;
-    var cellEndMin = cellStartMin + BLOCK_MINUTES;
-    var slotStartMin = startZ.hour * 60 + startZ.minute;
-    var slotEndMin = endZ.hour * 60 + endZ.minute;
-
-    return slotStartMin < cellEndMin && slotEndMin > cellStartMin;
-  }
-
-  // Gibt das passende Slot-Objekt für eine Zelle zurück (oder null).
-  function findSlotForCell(slots, dayDate, blockIdx) {
-    for (var i = 0; i < slots.length; i++) {
-      if (slotOccupiesCell(slots[i], dayDate, blockIdx)) return slots[i];
-    }
-    return null;
-  }
-
-  // CSS-Klasse für eine belegte Zelle
-  function slotCssClass(slot) {
-    if (slot.isRecurringSlot) return 'status-recurring';
-    if (slot.status === 'Bestätigt') return 'status-confirmed';
-    if (slot.status === 'Provisorisch') return 'status-provisional';
-    return 'status-confirmed';
-  }
-
-  // --- Kalender-Rendering ---
+  // --- Kalender-Grid (reine Struktur, keine Slot-Farben) ---
 
   function renderGrid(slots) {
     var grid = document.getElementById('calendar-grid');
@@ -143,11 +114,11 @@
       cell.className = 'cal-header-day';
       if (isToday(day)) cell.classList.add('is-today');
       else if (isPastDay(day)) cell.classList.add('is-past');
-      cell.innerHTML = formatDayHeader(day);
+      cell.textContent = formatDayHeader(day);
       grid.appendChild(cell);
     });
 
-    // Zeit-Zeilen
+    // Zeit-Zeilen (immer leer — Buchungen kommen als Overlays)
     for (var b = 0; b < TOTAL_BLOCKS; b++) {
       var isHourStart = b % 2 === 0;
       var timeLabel = document.createElement('div');
@@ -158,24 +129,113 @@
       days.forEach(function (day) {
         var cell = document.createElement('div');
         cell.className = 'cal-cell' + (isHourStart ? ' hour-start' : '');
-
-        var past = isPastDay(day);
-        if (past) {
-          cell.classList.add('is-past');
-        } else {
-          var slot = findSlotForCell(slots, day, b);
-          if (slot) {
-            cell.classList.add(slotCssClass(slot));
-            // Admin-definierte Farbe für Dauerbelegungen
-            if (slot.isRecurringSlot && slot.color && slot.color !== '#666666') {
-              cell.style.backgroundColor = slot.color;
-              cell.style.opacity = '0.85';
-            }
-          }
-        }
+        if (isPastDay(day)) cell.classList.add('is-past');
         grid.appendChild(cell);
       });
     }
+
+    // Overlays nach dem Browser-Layout rendern
+    requestAnimationFrame(function () {
+      renderBookingOverlays(slots, days, grid);
+    });
+  }
+
+  // --- Booking-Overlays (absolut über dem Grid) ---
+
+  function renderBookingOverlays(slots, days, grid) {
+    // Alte Overlays entfernen
+    var old = grid.querySelectorAll('.booking-overlay');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+
+    var gridRect = grid.getBoundingClientRect();
+    var headerCells = grid.querySelectorAll('.cal-header-day');
+    if (!headerCells.length) return;
+
+    // Spalten-Positionen (relativ zum Grid-Container)
+    var cols = [];
+    headerCells.forEach(function (h) {
+      var r = h.getBoundingClientRect();
+      cols.push({ left: r.left - gridRect.left, width: r.width });
+    });
+
+    // Oberkante der ersten Inhaltszeile (unterhalb des Headers + 1px Gap)
+    var headerRect = headerCells[0].getBoundingClientRect();
+    var contentTop = headerRect.bottom - gridRect.top + CELL_GAP;
+
+    slots.forEach(function (slot) {
+      var slotStartUtc = new Date(slot.startUtc);
+      var slotEndUtc = new Date(slot.endUtc);
+      var startZ = getZurichParts(slotStartUtc);
+      var endZ = getZurichParts(slotEndUtc);
+
+      // Tag-Spalte ermitteln
+      var dayIdx = -1;
+      for (var i = 0; i < days.length; i++) {
+        var d = days[i];
+        if (startZ.year === d.getFullYear() &&
+            startZ.month === d.getMonth() + 1 &&
+            startZ.day === d.getDate()) {
+          dayIdx = i;
+          break;
+        }
+      }
+      if (dayIdx < 0 || dayIdx >= cols.length) return;
+      if (isPastDay(days[dayIdx])) return;
+
+      // Block-Bereich berechnen
+      var openStart = OPENING_HOUR_START * 60;
+      var slotStartMin = startZ.hour * 60 + startZ.minute;
+      var slotEndMin = endZ.hour * 60 + endZ.minute;
+      var startBlock = Math.round((slotStartMin - openStart) / BLOCK_MINUTES);
+      var endBlock = Math.round((slotEndMin - openStart) / BLOCK_MINUTES);
+      startBlock = Math.max(0, startBlock);
+      endBlock = Math.min(TOTAL_BLOCKS, endBlock);
+      var numBlocks = endBlock - startBlock;
+      if (numBlocks <= 0) return;
+
+      // Pixel-Position
+      var col = cols[dayIdx];
+      var top = contentTop + startBlock * CELL_STEP;
+      var height = numBlocks * CELL_STEP - CELL_GAP;
+      var left = col.left + 2;
+      var width = col.width - 4;
+
+      var el = document.createElement('div');
+      el.className = 'booking-overlay booking-overlay--' + getOverlayMod(slot);
+      el.style.top = top + 'px';
+      el.style.height = height + 'px';
+      el.style.left = left + 'px';
+      el.style.width = width + 'px';
+
+      if (slot.isRecurringSlot && slot.color) {
+        el.style.background = slot.color;
+        el.style.opacity = '0.9';
+      }
+
+      if (height >= 16) {
+        var label = document.createElement('div');
+        label.className = 'booking-overlay__label';
+        var titleEl = document.createElement('span');
+        titleEl.className = 'bol-title';
+        titleEl.textContent = slot.eventType || '';
+        label.appendChild(titleEl);
+        if (height >= 40) {
+          var timeEl = document.createElement('span');
+          timeEl.className = 'bol-time';
+          timeEl.textContent = fmtTime(startZ.hour, startZ.minute) + '–' + fmtTime(endZ.hour, endZ.minute);
+          label.appendChild(timeEl);
+        }
+        el.appendChild(label);
+      }
+
+      grid.appendChild(el);
+    });
+  }
+
+  function getOverlayMod(slot) {
+    if (slot.isRecurringSlot) return 'recurring';
+    if (slot.status === 'Provisorisch') return 'provisional';
+    return 'confirmed';
   }
 
   // --- Daten laden ---
@@ -223,6 +283,19 @@
 
     if (prevBtn) prevBtn.addEventListener('click', function () { navigateWeek(-1); });
     if (nextBtn) nextBtn.addEventListener('click', function () { navigateWeek(+1); });
+
+    // Overlays bei Fenster-Resize neu positionieren
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        var grid = document.getElementById('calendar-grid');
+        if (grid && lastSlots.length) {
+          var days = [];
+          for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+          renderBookingOverlays(lastSlots, days, grid);
+        }
+      }, 150);
+    });
 
     updateWeekLabel();
     loadWeek();
