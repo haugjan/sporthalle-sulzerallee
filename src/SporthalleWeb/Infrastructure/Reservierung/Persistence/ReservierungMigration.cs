@@ -14,7 +14,8 @@ public class ReservierungMigrationPlan : MigrationPlan
     public ReservierungMigrationPlan() : base("Reservierung")
     {
         From(string.Empty)
-            .To<CreateBookingSlotsV1>("v1.0.0");
+            .To<CreateBookingSlotsV1>("v1.0.0")
+            .To<AddAllReservierungTablesV2>("v1.1.0");
     }
 }
 
@@ -26,6 +27,36 @@ public class CreateBookingSlotsV1 : AsyncMigrationBase
     {
         if (!TableExists("BookingSlots"))
             Create.Table<BookingSlotRecord>().Do();
+        return Task.CompletedTask;
+    }
+}
+
+public class AddAllReservierungTablesV2 : AsyncMigrationBase
+{
+    public AddAllReservierungTablesV2(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        // Handle schema migration: BookingSlots.RenterId → MemberId
+        // No production data exists yet, so drop and recreate is safe.
+        if (TableExists("BookingSlots") && ColumnExists("BookingSlots", "RenterId"))
+        {
+            Delete.Table("BookingSlots").Do();
+            Create.Table<BookingSlotRecord>().Do();
+        }
+
+        if (!TableExists("RecurringRules"))
+            Create.Table<RecurringRuleRecord>().Do();
+
+        if (!TableExists("MagicLinkTokens"))
+            Create.Table<MagicLinkTokenRecord>().Do();
+
+        if (!TableExists("BookingAuditLog"))
+            Create.Table<BookingAuditLogRecord>().Do();
+
+        if (!TableExists("SchoolHolidays"))
+            Create.Table<SchoolHolidayRecord>().Do();
+
         return Task.CompletedTask;
     }
 }

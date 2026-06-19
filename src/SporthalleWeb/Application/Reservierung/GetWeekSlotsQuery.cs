@@ -19,7 +19,8 @@ public sealed class GetWeekSlotsQuery(IBookingSlotRepository slotRepo)
                 EndUtc: s.Slot.EndUtc,
                 Status: s.Status.ToString(),
                 Color: s.Color ?? (s.IsRecurringSlot ? "#666666" : null),
-                IsRecurringSlot: s.IsRecurringSlot))
+                IsRecurringSlot: s.IsRecurringSlot,
+                EventType: s.EventType))
             .ToList();
     }
 }

@@ -12,9 +12,9 @@ public class BookingSlotRecord
     [PrimaryKeyColumn(AutoIncrement = true, IdentitySeed = 1)]
     public int Id { get; set; }
 
-    [Column("RenterId")]
+    [Column("MemberId")]
     [NullSetting(NullSetting = NullSettings.Null)]
-    public int? RenterId { get; set; }
+    public int? MemberId { get; set; }
 
     [Column("RecurringRuleId")]
     [NullSetting(NullSetting = NullSettings.Null)]
