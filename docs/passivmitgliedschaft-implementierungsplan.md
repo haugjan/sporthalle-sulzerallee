@@ -1,4 +1,4 @@
-# Implementierungsplan: Passivmitgliedschaft
+﻿# Implementierungsplan: Passivmitgliedschaft
 
 Erstellt: 2026-06-17  
 Blazor-Hybrid ergänzt: 2026-06-19
@@ -71,13 +71,13 @@ zur eigenen API nötig, da Blazor Server auf demselben Prozess läuft).
                      ┌──────────────────────────────────────────────────┐
   Browser ──────────►│  Presentation (Inbound Adapters)                  │
   (SignalR Circuit)  │  Blazor Server Components (InteractiveServer)     │
-                     │  BodenplanComponent.razor                         │
-                     │  RegistrierungsWizardComponent.razor              │
-                     │  PassivMitgliederAdminComponent.razor             │
+                     │  FloorPlanComponent.razor                         │
+                     │  RegistrationWizardComponent.razor              │
+                     │  PassivMemberAdminComponent.razor             │
                      │                                                    │
                      │  Umbraco Razor Template (Shell)                   │
                      │  PassivMitgliedschaft.cshtml                      │
-                     │  PassivMitgliederAdmin.cshtml (dünner Wrapper)    │
+                     │  PassivMemberAdmin.cshtml (dünner Wrapper)    │
                      └──────────────────┬───────────────────────────────┘
                                         │ ruft auf (direkte DI-Injektion)
                      ┌──────────────────▼───────────────────┐
@@ -89,26 +89,26 @@ zur eigenen API nötig, da Blazor Server auf demselben Prozess läuft).
                                         │ nutzt Ports
                      ┌──────────────────▼───────────────────┐
                      │  Domain (Kern, keine Abhängigkeiten)  │
-                     │  PassivMitglied (Aggregate Root)      │
+                     │  PassivMember (Aggregate Root)      │
                      │  FieldNumber, MembershipLevel,        │
                      │  MemberEmail (Value Objects)          │
-                     │  IPassivMitgliederRepository (Port)   │
+                     │  IPassivMemberRepository (Port)   │
                      │  IEmailPort (Port)                    │
                      │  IExcelPort (Port)                    │
                      └──────────────────┬───────────────────┘
                                         │ implementiert durch
                      ┌──────────────────▼───────────────────┐
                      │  Infrastructure (Outbound Adapters)   │
-                     │  PassivMitgliederRepository (PetaPoco)│
+                     │  PassivMemberRepository (PetaPoco)│
                      │  BrevoEmailAdapter (HttpClient)       │
                      │  ClosedXmlExcelAdapter                │
-                     │  PassivMitgliederMigration            │
+                     │  PassivMemberMigration            │
                      └──────────────────────────────────────┘
 ```
 
 ### 2.2 DDD (pragmatisch, nicht dogmatisch)
 
-- **Aggregate Root:** `PassivMitglied` kapselt Zustandsänderungen (`MarkAsPaid()`, `UpdateNotes()`).
+- **Aggregate Root:** `PassivMember` kapselt Zustandsänderungen (`MarkAsPaid()`, `UpdateNotes()`).
 - **Value Objects:** `FieldNumber`, `MembershipLevel`, `MemberEmail` mit eingebetteter Validierungslogik.
 - **Domain Events:** Einfache Records (`MemberRegisteredEvent`). Kein Event-Bus, kein Mediator.
 - **Repository Port:** Interface im Domain-Kern definiert, Adapter in Infrastructure implementiert.
@@ -122,7 +122,7 @@ src/SporthalleWeb/
 ├── _Imports.razor                               Blazor-weite @using-Statements
 │
 ├── Domain/PassivMitgliedschaft/
-│   ├── PassivMitglied.cs                       Aggregate Root
+│   ├── PassivMember.cs                       Aggregate Root
 │   ├── FieldNumber.cs                          Value Object
 │   ├── MembershipLevel.cs                      Value Object / Enum-Wrapper
 │   ├── MemberEmail.cs                          Value Object
@@ -131,7 +131,7 @@ src/SporthalleWeb/
 │   ├── Events/
 │   │   └── MemberRegisteredEvent.cs
 │   └── Ports/
-│       ├── IPassivMitgliederRepository.cs
+│       ├── IPassivMemberRepository.cs
 │       ├── IEmailPort.cs
 │       └── IExcelPort.cs
 │
@@ -144,35 +144,35 @@ src/SporthalleWeb/
 │
 ├── Infrastructure/PassivMitgliedschaft/
 │   ├── Persistence/
-│   │   ├── PassivMitgliederRepository.cs
-│   │   ├── PassivMitgliedDbRecord.cs
-│   │   └── PassivMitgliederMigration.cs
+│   │   ├── PassivMemberRepository.cs
+│   │   ├── PassivMemberRecord.cs
+│   │   └── PassivMemberMigration.cs
 │   ├── Email/
 │   │   ├── BrevoEmailAdapter.cs
 │   │   └── BrevoEmailOptions.cs
 │   ├── Excel/
 │   │   └── ClosedXmlExcelAdapter.cs
 │   └── Composition/
-│       └── PassivMitgliederComposer.cs
+│       └── PassivMemberComposer.cs
 │
 └── Presentation/PassivMitgliedschaft/
     ├── Components/                             Blazor-Komponenten (NEU)
-    │   ├── BodenplanComponent.razor            SVG-Grid + Live-Zähler
-    │   ├── RegistrierungsWizardComponent.razor 6-Schritt-Anmeldung
-    │   └── PassivMitgliederAdminComponent.razor Admin-Tabelle + Export
+    │   ├── FloorPlanComponent.razor            SVG-Grid + Live-Zähler
+    │   ├── RegistrationWizardComponent.razor 6-Schritt-Anmeldung
+    │   └── PassivMemberAdminComponent.razor Admin-Tabelle + Export
     ├── Dtos/
     │   ├── RegisterMemberRequest.cs            (bleibt für API-Fallback)
     │   └── FieldStatusResponse.cs
     └── Controllers/
-        └── PassivMitgliederController.cs       (bleibt für externe API-Nutzung)
+        └── PassivMemberController.cs       (bleibt für externe API-Nutzung)
 
 Views/
 └── PassivMitgliedschaft.cshtml                 Umbraco Template (Shell mit <component>)
     Home.cshtml                                 Teaser-Abschnitt
 
 Pages/
-└── PassivMitgliederAdmin.cshtml               Dünner Razor-Page-Wrapper
-    PassivMitgliederAdmin.cshtml.cs            [UmbracoAdminAuthorize] + leeres Page-Model
+└── PassivMemberAdmin.cshtml               Dünner Razor-Page-Wrapper
+    PassivMemberAdmin.cshtml.cs            [UmbracoAdminAuthorize] + leeres Page-Model
 
 uSync/v17/
 ├── ContentTypes/
@@ -182,20 +182,20 @@ uSync/v17/
     └── passivmitgliedschaft.config
 
 wwwroot/
-├── css/passivmitglied.css                     Verbleibt (Grid-Styles, Farben, Modal)
+├── css/PassivMember.css                     Verbleibt (Grid-Styles, Farben, Modal)
 └── media/unihockey-boden.svg                  Statische SVG-Basis (ohne Grid-Overlay)
 ```
 
-*`wwwroot/js/passivmitglied.js` entfällt — Interaktionslogik liegt in den Blazor-Komponenten.*
+*`wwwroot/js/PassivMember.js` entfällt — Interaktionslogik liegt in den Blazor-Komponenten.*
 
 ---
 
 ## 4. Domain-Schicht
 
-### 4.1 Aggregate Root `PassivMitglied`
+### 4.1 Aggregate Root `PassivMember`
 
 ```csharp
-public sealed class PassivMitglied
+public sealed class PassivMember
 {
     public int Id { get; private set; }
     public FieldNumber FieldNumber { get; private set; }
@@ -213,9 +213,9 @@ public sealed class PassivMitglied
     public DateTime? PaidAt { get; private set; }
     public string? Notes { get; private set; }
 
-    private PassivMitglied() { }
+    private PassivMember() { }
 
-    public static PassivMitglied Register(
+    public static PassivMember Register(
         FieldNumber fieldNumber, string firstName, string lastName,
         string addressLine, string postalCode, string city,
         MemberEmail email, MembershipLevel level,
@@ -224,7 +224,7 @@ public sealed class PassivMitglied
         if (showNameOnFloor && string.IsNullOrWhiteSpace(displayName))
             throw new DomainException("Anzeigename erforderlich, wenn Name sichtbar sein soll.");
 
-        return new PassivMitglied
+        return new PassivMember
         {
             FieldNumber = fieldNumber,
             FirstName = firstName.Trim(),
@@ -333,29 +333,29 @@ public static class VipField
 ### 4.4 Outbound Ports
 
 ```csharp
-public interface IPassivMitgliederRepository
+public interface IPassivMemberRepository
 {
     Task<bool> IsFieldTakenAsync(FieldNumber field);
-    Task<PassivMitglied> SaveAsync(PassivMitglied member);
-    Task<IReadOnlyList<PassivMitglied>> GetAllAsync();
-    Task<PassivMitglied?> FindByIdAsync(int id);
-    Task UpdateAsync(PassivMitglied member);
+    Task<PassivMember> SaveAsync(PassivMember member);
+    Task<IReadOnlyList<PassivMember>> GetAllAsync();
+    Task<PassivMember?> FindByIdAsync(int id);
+    Task UpdateAsync(PassivMember member);
     Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync();
 }
 
 public interface IEmailPort
 {
-    Task SendRegistrationConfirmationAsync(PassivMitglied member);
+    Task SendRegistrationConfirmationAsync(PassivMember member);
 }
 
 public interface IExcelPort
 {
-    byte[] ExportMembers(IReadOnlyList<PassivMitglied> members);
+    byte[] ExportMembers(IReadOnlyList<PassivMember> members);
 }
 
 public interface IAbaninjaCsvPort
 {
-    byte[] ExportMembers(IReadOnlyList<PassivMitglied> members);
+    byte[] ExportMembers(IReadOnlyList<PassivMember> members);
 }
 
 public interface ICaptchaPort
@@ -372,16 +372,16 @@ public interface ICaptchaPort
 
 ```csharp
 public sealed class RegisterMemberUseCase(
-    IPassivMitgliederRepository repo, IEmailPort email)
+    IPassivMemberRepository repo, IEmailPort email)
 {
-    public async Task<PassivMitglied> ExecuteAsync(RegisterMemberCommand cmd)
+    public async Task<PassivMember> ExecuteAsync(RegisterMemberCommand cmd)
     {
         var fieldNumber = new FieldNumber(cmd.FieldNumber);
 
         if (await repo.IsFieldTakenAsync(fieldNumber))
             throw new FieldAlreadyTakenException(fieldNumber);
 
-        var member = PassivMitglied.Register(
+        var member = PassivMember.Register(
             fieldNumber, cmd.FirstName, cmd.LastName, cmd.Address,
             new MemberEmail(cmd.Email), MembershipLevel.FromKey(cmd.LevelKey),
             cmd.ShowNameOnFloor, cmd.DisplayName);
@@ -403,7 +403,7 @@ public record RegisterMemberCommand(
 ### 5.2 `GetFieldStatusesQuery`
 
 ```csharp
-public sealed class GetFieldStatusesQuery(IPassivMitgliederRepository repo)
+public sealed class GetFieldStatusesQuery(IPassivMemberRepository repo)
 {
     public async Task<FieldStatusesResult> ExecuteAsync()
     {
@@ -422,7 +422,7 @@ public record FieldStatusesResult(IReadOnlyList<FieldStatusDto> OccupiedFields, 
 ### 5.3 `AdminService`
 
 ```csharp
-public sealed class AdminService(IPassivMitgliederRepository repo, IExcelPort excel)
+public sealed class AdminService(IPassivMemberRepository repo, IExcelPort excel)
 {
     public async Task MarkAsPaidAsync(int memberId)
     {
@@ -488,7 +488,7 @@ public class BrevoEmailAdapter(HttpClient http, IOptions<BrevoEmailOptions> opts
         "jan.haug@sporthalle-sulzerallee.ch"
     ];
 
-    public async Task SendRegistrationConfirmationAsync(PassivMitglied member)
+    public async Task SendRegistrationConfirmationAsync(PassivMember member)
     {
         var vipLabel = VipField.GetLabel(member.FieldNumber.Value);
         var fieldDesc = vipLabel != null
@@ -507,11 +507,11 @@ public class BrevoEmailAdapter(HttpClient http, IOptions<BrevoEmailOptions> opts
             bcc = AdminBcc.Select(e => new { email = e }).ToArray(),
             @params = new
             {
-                SUBJECT   = $"Willkommen als Passivmitglied – {fieldDesc}",
+                SUBJECT   = $"Willkommen als PassivMember – {fieldDesc}",
                 TITLE     = "Passivmitgliedschaft bestätigt",
                 FIRSTNAME = member.FirstName,
                 BODY      = $"Herzlich willkommen bei der Sporthalle Sulzerallee! " +
-                             $"Deine Anmeldung als Passivmitglied ({member.Level.DisplayName}) ist eingegangen. " +
+                             $"Deine Anmeldung als PassivMember ({member.Level.DisplayName}) ist eingegangen. " +
                              $"Du erhältst die Rechnung für den Jahresbeitrag in Kürze separat.",
                 DETAILS   = details,
                 CTA_URL   = "https://www.sporthalle-sulzerallee.ch",
@@ -559,7 +559,7 @@ public class AbaninjaCsvAdapter : IAbaninjaCsvPort
         })
     ];
 
-    public byte[] ExportMembers(IReadOnlyList<PassivMitglied> members)
+    public byte[] ExportMembers(IReadOnlyList<PassivMember> members)
     {
         var sb = new StringBuilder();
         sb.AppendLine(string.Join(";", Headers.Select(Q)));
@@ -578,7 +578,7 @@ public class AbaninjaCsvAdapter : IAbaninjaCsvPort
                 m.Email.Value, "", "", "",
                 m.AddressLine, "", "", "",
                 m.PostalCode, m.City, m.Country,
-                notes, "CHF", "Passivmitglied"
+                notes, "CHF", "PassivMember"
             };
             cols.AddRange(Enumerable.Repeat("", 50));
 
@@ -626,11 +626,11 @@ public class TurnstileOptions
 }
 ```
 
-Die Verifizierung erfolgt in `RegistrierungsWizardComponent.razor` via direktem Inject von
+Die Verifizierung erfolgt in `RegistrationWizardComponent.razor` via direktem Inject von
 `ICaptchaPort`, bevor `RegisterMemberUseCase` aufgerufen wird:
 
 ```csharp
-// In RegistrierungsWizardComponent.razor @code-Block:
+// In RegistrationWizardComponent.razor @code-Block:
 [Inject] private ICaptchaPort Captcha { get; set; } = default!;
 
 private async Task OnSubmitAsync()
@@ -645,14 +645,14 @@ private async Task OnSubmitAsync()
 }
 ```
 
-### 6.6 DI-Registrierung (`PassivMitgliederComposer`)
+### 6.6 DI-Registrierung (`PassivMemberComposer`)
 
 ```csharp
-public class PassivMitgliederComposer : IComposer
+public class PassivMemberComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
-        builder.AddComponent<PassivMitgliederMigrationComponent>();
+        builder.AddComponent<PassivMemberMigrationComponent>();
 
         builder.Services.Configure<BrevoEmailOptions>(builder.Config.GetSection("Brevo"));
         builder.Services.AddHttpClient<BrevoEmailAdapter>();
@@ -662,7 +662,7 @@ public class PassivMitgliederComposer : IComposer
         builder.Services.AddHttpClient<TurnstileCaptchaAdapter>();
         builder.Services.AddScoped<ICaptchaPort, TurnstileCaptchaAdapter>();
 
-        builder.Services.AddScoped<IPassivMitgliederRepository, PassivMitgliederRepository>();
+        builder.Services.AddScoped<IPassivMemberRepository, PassivMemberRepository>();
         builder.Services.AddSingleton<IExcelPort, ClosedXmlExcelAdapter>();
         builder.Services.AddSingleton<IAbaninjaCsvPort, AbaninjaCsvAdapter>();
 
@@ -675,7 +675,7 @@ public class PassivMitgliederComposer : IComposer
 
 ---
 
-## 7. API-Endpunkte (`PassivMitgliederController`)
+## 7. API-Endpunkte (`PassivMemberController`)
 
 Die REST-API bleibt bestehen (für externe Nutzung und als Fallback). Die Blazor-Komponenten
 rufen die Application-Layer-Use-Cases jedoch **direkt** auf, ohne HTTP-Roundtrip.
@@ -724,9 +724,9 @@ In `Views/_ViewImports.cshtml` (bereits vorhanden oder anlegen):
 @using SporthalleWeb.Domain.PassivMitgliedschaft
 ```
 
-### 8.3 `BodenplanComponent.razor`
+### 8.3 `FloorPlanComponent.razor`
 
-Ersetzt den kompletten SVG-Grid-Teil von `passivmitglied.js`. Die Komponente lädt den
+Ersetzt den kompletten SVG-Grid-Teil von `PassivMember.js`. Die Komponente lädt den
 Feldzustand direkt über `GetFieldStatusesQuery` (kein HTTP-Aufruf an die eigene API),
 rendert das interaktive SVG-Grid und öffnet den Anmeldewizard bei Feldklick.
 
@@ -798,7 +798,7 @@ rendert das interaktive SVG-Grid und öffnet den Anmeldewizard bei Feldklick.
 
     @if (SelectedField.HasValue)
     {
-        <RegistrierungsWizardComponent
+        <RegistrationWizardComponent
             FieldNumber="SelectedField.Value"
             OnClose="() => SelectedField = null"
             OnSuccess="OnRegistrationSuccess" />
@@ -869,7 +869,7 @@ rendert das interaktive SVG-Grid und öffnet den Anmeldewizard bei Feldklick.
 | Belegt, anonym | `rgba(235,80,75,0.75)` |
 | Belegt, mit Name | `rgba(235,80,75,0.9)` |
 
-### 8.4 `RegistrierungsWizardComponent.razor`
+### 8.4 `RegistrationWizardComponent.razor`
 
 Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudflare Turnstile.
 
@@ -887,7 +887,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
 
         @switch (CurrentStep)
         {
-            case WizardStep.FeldBestaetigen:
+            case WizardStep.ConfirmField:
                 <h2>Feld Nr. @FieldNumber bestätigen</h2>
                 @if (VipField.IsVip(FieldNumber))
                 {
@@ -900,7 +900,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 </div>
                 break;
 
-            case WizardStep.Stufe:
+            case WizardStep.Level:
                 <h2>Mitgliedsstufe wählen</h2>
                 <div class="level-cards">
                     @foreach (var level in new[] { MembershipLevel.Bronze, MembershipLevel.Silber, MembershipLevel.Gold })
@@ -919,7 +919,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 </div>
                 break;
 
-            case WizardStep.Daten:
+            case WizardStep.PersonalData:
                 <h2>Persönliche Angaben</h2>
                 <EditForm Model="this" OnValidSubmit="NextStep">
                     <DataAnnotationsValidator />
@@ -940,7 +940,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 </EditForm>
                 break;
 
-            case WizardStep.NamensAnzeige:
+            case WizardStep.NameDisplay:
                 <h2>Namensanzeige auf dem Bodenplan</h2>
                 <label>
                     <input type="radio" name="showname" checked="@(!ShowNameOnFloor)"
@@ -960,7 +960,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 </div>
                 break;
 
-            case WizardStep.Zusammenfassung:
+            case WizardStep.Summary:
                 var level = MembershipLevel.FromKey(SelectedLevelKey!);
                 <h2>Zusammenfassung</h2>
                 <dl class="summary">
@@ -977,7 +977,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 </p>
                 <label class="checkbox-label">
                     <input type="checkbox" @bind="Consent" />
-                    Ich möchte Passivmitglied werden und erkenne die jährliche Beitragspflicht
+                    Ich möchte PassivMember werden und erkenne die jährliche Beitragspflicht
                     (bis auf Widerruf) an.*
                 </label>
 
@@ -999,7 +999,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 </div>
                 break;
 
-            case WizardStep.Bestaetigung:
+            case WizardStep.Confirmation:
                 <div class="success-banner">
                     <h2>Vielen Dank, @FirstName!</h2>
                     <p>Du erhältst in Kürze eine Bestätigung an @Email.</p>
@@ -1014,7 +1014,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
 @code {
     private enum WizardStep
     {
-        FeldBestaetigen = 1, Stufe, Daten, NamensAnzeige, Zusammenfassung, Bestaetigung
+        ConfirmField = 1, Level, PersonalData, NameDisplay, Summary, Confirmation
     }
 
     [Parameter] public int FieldNumber { get; set; }
@@ -1025,7 +1025,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
 
     private string TurnstileSiteKey => Config["Turnstile:SiteKey"] ?? "";
 
-    private WizardStep CurrentStep = WizardStep.FeldBestaetigen;
+    private WizardStep CurrentStep = WizardStep.ConfirmField;
     private string? SelectedLevelKey;
 
     [Required] private string FirstName = "";
@@ -1068,7 +1068,7 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
                 ShowNameOnFloor, DisplayName, Consent);
 
             await RegisterUseCase.ExecuteAsync(cmd);
-            CurrentStep = WizardStep.Bestaetigung;
+            CurrentStep = WizardStep.Confirmation;
         }
         catch (FieldAlreadyTakenException)
         {
@@ -1091,10 +1091,10 @@ Ersetzt den 6-Schritt-JS-Wizard. Steuert den gesamten Anmelde-Flow inkl. Cloudfl
 }
 ```
 
-**Hinweis Turnstile:** Das Cloudflare-Widget setzt `CaptchaToken` via `data-callback`. In `wwwroot/js/passivmitglied.js` (verbleibt als kleiner Stub) wird die globale Callback-Funktion registriert:
+**Hinweis Turnstile:** Das Cloudflare-Widget setzt `CaptchaToken` via `data-callback`. In `wwwroot/js/PassivMember.js` (verbleibt als kleiner Stub) wird die globale Callback-Funktion registriert:
 
 ```js
-// wwwroot/js/passivmitglied.js (stark reduziert)
+// wwwroot/js/PassivMember.js (stark reduziert)
 window.onTurnstileSuccess = (token) => {
   if (window._blazorWizardRef) {
     window._blazorWizardRef.invokeMethodAsync('SetCaptchaToken', token);
@@ -1102,17 +1102,17 @@ window.onTurnstileSuccess = (token) => {
 };
 ```
 
-Der `_blazorWizardRef` wird in `RegistrierungsWizardComponent` via `IJSRuntime.InvokeVoidAsync("registerBlazorRef", DotNetObjectReference.Create(this))` gesetzt.
+Der `_blazorWizardRef` wird in `RegistrationWizardComponent` via `IJSRuntime.InvokeVoidAsync("registerBlazorRef", DotNetObjectReference.Create(this))` gesetzt.
 
-### 8.5 `PassivMitgliederAdminComponent.razor`
+### 8.5 `PassivMemberAdminComponent.razor`
 
-Ersetzt `PassivMitgliederAdmin.cshtml` + alle AJAX-Snippets. Die Razor Page wird zum
+Ersetzt `PassivMemberAdmin.cshtml` + alle AJAX-Snippets. Die Razor Page wird zum
 dünnen Wrapper (siehe Abschnitt 9.2).
 
 ```razor
 @rendermode InteractiveServer
 @inject AdminService AdminSvc
-@inject IPassivMitgliederRepository Repo
+@inject IPassivMemberRepository Repo
 @inject NavigationManager Nav
 
 <div class="admin-panel">
@@ -1182,11 +1182,11 @@ dünnen Wrapper (siehe Abschnitt 9.2).
 
 @code {
     private bool IsLoading = true;
-    private IReadOnlyList<PassivMitglied> Members = [];
+    private IReadOnlyList<PassivMember> Members = [];
     private string SortColumn = "FieldNumber";
     private Dictionary<int, string?> NotesBuffer = [];
 
-    private IEnumerable<PassivMitglied> SortedMembers => SortColumn switch
+    private IEnumerable<PassivMember> SortedMembers => SortColumn switch
     {
         "Level"     => Members.OrderBy(m => m.Level.YearlyFee),
         "LastName"  => Members.OrderBy(m => m.LastName),
@@ -1251,19 +1251,19 @@ Die interaktiven Teile werden als Blazor-Komponenten eingebettet.
 </div>
 
 <!-- Blazor-Komponente: SVG-Bodenplan + Live-Zähler + Wizard -->
-<component type="typeof(BodenplanComponent)" render-mode="Server" />
+<component type="typeof(FloorPlanComponent)" render-mode="Server" />
 
 <!-- Blazor Hub Script (einmalig im Layout oder hier) -->
 <script src="/_blazor"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script src="/js/passivmitglied.js"></script>
+<script src="/js/PassivMember.js"></script>
 ```
 
-### 9.3 Admin-Wrapper `Pages/PassivMitgliederAdmin.cshtml`
+### 9.3 Admin-Wrapper `Pages/PassivMemberAdmin.cshtml`
 
 ```cshtml
 @page
-@model PassivMitgliederAdminModel
+@model PassivMemberAdminModel
 @{
     Layout = null;
 }
@@ -1271,16 +1271,16 @@ Die interaktiven Teile werden als Blazor-Komponenten eingebettet.
 <html>
 <head><title>Passivmitglieder Admin</title></head>
 <body>
-    <component type="typeof(PassivMitgliederAdminComponent)" render-mode="Server" />
+    <component type="typeof(PassivMemberAdminComponent)" render-mode="Server" />
     <script src="/_blazor"></script>
 </body>
 </html>
 ```
 
 ```csharp
-// PassivMitgliederAdmin.cshtml.cs
+// PassivMemberAdmin.cshtml.cs
 [UmbracoAdminAuthorize]
-public class PassivMitgliederAdminModel : PageModel
+public class PassivMemberAdminModel : PageModel
 {
     public void OnGet() { }
 }
@@ -1309,7 +1309,7 @@ Anpassung von `Views/Home.cshtml`: neuer Abschnitt nach dem Hero.
 ## 11. Mobile-Optimierung
 
 - SVG: `width="100%"`, `viewBox="0 0 840 440"`, vollständig responsive
-- Formular-Inputs: `font-size: 16px` in `passivmitglied.css` (verhindert iOS-Auto-Zoom)
+- Formular-Inputs: `font-size: 16px` in `PassivMember.css` (verhindert iOS-Auto-Zoom)
 - Modal auf Mobile: `.modal-overlay { position: fixed; inset: 0 }` (Vollbild)
 - Stufenkarten: auf Mobile via CSS Media Query vertikal gestapelt
 - Touch-Events: Blazor-`@onclick` funktioniert auf Touch-Geräten nativ
@@ -1324,11 +1324,11 @@ Anpassung von `Views/Home.cshtml`: neuer Abschnitt nach dem Hero.
 4. **Brevo-Adapter + Captcha-Adapter** (Konfiguration, lokaler Test)
 5. **REST-Controller** (für API-Endpunkte + Export-Downloads)
 6. **Blazor-Setup** (`Program.cs`: `AddServerSideBlazor()`, `MapBlazorHub()`, `_Imports.razor`)
-7. **`BodenplanComponent.razor`** (SVG-Grid, Feldstatus, Live-Zähler, VIP-Highlighting)
-8. **`RegistrierungsWizardComponent.razor`** (6 Schritte, Formularvalidierung, Turnstile, Use-Case-Integration)
+7. **`FloorPlanComponent.razor`** (SVG-Grid, Feldstatus, Live-Zähler, VIP-Highlighting)
+8. **`RegistrationWizardComponent.razor`** (6 Schritte, Formularvalidierung, Turnstile, Use-Case-Integration)
 9. **Umbraco-Template-Shell** (`PassivMitgliedschaft.cshtml` mit `<component>`)
-10. **`PassivMitgliederAdminComponent.razor`** (Tabelle, Inline-Bezahlung, Notizen, Export-Links)
-11. **Admin-Wrapper-Page** (`PassivMitgliederAdmin.cshtml` + `[UmbracoAdminAuthorize]`)
+10. **`PassivMemberAdminComponent.razor`** (Tabelle, Inline-Bezahlung, Notizen, Export-Links)
+11. **Admin-Wrapper-Page** (`PassivMemberAdmin.cshtml` + `[UmbracoAdminAuthorize]`)
 12. **Homepage-Teaser**
 13. **Mobile-Tests** (Chrome, Safari iOS, Android Chrome)
 14. **Azure: `Brevo__ApiKey`, `Turnstile__SiteKey`, `Turnstile__SecretKey` setzen + End-to-End-Test**

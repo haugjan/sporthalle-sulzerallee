@@ -29,6 +29,7 @@
 
   // ── State ────────────────────────────────────────────────────────────────────
   let occupiedFields = new Set();
+  let displayNames   = new Map(); // fieldNumber → name shown on field
   let selectedField  = null;
   let currentStep    = 1;
   const TOTAL_STEPS  = 6;
@@ -45,6 +46,8 @@
   // ── DOM refs ─────────────────────────────────────────────────────────────────
   const svgContainer   = document.getElementById('pm-svg-container');
   const counter        = document.getElementById('pm-counter');
+  const floorSection   = document.getElementById('pm-floor-section');
+  const floorToggle    = document.getElementById('pm-floor-toggle');
   const wizardOverlay  = document.getElementById('pm-wizard-overlay');
   const wizardModal    = document.getElementById('pm-wizard-modal');
   const wizardClose    = document.getElementById('pm-wizard-close');
@@ -56,6 +59,25 @@
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   loadFieldStatuses().then(buildGrid);
+
+  if (floorToggle && floorSection) {
+    floorToggle.addEventListener('click', function () {
+      const expanded = floorSection.classList.toggle('is-expanded');
+      if (expanded) {
+        floorSection.style.width = '100%';
+        floorSection.style.maxWidth = 'none';
+        floorSection.style.marginLeft = '0';
+        floorSection.style.marginRight = '0';
+      } else {
+        floorSection.style.width = '';
+        floorSection.style.maxWidth = '';
+        floorSection.style.marginLeft = '';
+        floorSection.style.marginRight = '';
+      }
+      floorToggle.setAttribute('aria-label', expanded ? 'Bodenplan verkleinern' : 'Bodenplan vergrössern');
+      floorToggle.setAttribute('title', expanded ? 'Verkleinern' : 'Vergrössern');
+    });
+  }
 
   if (wizardClose) wizardClose.addEventListener('click', closeWizard);
   if (wizardOverlay) wizardOverlay.addEventListener('click', function (e) {
@@ -71,14 +93,30 @@
   if (submitBtn) submitBtn.addEventListener('click', submitForm);
 
   // ── Field loading ─────────────────────────────────────────────────────────────
+  // TODO: remove before go-live
+  const TEST_OCCUPIED = {
+    6: 'M. Müller', 35: 'Fam. Meier', 53: 'P. Schmid',
+    79: 'A. Keller', 107: 'S. Weber', 143: 'T. Baumann',
+    158: 'R. Fischer', 183: 'K. Zimmer', 215: 'L. Brunner',
+    234: 'C. Schneider', 267: 'J. Huber', 289: 'M. Koch'
+  };
+
   async function loadFieldStatuses() {
     try {
       const res = await fetch('/api/passivmitglieder/felder');
-      if (!res.ok) return;
+      if (!res.ok) throw new Error();
       const data = await res.json();
       occupiedFields = new Set(data.occupiedFields.map(f => f.fieldNumber));
-      updateCounter(data.occupiedCount, data.totalFields);
-    } catch (_) { /* silent — grid still renders, just shows all free */ }
+      data.occupiedFields.forEach(f => {
+        if (f.displayName) displayNames.set(f.fieldNumber, f.displayName);
+      });
+    } catch (_) { }
+    Object.entries(TEST_OCCUPIED).forEach(([n, name]) => {
+      const num = parseInt(n);
+      occupiedFields.add(num);
+      if (!displayNames.has(num)) displayNames.set(num, name);
+    });
+    updateCounter(occupiedFields.size, TOTAL);
   }
 
   function updateCounter(occupied, total) {
@@ -141,6 +179,21 @@
         }
 
         svg.appendChild(cell);
+
+        if (isOccupied && displayNames.has(n)) {
+          const name = displayNames.get(n);
+          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.setAttribute('x', x + CELL_W / 2);
+          txt.setAttribute('y', y + CELL_H / 2 + 2);
+          txt.setAttribute('text-anchor', 'middle');
+          txt.setAttribute('dominant-baseline', 'middle');
+          txt.setAttribute('font-size', '5.5');
+          txt.setAttribute('font-family', 'Manrope, sans-serif');
+          txt.setAttribute('fill', 'rgba(255,255,255,0.9)');
+          txt.setAttribute('pointer-events', 'none');
+          txt.textContent = name.length > 9 ? name.slice(0, 8) + '…' : name;
+          svg.appendChild(txt);
+        }
       }
     }
 
