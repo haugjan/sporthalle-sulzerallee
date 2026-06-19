@@ -1,9 +1,16 @@
-@using Microsoft.AspNetCore.Components.Web
-@using SporthalleWeb.Components.Reservierung
-<component type="typeof(WochenkalenderComponent)" render-mode="ServerPrerendered" />
-<div class="calendar-legend">
-  <span class="legend-item"><span class="legend-dot confirmed"></span>Belegt</span>
-  <span class="legend-item"><span class="legend-dot provisional"></span>Angefragt</span>
-  <span class="legend-item"><span class="legend-dot recurring"></span>Dauerbelegung</span>
-  <span class="legend-item"><span class="legend-dot free"></span>Frei</span>
+<div id="reservierung-app">
+  <div class="week-nav">
+    <button id="prev-week" aria-label="Vorherige Woche">&#8249;</button>
+    <span id="week-label"></span>
+    <button id="next-week" aria-label="Nächste Woche">&#8250;</button>
+  </div>
+  <div class="calendar-scroll-wrapper">
+    <div id="calendar-grid"></div>
+  </div>
+  <div class="calendar-legend">
+    <span class="legend-item"><span class="legend-dot confirmed"></span>Belegt</span>
+    <span class="legend-item"><span class="legend-dot provisional"></span>Angefragt</span>
+    <span class="legend-item"><span class="legend-dot recurring"></span>Dauerbelegung</span>
+    <span class="legend-item"><span class="legend-dot free"></span>Frei</span>
+  </div>
 </div>

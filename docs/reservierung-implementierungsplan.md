@@ -8,7 +8,7 @@ Blazor-Hybrid ergänzt: 2026-06-19
 ## 1. Übersicht & Ziele
 
 Mieter (Vereine, Firmen, Privatpersonen) buchen Zeitblöcke in der Sporthalle über einen
-Wochenkalender. Die Buchung läuft passwordless via Magic Link. Der Hallenverwalter bestätigt
+Wochenkalender. Die Buchung läuft wahlweise via Magic Link oder Passwort. Der Hallenverwalter bestätigt
 oder lehnt ab. Serientermine legt ausschliesslich der Verwalter an; daraus generiert das
 System Einzelbuchungen, die er bei Bedarf einzeln löschen kann (Ferienausnahmen etc.).
 Für die Buchhaltung gibt es einen CSV-Export aller Einzelbuchungen mit Preisen.
@@ -17,8 +17,10 @@ Für die Buchhaltung gibt es einen CSV-Export aller Einzelbuchungen mit Preisen.
 
 | Thema | Entscheid |
 |-------|-----------|
-| Authentifizierung | Passwordless Magic Link, gültig 20 Min., einmalig einlösbar |
-| Sessions | HttpOnly-Cookie mit 64-Byte-Zufallstoken, serverseitig in DB gespeichert |
+| Authentifizierung | **Hybrid:** Magic Link (immer möglich) + optionales Passwort (BCrypt, min. 8 Zeichen). Magic Link gültig 20 Min., einmalig einlösbar. |
+| Passwort optional | Bei Registrierung wählbar; kann jederzeit nach Magic-Link-Login gesetzt oder geändert werden; ohne Passwort bleibt Magic-Link die einzige Login-Methode |
+| Rate-Limit | Magic Link + Passwort-Reset: max. 1 E-Mail pro 10 Minuten pro Adresse |
+| E-Mail-Sparsamkeit | Registrierungsbestätigung enthält bereits den ersten Magic Link — kein separates Login-Mail nötig |
 | Datenbank-Zugriff | PetaPoco (konsistent mit Passivmitgliedschaft) |
 | E-Mail-Provider | Brevo, Template ID 1, API-Key als `BREVO_API_KEY` Env-Variable |
 | Admin-BCC | Buchungsbestätigungen: BCC an `jan.haug@sporthalle-sulzerallee.ch` |
@@ -37,6 +39,8 @@ Für die Buchhaltung gibt es einen CSV-Export aller Einzelbuchungen mit Preisen.
 | Mobile-First | Tagansicht (ein Tag) auf Mobilgeräten, Wochenansicht auf Desktop |
 | Audit | Append-Only-Tabelle `BookingAuditLog` für alle Zustandsänderungen |
 | Frontend | **Blazor Server** (Interactive Server Rendering) für alle interaktiven UI-Teile; Umbraco Razor für Layout-Shell |
+| Member-Store | **Umbraco Members** (`IMemberManager` / `SignInManager`). BCrypt, Password-Reset-Tokens und Account-Lockout via ASP.NET Core Identity. Admin-Sicht im Umbraco Backoffice unter "Members". Keine eigene `HallRenters`-Tabelle. |
+| Sessions | ASP.NET Core Identity Cookie (Umbraco Member-Cookie); keine eigene `HallSessions`-Tabelle nötig |
 | Sprache (Typen) | Alle C#-Typen (Klassen, Records, Enums, Interfaces, Methoden, Properties) werden auf **Englisch** benannt. Deutsch nur in UI-Texten, Fehlermeldungen und Kommentaren. |
 
 ### Hybridmodell: Umbraco + Blazor Server
@@ -87,12 +91,12 @@ Dieselbe Struktur wie `PassivMitgliedschaft`: Domain-Kern kennt keine Infrastruk
                    GetWeekSlotsQuery / BookingAdminService
                         │ nutzt Ports
                    Domain (Kern)
-                   HallRenter (Aggregate Root)
+                   HallMember (record, wraps IMember)
                    BookingSlot (Aggregate Root)
                    RecurringRule (Aggregate Root)
                    TimeSlot, RenterEmail, RenterType,
                    BookingStatus (Value Objects)
-                   IHallRenterRepository
+                   IMemberManagerPort
                    IBookingSlotRepository
                    IRecurringRuleRepository
                    IMagicLinkTokenRepository
@@ -100,7 +104,7 @@ Dieselbe Struktur wie `PassivMitgliedschaft`: Domain-Kern kennt keine Infrastruk
                    IBookingCsvPort
                         │ implementiert durch
                    Infrastructure (Outbound Adapters)
-                   HallRenterRepository (PetaPoco)
+                   UmbracoMemberAdapter (IMemberManager + SignInManager)
                    BookingSlotRepository (PetaPoco)
                    RecurringRuleRepository (PetaPoco)
                    MagicLinkTokenRepository (PetaPoco)
@@ -111,10 +115,10 @@ Dieselbe Struktur wie `PassivMitgliedschaft`: Domain-Kern kennt keine Infrastruk
 
 ### 2.2 DDD (pragmatisch)
 
-- **Aggregate Roots:** `HallRenter`, `BookingSlot`, `RecurringRule` kapseln ihre Zustandsübergänge.
+- **Aggregate Roots:** `BookingSlot`, `RecurringRule` kapseln ihre Zustandsübergänge. `HallRenter` entfällt: Mieterprofil und Auth liegen in Umbraco Members (ASP.NET Core Identity).
 - **Value Objects:** `TimeSlot`, `RenterEmail`, `RenterType`, `BookingStatus` mit eingebetteter Validierungslogik.
 - **Domain Events:** Einfache Records ohne Event-Bus. Verwendung nur für Audit-Einträge.
-- **Repository Ports:** Im Domain-Kern definiert, PetaPoco-Adapter in Infrastructure.
+- **Repository Ports:** Im Domain-Kern definiert, PetaPoco-Adapter in Infrastructure. Ausnahme: `IMemberManagerPort` wraps `IMemberManager` (Umbraco Identity) für Testbarkeit.
 
 ---
 
@@ -123,7 +127,7 @@ Dieselbe Struktur wie `PassivMitgliedschaft`: Domain-Kern kennt keine Infrastruk
 ```
 src/SporthalleWeb/
 ├── Domain/Reservierung/
-│   ├── HallRenter.cs
+│   ├── HallMember.cs                        Record, wraps Umbraco IMember-Daten
 │   ├── BookingSlot.cs
 │   ├── RecurringRule.cs
 │   ├── MagicLinkToken.cs
@@ -133,7 +137,7 @@ src/SporthalleWeb/
 │   ├── BookingStatus.cs                     Value Object / Enum-Wrapper
 │   ├── DomainException.cs
 │   └── Ports/
-│       ├── IHallRenterRepository.cs
+│       ├── IMemberManagerPort.cs            Wraps IMemberManager + SignInManager
 │       ├── IBookingSlotRepository.cs
 │       ├── IRecurringRuleRepository.cs
 │       ├── IMagicLinkTokenRepository.cs
@@ -146,6 +150,10 @@ src/SporthalleWeb/
 │   ├── ValidateMagicLinkUseCase.cs
 │   ├── RegisterRenterUseCase.cs
 │   ├── RegisterRenterCommand.cs
+│   ├── LoginWithPasswordUseCase.cs
+│   ├── SetPasswordUseCase.cs
+│   ├── RequestPasswordResetUseCase.cs
+│   ├── ResetPasswordUseCase.cs
 │   ├── CreateBookingUseCase.cs
 │   ├── CreateBookingCommand.cs
 │   ├── ConfirmBookingUseCase.cs
@@ -160,27 +168,36 @@ src/SporthalleWeb/
 │   └── BookingAdminService.cs
 │
 ├── Infrastructure/Reservierung/
+│   ├── Members/
+│   │   └── UmbracoMemberAdapter.cs          Implementiert IMemberManagerPort via IMemberManager + SignInManager
 │   ├── Persistence/
-│   │   ├── HallRenterRepository.cs
 │   │   ├── BookingSlotRepository.cs
 │   │   ├── RecurringRuleRepository.cs
 │   │   ├── MagicLinkTokenRepository.cs
 │   │   ├── BookingAuditRepository.cs
 │   │   ├── DbRecords/                       PetaPoco POCO-Klassen
-│   │   │   ├── HallRenterRecord.cs
 │   │   │   ├── BookingSlotRecord.cs
 │   │   │   ├── RecurringRuleRecord.cs
 │   │   │   ├── MagicLinkTokenRecord.cs
 │   │   │   ├── BookingAuditLogRecord.cs
 │   │   │   └── SchoolHolidayRecord.cs
 │   │   ├── SchoolHolidayRepository.cs
-│   │   └── ReservierungMigration.cs
+│   │   └── ReservierungMigration.cs         Erstellt 4 Tabellen (kein HallRenters/HallSessions/PasswordResetTokens)
 │   ├── Email/
 │   │   └── BrevoBookingEmailAdapter.cs
 │   ├── Export/
 │   │   └── BookingCsvAdapter.cs
 │   └── Composition/
 │       └── ReservierungComposer.cs
+
+uSync/v17/
+├── ContentTypes/
+│   ├── reservierung.config
+│   └── reservierungKonfiguration.config
+├── MemberTypes/
+│   └── hallMember.config                    Umbraco Member Type mit Custom-Properties
+└── Templates/
+    └── reservierung.config
 │
 ├── _Imports.razor                               Blazor-weite @using-Statements
 │
@@ -207,13 +224,6 @@ Views/
 └── Reservierung.cshtml                          Umbraco Template (Shell mit <component>)
     └── ReservierungKonfiguration.cshtml         (Konfig-Knoten, nicht öffentlich)
 
-uSync/v17/
-├── ContentTypes/
-│   ├── reservierung.config
-│   └── reservierungKonfiguration.config
-└── Templates/
-    └── reservierung.config
-
 wwwroot/
 └── css/reservierung.css
 ```
@@ -224,27 +234,50 @@ wwwroot/
 
 ### 1.1 Datenbankschema
 
-Alle Tabellen werden via `IMigrationPlan` + `IComposer` beim App-Start angelegt.
+Die vier eigenen Tabellen (Buchungen, Serien, Audit, Magic-Link-Tokens) werden via
+`IMigrationPlan` + `IComposer` beim App-Start angelegt. Mieterprofil und Auth liegen
+vollständig in Umbraco Members — keine eigenen `HallRenters`-, `HallSessions`- oder
+`PasswordResetTokens`-Tabellen.
 
-#### `HallRenters` — Mieterprofil
+#### Umbraco Member Type `hallMember` — Mieterprofil
 
-```sql
-CREATE TABLE HallRenters (
-    Id              INT IDENTITY(1,1) PRIMARY KEY,
-    RenterType      NVARCHAR(20)  NOT NULL,  -- 'Verein' | 'Firma' | 'Privatperson'
-    Email           NVARCHAR(200) NOT NULL UNIQUE,
-    ContactPerson   NVARCHAR(200) NOT NULL,
-    BillingName     NVARCHAR(300) NOT NULL,  -- Vereins-/Firmenname oder vollständiger Name
-    BillingAddress  NVARCHAR(300) NOT NULL,
-    BillingPostalCode NVARCHAR(20) NOT NULL,
-    BillingCity     NVARCHAR(100) NOT NULL,
-    BillingCountry  NVARCHAR(100) NOT NULL DEFAULT 'Schweiz',
-    Phone           NVARCHAR(50)  NULL,
-    Notes           NVARCHAR(MAX) NULL,
-    HasKey          BIT           NOT NULL DEFAULT 0,
-    CreatedAt       DATETIME2     NOT NULL,
-    UpdatedAt       DATETIME2     NOT NULL
-)
+Statt einer eigenen DB-Tabelle wird ein Umbraco Member Type mit dem Alias `hallMember`
+angelegt (via `ReservierungComposer` oder uSync). Jeder Mieter ist ein Umbraco Member.
+
+**Custom Properties des Member Types:**
+
+| Alias | Typ | Pflicht | Bedeutung |
+|-------|-----|---------|-----------|
+| `renterType` | TextBox | Ja | `'Verein'` \| `'Firma'` \| `'Privatperson'` |
+| `billingName` | TextBox | Ja | Firma oder vollständiger Name |
+| `billingAddress` | TextBox | Ja | Strasse + Hausnummer |
+| `billingPostalCode` | TextBox | Ja | PLZ |
+| `billingCity` | TextBox | Ja | Ort |
+| `billingCountry` | TextBox | Ja | Default: `'Schweiz'` |
+| `phone` | TextBox | Nein | Telefonnummer |
+| `hasKey` | True/False | Ja | Hat der Mieter einen Hallenschlüssel? |
+| `magicLinkSentAt` | DateTime | Nein | Rate-Limit: Zeitstempel des letzten Magic Links |
+| `passwordResetSentAt` | DateTime | Nein | Rate-Limit: Zeitstempel des letzten Passwort-Resets |
+
+Standard-Identity-Felder via `IMemberManager` / `MemberIdentityUser`:
+- `Email` (eindeutig, Username = E-Mail)
+- `Name` (Ansprechperson)
+- `PasswordHash` (BCrypt via Identity)
+- `IsApproved`, `IsLockedOut`, `AccessFailedCount` (Lockout nach N Fehlversuchen, konfigurierbar)
+
+**Anlegen via Composer:**
+```csharp
+// In ReservierungComposer.Run():
+var memberTypeService = context.ServiceProvider.GetRequiredService<IMemberTypeService>();
+if (memberTypeService.Get("hallMember") is null)
+{
+    var mt = new MemberType(shortStringHelper, -1)
+    {
+        Alias = "hallMember", Name = "Hall Renter"
+    };
+    // Properties hinzufügen via mt.AddPropertyType(...)
+    memberTypeService.Save(mt);
+}
 ```
 
 #### `MagicLinkTokens` — Passwordless-Auth-Tokens
@@ -252,7 +285,7 @@ CREATE TABLE HallRenters (
 ```sql
 CREATE TABLE MagicLinkTokens (
     Id              INT IDENTITY(1,1) PRIMARY KEY,
-    RenterId        INT           NOT NULL REFERENCES HallRenters(Id),
+    MemberId        INT           NOT NULL,         -- Umbraco IMember.Id
     TokenHash       NVARCHAR(128) NOT NULL UNIQUE,  -- SHA-256 des Klartexttokens
     ExpiresAt       DATETIME2     NOT NULL,
     UsedAt          DATETIME2     NULL,
@@ -263,29 +296,15 @@ CREATE TABLE MagicLinkTokens (
 
 Das Klartext-Token (64 zufällige Bytes, Base64url-codiert) wird nur per E-Mail verschickt
 und nie in der DB gespeichert. In der DB liegt ausschliesslich der SHA-256-Hash.
-
-#### `HallSessions` — Server-seitige Sessions
-
-```sql
-CREATE TABLE HallSessions (
-    Id              INT IDENTITY(1,1) PRIMARY KEY,
-    RenterId        INT           NOT NULL REFERENCES HallRenters(Id),
-    SessionTokenHash NVARCHAR(128) NOT NULL UNIQUE,  -- SHA-256 des Cookie-Tokens
-    ExpiresAt       DATETIME2     NOT NULL,
-    CreatedAt       DATETIME2     NOT NULL,
-    RemoteIp        NVARCHAR(45)  NULL
-)
-```
-
-Session-Lebensdauer: 8 Stunden. Cookie: `HttpOnly`, `Secure`, `SameSite=Strict`,
-Name `hbs_session` (Hallenbuching Session).
+Passwort-Reset-Tokens: werden von `IMemberManager.GeneratePasswordResetTokenAsync()`
+(ASP.NET Core Identity, TOTP-basiert, zeitbegrenzt) erzeugt — keine eigene Tabelle.
 
 #### `BookingSlots` — Einzelbuchungen
 
 ```sql
 CREATE TABLE BookingSlots (
     Id                  INT IDENTITY(1,1) PRIMARY KEY,
-    RenterId            INT           NULL REFERENCES HallRenters(Id),  -- NULL bei Serienbuchungen
+    MemberId            INT           NULL,   -- Umbraco IMember.Id; NULL bei Serienbuchungen
     RecurringRuleId     INT           NULL REFERENCES RecurringRules(Id),
     Status              NVARCHAR(20)  NOT NULL DEFAULT 'Provisorisch',
                                       -- 'Provisorisch' | 'Bestätigt' | 'Storniert'
@@ -317,7 +336,7 @@ CREATE INDEX IX_BookingSlots_Time ON BookingSlots (StartUtc, EndUtc) WHERE Statu
 ```sql
 CREATE TABLE RecurringRules (
     Id              INT IDENTITY(1,1) PRIMARY KEY,
-    RenterId        INT           NULL REFERENCES HallRenters(Id),
+    MemberId        INT           NULL,   -- Umbraco IMember.Id
     Description     NVARCHAR(300) NOT NULL,   -- z.B. "Hockeytraining Donnerstag"
     DayOfWeek       INT           NOT NULL,   -- 0=Sonntag … 6=Samstag (.NET DayOfWeek)
     StartTime       TIME          NOT NULL,   -- Ortszeit Zurich (07:00–23:00)
@@ -339,7 +358,7 @@ CREATE TABLE RecurringRules (
 ```sql
 CREATE TABLE BookingAuditLog (
     Id              BIGINT IDENTITY(1,1) PRIMARY KEY,
-    EntityType      NVARCHAR(50)  NOT NULL,  -- 'BookingSlot' | 'HallRenter' | 'RecurringRule'
+    EntityType      NVARCHAR(50)  NOT NULL,  -- 'BookingSlot' | 'RecurringRule' | 'Member'
     EntityId        INT           NOT NULL,
     Action          NVARCHAR(50)  NOT NULL,  -- 'Created' | 'Confirmed' | 'Rejected' | 'Cancelled' | 'PriceChanged' | 'Deleted'
     ChangedBy       NVARCHAR(200) NOT NULL,  -- E-Mail oder 'admin:<UmbracoUser>'
@@ -443,7 +462,7 @@ public record BookingStatus
 public sealed class BookingSlot
 {
     public int Id { get; private set; }
-    public int? RenterId { get; private set; }
+    public int? MemberId { get; private set; }  // Umbraco IMember.Id
     public int? RecurringRuleId { get; private set; }
     public BookingStatus Status { get; private set; }
     public TimeSlot Slot { get; private set; }
@@ -460,12 +479,12 @@ public sealed class BookingSlot
     private BookingSlot() { }
 
     public static BookingSlot CreateUserBooking(
-        int renterId, TimeSlot slot, decimal pricePerBlock, string createdBy, string? notes)
+        int memberId, TimeSlot slot, decimal pricePerBlock, string createdBy, string? notes)
     {
         var blocks = slot.BlockCount();
         return new BookingSlot
         {
-            RenterId = renterId,
+            MemberId = memberId,
             Status = BookingStatus.Provisional,
             Slot = slot,
             PricePerBlock = pricePerBlock,
@@ -480,11 +499,11 @@ public sealed class BookingSlot
     }
 
     public static BookingSlot CreateRecurringSlot(
-        int? renterId, int recurringRuleId, TimeSlot slot, string createdBy, string? color)
+        int? memberId, int recurringRuleId, TimeSlot slot, string createdBy, string? color)
     {
         return new BookingSlot
         {
-            RenterId = renterId,
+            MemberId = memberId,
             RecurringRuleId = recurringRuleId,
             Status = BookingStatus.Confirmed,  // Serientermine sofort bestätigt
             Slot = slot,
@@ -535,74 +554,59 @@ public sealed class BookingSlot
 }
 ```
 
-#### Aggregate Root `HallRenter`
+#### `HallMember` — leichtgewichtiges Record (wraps Umbraco IMember)
+
+`HallRenter` als Aggregate Root entfällt. Stattdessen werden Mieterdaten direkt via
+`IMemberManagerPort` aus Umbraco Members gelesen. Für Read-Operationen (E-Mail-Versand,
+CSV-Export) gibt es ein schlankes `HallMember`-Record:
 
 ```csharp
-public sealed class HallRenter
-{
-    public int Id { get; private set; }
-    public RenterType Type { get; private set; }
-    public RenterEmail Email { get; private set; }
-    public string ContactPerson { get; private set; } = "";
-    public string BillingName { get; private set; } = "";
-    public string BillingAddress { get; private set; } = "";
-    public string BillingPostalCode { get; private set; } = "";
-    public string BillingCity { get; private set; } = "";
-    public string BillingCountry { get; private set; } = "Schweiz";
-    public string? Phone { get; private set; }
-    public string? Notes { get; private set; }
-    public bool HasKey { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
-
-    private HallRenter() { }
-
-    public static HallRenter Register(
-        RenterType type, RenterEmail email, string contactPerson,
-        string billingName, string billingAddress, string billingPostalCode,
-        string billingCity, string? phone, bool hasKey)
-    {
-        return new HallRenter
-        {
-            Type = type,
-            Email = email,
-            ContactPerson = contactPerson.Trim(),
-            BillingName = billingName.Trim(),
-            BillingAddress = billingAddress.Trim(),
-            BillingPostalCode = billingPostalCode.Trim(),
-            BillingCity = billingCity.Trim(),
-            Phone = phone?.Trim(),
-            HasKey = hasKey,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-    }
-
-    public void UpdateProfile(
-        string contactPerson, string billingName, string billingAddress,
-        string billingPostalCode, string billingCity, string? phone, bool hasKey)
-    {
-        ContactPerson = contactPerson.Trim();
-        BillingName = billingName.Trim();
-        BillingAddress = billingAddress.Trim();
-        BillingPostalCode = billingPostalCode.Trim();
-        BillingCity = billingCity.Trim();
-        Phone = phone?.Trim();
-        HasKey = hasKey;
-        UpdatedAt = DateTime.UtcNow;
-    }
-}
+public sealed record HallMember(
+    int     Id,
+    string  Email,
+    string  ContactPerson,       // = Member.Name
+    RenterType RenterType,
+    string  BillingName,
+    string  BillingAddress,
+    string  BillingPostalCode,
+    string  BillingCity,
+    string  BillingCountry,
+    string? Phone,
+    bool    HasKey,
+    bool    HasPassword,         // = Member.HasPassword (Identity)
+    DateTime? MagicLinkSentAt,
+    DateTime? PasswordResetSentAt
+);
 ```
 
-#### Outbound Ports
+#### Outbound Port `IMemberManagerPort`
+
+Wraps `IMemberManager` und `SignInManager<MemberIdentityUser>` für Testbarkeit:
 
 ```csharp
-public interface IHallRenterRepository
+public interface IMemberManagerPort
 {
-    Task<HallRenter?> FindByEmailAsync(RenterEmail email);
-    Task<HallRenter?> FindByIdAsync(int id);
-    Task<HallRenter> SaveAsync(HallRenter renter);
-    Task UpdateAsync(HallRenter renter);
+    Task<HallMember?> FindByEmailAsync(string email);
+    Task<HallMember?> FindByIdAsync(int memberId);
+    Task<HallMember> CreateAsync(RegisterRenterCommand cmd, string? password);
+    Task UpdateProfileAsync(int memberId, string contactPerson, string billingName,
+        string billingAddress, string billingPostalCode, string billingCity, string? phone, bool hasKey);
+
+    // Auth
+    Task<bool> CheckPasswordAsync(string email, string password);
+    Task SignInAsync(int memberId);
+    Task SignOutAsync();
+    Task AddOrChangePasswordAsync(int memberId, string newPassword);
+
+    // Identity password-reset (TOTP-basiert, kein eigener Token-Store nötig)
+    Task<string> GeneratePasswordResetTokenAsync(int memberId);
+    Task ResetPasswordAsync(int memberId, string token, string newPassword);
+
+    // Rate-Limit-Felder (Custom Member Properties)
+    Task<DateTime?> GetMagicLinkSentAtAsync(int memberId);
+    Task SetMagicLinkSentAtAsync(int memberId, DateTime sentAt);
+    Task<DateTime?> GetPasswordResetSentAtAsync(int memberId);
+    Task SetPasswordResetSentAtAsync(int memberId, DateTime sentAt);
 }
 
 public interface IBookingSlotRepository
@@ -612,7 +616,7 @@ public interface IBookingSlotRepository
     Task<BookingSlot?> FindByIdAsync(int id);
     Task<BookingSlot> SaveAsync(BookingSlot slot);
     Task UpdateAsync(BookingSlot slot);
-    Task<IReadOnlyList<BookingSlot>> GetForRenterAsync(int renterId);
+    Task<IReadOnlyList<BookingSlot>> GetForMemberAsync(int memberId);
     Task<IReadOnlyList<BookingSlot>> GetForExportAsync(
         DateTime fromUtc, DateTime toUtc, bool confirmedOnly);
     Task<IReadOnlyList<BookingSlot>> GetPendingAdminApprovalAsync();
@@ -632,9 +636,6 @@ public interface IMagicLinkTokenRepository
     Task SaveAsync(MagicLinkToken token);
     Task<MagicLinkToken?> FindByHashAsync(string tokenHash);
     Task MarkUsedAsync(int tokenId);
-    Task SaveSessionAsync(HallSession session);
-    Task<HallSession?> FindSessionByHashAsync(string tokenHash);
-    Task InvalidateSessionAsync(string tokenHash);
     Task PurgeExpiredAsync();
 }
 
@@ -647,16 +648,19 @@ public interface IBookingAuditRepository
 
 public interface IBookingEmailPort
 {
-    Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallRenter renter);
-    Task SendAdminNewBookingNotificationAsync(BookingSlot slot, HallRenter renter);
-    Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallRenter renter);
-    Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallRenter renter);
-    Task SendMagicLinkAsync(HallRenter renter, string magicLinkUrl);
+    Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member);
+    Task SendAdminNewBookingNotificationAsync(BookingSlot slot, HallMember member);
+    Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member);
+    Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member);
+    // Registrierungsbestätigung enthält bereits den ersten Magic Link (E-Mail-Sparsamkeit)
+    Task SendRegistrationConfirmationWithMagicLinkAsync(HallMember member, string magicLinkUrl);
+    Task SendMagicLinkAsync(HallMember member, string magicLinkUrl);
+    Task SendPasswordResetAsync(HallMember member, string resetUrl);
 }
 
 public interface IBookingCsvPort
 {
-    byte[] ExportBookings(IReadOnlyList<(BookingSlot Slot, HallRenter? Renter)> data,
+    byte[] ExportBookings(IReadOnlyList<(BookingSlot Slot, HallMember? Member)> data,
                           DateTime from, DateTime to);
 }
 ```
@@ -665,29 +669,36 @@ public interface IBookingCsvPort
 
 ## Phase 2: Backend-Logik & API
 
-### 2.1 Magic Link Authentifizierung
+### 2.1 Authentifizierung
+
+Alle Auth-Use-Cases delegieren an `IMemberManagerPort`, der `IMemberManager` und
+`SignInManager<MemberIdentityUser>` (Umbraco / ASP.NET Core Identity) kapselt.
+Cookie-Lebensdauer und Lockout-Schwellen sind via `IdentityOptions` konfigurierbar.
 
 #### `SendMagicLinkUseCase`
 
 ```csharp
 public sealed class SendMagicLinkUseCase(
-    IHallRenterRepository renterRepo,
+    IMemberManagerPort members,
     IMagicLinkTokenRepository tokenRepo,
     IBookingEmailPort email)
 {
-    // Gibt zurück ob der Nutzer bereits registriert ist (FE entscheidet ob Reg-Formular zeigen)
+    // Gibt false zurück, wenn der Nutzer noch nicht registriert ist (FE zeigt Reg-Formular)
     public async Task<bool> ExecuteAsync(string emailRaw, string? remoteIp)
     {
-        var renterEmail = new RenterEmail(emailRaw);
-        var renter = await renterRepo.FindByEmailAsync(renterEmail);
-        if (renter == null) return false;  // FE zeigt Registrierungsformular
+        var member = await members.FindByEmailAsync(emailRaw.Trim().ToLowerInvariant());
+        if (member is null) return false;
+
+        var lastSent = await members.GetMagicLinkSentAtAsync(member.Id);
+        if (lastSent.HasValue && (DateTime.UtcNow - lastSent.Value).TotalMinutes < 10)
+            throw new DomainException("Bitte warte 10 Minuten bevor du einen neuen Link anforderst.");
 
         var (plainToken, tokenHash) = GenerateToken();
         var magicLink = $"https://www.sporthalle-sulzerallee.ch/reservierung/auth?token={plainToken}";
 
-        var token = MagicLinkToken.Create(renter.Id, tokenHash, remoteIp);
-        await tokenRepo.SaveAsync(token);
-        await email.SendMagicLinkAsync(renter, magicLink);
+        await tokenRepo.SaveAsync(MagicLinkToken.Create(member.Id, tokenHash, remoteIp));
+        await members.SetMagicLinkSentAtAsync(member.Id, DateTime.UtcNow);
+        await email.SendMagicLinkAsync(member, magicLink);
 
         return true;
     }
@@ -707,9 +718,9 @@ public sealed class SendMagicLinkUseCase(
 ```csharp
 public sealed class ValidateMagicLinkUseCase(
     IMagicLinkTokenRepository tokenRepo,
-    IHallRenterRepository renterRepo)
+    IMemberManagerPort members)
 {
-    public async Task<HallRenter> ExecuteAsync(string plainToken, string? remoteIp)
+    public async Task<HallMember> ExecuteAsync(string plainToken)
     {
         var hash = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(plainToken)));
@@ -724,31 +735,127 @@ public sealed class ValidateMagicLinkUseCase(
 
         await tokenRepo.MarkUsedAsync(token.Id);
 
-        var renter = await renterRepo.FindByIdAsync(token.RenterId)
+        var member = await members.FindByIdAsync(token.MemberId)
             ?? throw new DomainException("Mieter nicht gefunden.");
 
-        // Session anlegen
-        var sessionBytes = RandomNumberGenerator.GetBytes(64);
-        var sessionPlain = Base64UrlTextEncoder.Encode(sessionBytes);
-        var sessionHash  = Convert.ToHexString(
-            SHA256.HashData(Encoding.UTF8.GetBytes(sessionPlain)));
-
-        var session = HallSession.Create(renter.Id, sessionHash, remoteIp);
-        await tokenRepo.SaveSessionAsync(session);
-
-        // sessionPlain wird vom Controller als HttpOnly-Cookie gesetzt
-        return renter;
+        // SignInAsync nutzt SignInManager<MemberIdentityUser> — setzt Identity Cookie
+        await members.SignInAsync(member.Id);
+        return member;
     }
 }
 ```
 
-Die Session-Cookie-Verwaltung liegt im Controller (Presentation-Concern):
+Der MVC-Controller ruft `ValidateMagicLinkUseCase` auf und redirectet auf
+`/reservierung?session=confirmed`. Kein eigener Cookie-Code im Controller nötig.
+
+#### `RegisterRenterUseCase`
+
 ```csharp
-Response.Cookies.Append("hbs_session", sessionPlain, new CookieOptions
+public sealed class RegisterRenterUseCase(
+    IMemberManagerPort members,
+    IMagicLinkTokenRepository tokenRepo,
+    ICaptchaPort captcha,
+    IBookingEmailPort email)
 {
-    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict,
-    Expires = DateTimeOffset.UtcNow.AddHours(8)
-});
+    public async Task ExecuteAsync(RegisterRenterCommand cmd, string? captchaToken, string? remoteIp)
+    {
+        if (!await captcha.VerifyAsync(captchaToken, remoteIp))
+            throw new DomainException("CAPTCHA-Überprüfung fehlgeschlagen.");
+
+        if (await members.FindByEmailAsync(cmd.Email) is not null)
+            throw new DomainException("Diese E-Mail-Adresse ist bereits registriert.");
+
+        // Optionales Passwort: Identity (BCrypt) übernimmt das Hashing
+        var member = await members.CreateAsync(cmd, cmd.Password);
+
+        // Registrierungsbestätigung enthält bereits den ersten Magic Link
+        var (plainToken, tokenHash) = GenerateToken();
+        var magicLink = $"https://www.sporthalle-sulzerallee.ch/reservierung/auth?token={plainToken}";
+        await tokenRepo.SaveAsync(MagicLinkToken.Create(member.Id, tokenHash, remoteIp));
+        await members.SetMagicLinkSentAtAsync(member.Id, DateTime.UtcNow);
+
+        await email.SendRegistrationConfirmationWithMagicLinkAsync(member, magicLink);
+    }
+
+    private static (string plain, string hash) GenerateToken() { /* identisch wie SendMagicLinkUseCase */ }
+}
+```
+
+#### `LoginWithPasswordUseCase`
+
+```csharp
+public sealed class LoginWithPasswordUseCase(IMemberManagerPort members)
+{
+    public async Task<HallMember> ExecuteAsync(string email, string password)
+    {
+        var member = await members.FindByEmailAsync(email)
+            ?? throw new DomainException("Unbekannte E-Mail-Adresse.");
+
+        if (!await members.CheckPasswordAsync(email, password))
+            // Identity erhöht AccessFailedCount + lockt nach N Versuchen aus (IdentityOptions)
+            throw new DomainException("Passwort ungültig.");
+
+        await members.SignInAsync(member.Id);
+        return member;
+    }
+}
+```
+
+#### `SetPasswordUseCase`
+
+```csharp
+public sealed class SetPasswordUseCase(IMemberManagerPort members)
+{
+    // Nutzer ist bereits per Magic Link eingeloggt und setzt jetzt ein Passwort
+    public async Task ExecuteAsync(int memberId, string newPassword)
+    {
+        if (newPassword.Length < 8)
+            throw new DomainException("Das Passwort muss mindestens 8 Zeichen lang sein.");
+        await members.AddOrChangePasswordAsync(memberId, newPassword);
+    }
+}
+```
+
+#### `RequestPasswordResetUseCase`
+
+```csharp
+public sealed class RequestPasswordResetUseCase(
+    IMemberManagerPort members,
+    IBookingEmailPort email)
+{
+    public async Task ExecuteAsync(string emailRaw)
+    {
+        var member = await members.FindByEmailAsync(emailRaw);
+        if (member is null) return;  // Stilles Ignorieren (Anti-Enumeration)
+
+        var lastSent = await members.GetPasswordResetSentAtAsync(member.Id);
+        if (lastSent.HasValue && (DateTime.UtcNow - lastSent.Value).TotalMinutes < 10)
+            return;
+
+        // Identity generiert TOTP-Token (60 Min. gültig, konfigurierbar via IdentityOptions)
+        var resetToken = await members.GeneratePasswordResetTokenAsync(member.Id);
+        var resetUrl = $"https://www.sporthalle-sulzerallee.ch/reservierung/reset-password" +
+                       $"?token={Uri.EscapeDataString(resetToken)}&id={member.Id}";
+
+        await members.SetPasswordResetSentAtAsync(member.Id, DateTime.UtcNow);
+        await email.SendPasswordResetAsync(member, resetUrl);
+    }
+}
+```
+
+#### `ResetPasswordUseCase`
+
+```csharp
+public sealed class ResetPasswordUseCase(IMemberManagerPort members)
+{
+    public async Task ExecuteAsync(int memberId, string token, string newPassword)
+    {
+        if (newPassword.Length < 8)
+            throw new DomainException("Das Passwort muss mindestens 8 Zeichen lang sein.");
+        // IMemberManager.ResetPasswordAsync prüft TOTP-Token (Ablauf + Einmaligkeit via Identity)
+        await members.ResetPasswordAsync(memberId, token, newPassword);
+    }
+}
 ```
 
 ### 2.2 Buchungslogik & Konfliktprüfung
@@ -758,14 +865,14 @@ Response.Cookies.Append("hbs_session", sessionPlain, new CookieOptions
 ```csharp
 public sealed class CreateBookingUseCase(
     IBookingSlotRepository slotRepo,
-    IHallRenterRepository renterRepo,
+    IMemberManagerPort members,
     IBookingAuditRepository audit,
     IBookingEmailPort email,
     IHallConfigurationPort config)  // Umbraco-Konfig
 {
     public async Task<BookingSlot> ExecuteAsync(CreateBookingCommand cmd)
     {
-        var renter = await renterRepo.FindByIdAsync(cmd.RenterId)
+        var member = await members.FindByIdAsync(cmd.MemberId)
             ?? throw new DomainException("Mieter nicht gefunden.");
 
         var slot = new TimeSlot(cmd.StartUtc, cmd.EndUtc);
@@ -777,17 +884,17 @@ public sealed class CreateBookingUseCase(
 
         var pricePerBlock = await config.GetPricePerBlockAsync();
         var booking = BookingSlot.CreateUserBooking(
-            cmd.RenterId, slot, pricePerBlock,
-            createdBy: renter.Email.Value, cmd.Notes);
+            cmd.MemberId, slot, pricePerBlock,
+            createdBy: member.Email, cmd.Notes);
 
         await slotRepo.SaveAsync(booking);
 
         await audit.LogAsync("BookingSlot", booking.Id, "Created",
-            renter.Email.Value, null, new { booking.Status, slot.StartUtc, slot.EndUtc });
+            member.Email, null, new { booking.Status, slot.StartUtc, slot.EndUtc });
 
         // Provisorische Bestätigung an Mieter + Admin-Benachrichtigung
-        await email.SendProvisionConfirmationToRenterAsync(booking, renter);
-        await email.SendAdminNewBookingNotificationAsync(booking, renter);
+        await email.SendProvisionConfirmationToRenterAsync(booking, member);
+        await email.SendAdminNewBookingNotificationAsync(booking, member);
 
         return booking;
     }
@@ -921,21 +1028,37 @@ POST /api/reservierung/register
 
 POST /api/reservierung/auth/validate
      Body: { "token": "..." }
-     → Setzt HttpOnly-Cookie hbs_session | 400 (abgelaufen/ungültig)
+     → Validiert Magic Link, setzt Identity Cookie | 400 (abgelaufen/ungültig)
+
+POST /api/reservierung/auth/login
+     Body: { "email": "...", "password": "..." }
+     → 200 (Identity Cookie gesetzt) | 401 (ungültig) | 423 (Account gesperrt)
 
 POST /api/reservierung/auth/logout
-     → Löscht Cookie + invalidiert Session in DB
+     → Identity Cookie löschen (SignOutAsync)
 
 GET  /api/reservierung/me
-     → HallRenter-Daten (nur für eingeloggte Session)
+     → HallMember-Daten (Email, Name, RenterType, HasPassword — nur für eingeloggte Nutzer)
+
+POST /api/reservierung/me/password
+     Body: { "newPassword": "..." }
+     → 204 | 401
+
+POST /api/reservierung/auth/forgot-password
+     Body: { "email": "..." }
+     → 204 (stilles OK, auch wenn E-Mail unbekannt — Anti-Enumeration)
+
+POST /api/reservierung/auth/reset-password
+     Body: { "memberId": 42, "token": "...", "newPassword": "..." }
+     → 204 | 400 (Token abgelaufen/ungültig)
 
 POST /api/reservierung/buchungen
      Body: CreateBookingRequest (StartUtc, EndUtc, Notes)
-     Cookie: hbs_session
+     Auth: Identity Cookie (Umbraco Member)
      → BookingSlot | 409 Conflict | 401 Unauthorized
 
 GET  /api/reservierung/meine-buchungen
-     Cookie: hbs_session
+     Auth: Identity Cookie (Umbraco Member)
      → BookingSlot[] des eingeloggten Mieters
 
 // Admin (UmbracoAdminAuthorize)
@@ -1028,13 +1151,13 @@ public class BrevoBookingEmailAdapter(HttpClient http, IOptions<BrevoEmailOption
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    public async Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallRenter renter)
+    public async Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member)
     {
         var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
         var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
 
-        await SendAsync(renter.Email.Value,
-            $"{renter.ContactPerson.Split(' ')[0]}",
+        await SendAsync(member.Email,
+            $"{member.ContactPerson.Split(' ')[0]}",
             subject:  "Deine Buchungsanfrage ist eingegangen",
             title:    "Buchung provisorisch reserviert",
             body:     "Deine Buchungsanfrage für die Sporthalle Sulzerallee ist eingegangen. " +
@@ -1045,10 +1168,10 @@ public class BrevoBookingEmailAdapter(HttpClient http, IOptions<BrevoEmailOption
             bcc:      new[] { "jan.haug@sporthalle-sulzerallee.ch" });
     }
 
-    public async Task SendMagicLinkAsync(HallRenter renter, string magicLinkUrl)
+    public async Task SendMagicLinkAsync(HallMember member, string magicLinkUrl)
     {
-        var firstName = renter.ContactPerson.Split(' ')[0];
-        await SendAsync(renter.Email.Value, firstName,
+        var firstName = member.ContactPerson.Split(' ')[0];
+        await SendAsync(member.Email, firstName,
             subject:  "Dein Anmelde-Link für die Sporthalle",
             title:    "Anmelden ohne Passwort",
             body:     "Klicke auf den Button unten, um dich anzumelden. " +
@@ -1126,7 +1249,9 @@ public class ReservierungComposer : IComposer
         builder.Services.AddHttpClient<TurnstileCaptchaAdapter>();
         builder.Services.AddScoped<ICaptchaPort, TurnstileCaptchaAdapter>();
 
-        builder.Services.AddScoped<IHallRenterRepository, HallRenterRepository>();
+        // Member-Port: wraps IMemberManager + SignInManager (Umbraco Identity)
+        builder.Services.AddScoped<IMemberManagerPort, UmbracoMemberAdapter>();
+
         builder.Services.AddScoped<IBookingSlotRepository, BookingSlotRepository>();
         builder.Services.AddScoped<IRecurringRuleRepository, RecurringRuleRepository>();
         builder.Services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
@@ -1137,6 +1262,10 @@ public class ReservierungComposer : IComposer
         builder.Services.AddScoped<SendMagicLinkUseCase>();
         builder.Services.AddScoped<ValidateMagicLinkUseCase>();
         builder.Services.AddScoped<RegisterRenterUseCase>();
+        builder.Services.AddScoped<LoginWithPasswordUseCase>();
+        builder.Services.AddScoped<SetPasswordUseCase>();
+        builder.Services.AddScoped<RequestPasswordResetUseCase>();
+        builder.Services.AddScoped<ResetPasswordUseCase>();
         builder.Services.AddScoped<CreateBookingUseCase>();
         builder.Services.AddScoped<ConfirmBookingUseCase>();
         builder.Services.AddScoped<RejectBookingUseCase>();
@@ -1548,14 +1677,27 @@ Session-Status via `GET /api/reservierung/me` nach der Rückkehr vom Magic-Link.
             @if (IsLoggedIn)
             {
                 <p class="session-info">Angemeldet als @SessionEmail</p>
+                @if (ShowSetPasswordPrompt)
+                {
+                    <!-- Nach Magic-Link-Login: optionale Passwort-Einrichtung -->
+                    <details class="set-password-prompt">
+                        <summary>Passwort für nächstes Mal einrichten (optional)</summary>
+                        <input type="password" @bind="NewPassword" placeholder="Mindestens 8 Zeichen" />
+                        <button @onclick="SetPasswordAsync" disabled="@IsAuthBusy">
+                            Passwort speichern
+                        </button>
+                        @if (PasswordSaved) { <span class="success">✓ Gespeichert</span> }
+                    </details>
+                }
             }
             else
             {
-                <!-- Auth-Subflow: E-Mail eingeben → Magic Link / Registrierung -->
+                <!-- Auth-Subflow: E-Mail eingeben → Passwort oder Magic Link -->
                 <div class="picker__auth">
                     <label>Deine E-Mail-Adresse *
-                        <input type="email" @bind="AuthEmail" />
+                        <input type="email" @bind="AuthEmail" @onblur="CheckEmailAsync" />
                     </label>
+
                     @if (MagicLinkSent)
                     {
                         <p class="info-box">Anmelde-Link gesendet an @AuthEmail. Bitte prüfe dein Postfach.</p>
@@ -1564,14 +1706,40 @@ Session-Status via `GET /api/reservierung/me` nach der Rückkehr vom Magic-Link.
                     {
                         <!-- Registrierungsformular (inline) -->
                         <div class="registration-form">
-                            <!-- Felder identisch wie im alten Plan (Mieter-Typ, Name, Adresse, …) -->
-                            <button @onclick="SendMagicLinkAsync" disabled="@IsAuthBusy">
+                            <!-- Felder: Mieter-Typ, Ansprechperson, Rechnungsadresse, … -->
+                            <label>Passwort einrichten (optional)
+                                <input type="password" @bind="RegistrationPassword"
+                                       placeholder="Leer lassen = nur Magic-Link-Login" />
+                            </label>
+                            <button @onclick="RegisterAsync" disabled="@IsAuthBusy">
                                 Registrieren & Anmelde-Link senden
+                            </button>
+                        </div>
+                    }
+                    else if (MemberHasPassword)
+                    {
+                        <!-- Bekannter Nutzer mit Passwort: Passwort-Login zuerst anbieten -->
+                        <label>Passwort
+                            <input type="password" @bind="LoginPassword" />
+                        </label>
+                        @if (AuthError is not null)
+                        {
+                            <p class="error-message" role="alert">@AuthError</p>
+                        }
+                        <div class="picker__auth-actions">
+                            <button class="btn-primary" @onclick="LoginWithPasswordAsync"
+                                    disabled="@IsAuthBusy">
+                                Anmelden
+                            </button>
+                            <button class="btn-link" @onclick="SendMagicLinkAsync"
+                                    disabled="@IsAuthBusy">
+                                Magic Link anfordern
                             </button>
                         </div>
                     }
                     else
                     {
+                        <!-- Bekannter Nutzer ohne Passwort: nur Magic Link -->
                         <button @onclick="SendMagicLinkAsync" disabled="@IsAuthBusy">
                             Anmelde-Link anfordern
                         </button>
@@ -1629,8 +1797,9 @@ Session-Status via `GET /api/reservierung/me` nach der Rückkehr vom Magic-Link.
     private SlotOption? SelectedSlot;
 
     private string? EventType, Notes, AuthEmail, ErrorMessage, SessionEmail;
+    private string? LoginPassword, RegistrationPassword, NewPassword, AuthError;
     private bool IsLoggedIn, MagicLinkSent, ShowRegistration, AgreedToTerms;
-    private bool IsAuthBusy, IsSubmitting;
+    private bool IsAuthBusy, IsSubmitting, MemberHasPassword, ShowSetPasswordPrompt, PasswordSaved;
 
     private decimal TotalPrice =>
         SelectedMinutes.HasValue
@@ -1658,9 +1827,11 @@ Session-Status via `GET /api/reservierung/me` nach der Rückkehr vom Magic-Link.
         var me = await Http.GetAsync("/api/reservierung/me");
         if (me.IsSuccessStatusCode)
         {
-            var renter = await me.Content.ReadFromJsonAsync<HallRenterDto>();
+            var member = await me.Content.ReadFromJsonAsync<HallMemberDto>();
             IsLoggedIn    = true;
-            SessionEmail  = renter?.Email;
+            SessionEmail  = member?.Email;
+            MemberHasPassword = member?.HasPassword ?? false;
+            ShowSetPasswordPrompt = !MemberHasPassword; // nur nach Magic-Link-Login sinnvoll
         }
 
         // Magic-Link-Rückkehr: ?session=confirmed in URL?
@@ -1706,11 +1877,24 @@ Session-Status via `GET /api/reservierung/me` nach der Rückkehr vom Magic-Link.
         Step = PickerStep.Bestaetigen;
     }
 
+    // Beim Verlassen des E-Mail-Felds: prüfen ob Nutzer bekannt ist + ob er ein Passwort hat
+    private async Task CheckEmailAsync()
+    {
+        if (string.IsNullOrWhiteSpace(AuthEmail)) return;
+        var res = await Http.PostAsJsonAsync("/api/reservierung/magic-link",
+            new { email = AuthEmail, checkOnly = true });
+        if (res.IsSuccessStatusCode)
+        {
+            var body = await res.Content.ReadFromJsonAsync<MagicLinkCheckResponse>();
+            MemberHasPassword = body?.HasPassword ?? false;
+            ShowRegistration  = body?.IsKnownUser == false;
+        }
+    }
+
     private async Task SendMagicLinkAsync()
     {
         IsAuthBusy = true;
-        // Slot-State in Session speichern (damit nach Magic-Link-Rückkehr wiederherstellbar)
-        SavePickerState();
+        SavePickerState();  // Slot-State für Rückkehr nach Magic-Link sichern
         var res = await Http.PostAsJsonAsync("/api/reservierung/magic-link",
             new { email = AuthEmail });
         var body = await res.Content.ReadFromJsonAsync<MagicLinkResponse>();
@@ -1718,6 +1902,37 @@ Session-Status via `GET /api/reservierung/me` nach der Rückkehr vom Magic-Link.
             ShowRegistration = true;
         else
             MagicLinkSent = true;
+        IsAuthBusy = false;
+    }
+
+    private async Task LoginWithPasswordAsync()
+    {
+        IsAuthBusy = true;
+        AuthError  = null;
+        var res = await Http.PostAsJsonAsync("/api/reservierung/auth/login",
+            new { email = AuthEmail, password = LoginPassword });
+        if (res.IsSuccessStatusCode)
+        {
+            IsLoggedIn = true;
+            var member = await res.Content.ReadFromJsonAsync<HallMemberDto>();
+            SessionEmail = member?.Email;
+        }
+        else
+        {
+            AuthError = res.StatusCode == System.Net.HttpStatusCode.Locked
+                ? "Dein Konto ist gesperrt. Bitte setze dein Passwort zurück."
+                : "Ungültiges Passwort.";
+        }
+        IsAuthBusy = false;
+    }
+
+    private async Task SetPasswordAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewPassword)) return;
+        IsAuthBusy = true;
+        var res = await Http.PostAsJsonAsync("/api/reservierung/me/password",
+            new { newPassword = NewPassword });
+        PasswordSaved = res.IsSuccessStatusCode;
         IsAuthBusy = false;
     }
 
@@ -1856,7 +2071,7 @@ dünnen Wrapper mit `[UmbracoAdminAuthorize]`. Die Komponente hat vier Tabs.
                             <th>Typ</th><th>CHF</th><th>Aktionen</th></tr>
                     </thead>
                     <tbody>
-                        @foreach (var (slot, renter) in PendingSlots)
+                        @foreach (var (slot, member) in PendingSlots)
                         {
                             var startLocal = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
                             var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
@@ -1864,8 +2079,8 @@ dünnen Wrapper mit `[UmbracoAdminAuthorize]`. Die Komponente hat vier Tabs.
                                 <td>@startLocal.ToString("dd.MM.yyyy")</td>
                                 <td>@startLocal.ToString("HH:mm") – @endLocal.ToString("HH:mm")</td>
                                 <td>@((int)(slot.Slot.EndUtc - slot.Slot.StartUtc).TotalMinutes) Min.</td>
-                                <td>@renter?.ContactPerson</td>
-                                <td>@renter?.Type.Value</td>
+                                <td>@member?.ContactPerson</td>
+                                <td>@member?.RenterType.Value</td>
                                 <td>@slot.TotalPrice?.ToString("F2")</td>
                                 <td>
                                     <button class="btn-confirm" @onclick="() => ConfirmAsync(slot.Id)">
@@ -1999,7 +2214,7 @@ dünnen Wrapper mit `[UmbracoAdminAuthorize]`. Die Komponente hat vier Tabs.
         ["Pendente", "Alle Buchungen", "Serien-Regeln", "Schulferien"];
 
     private string ActiveTab = "Pendente";
-    private IReadOnlyList<(BookingSlot Slot, HallRenter? Renter)> PendingSlots = [];
+    private IReadOnlyList<(BookingSlot Slot, HallMember? Member)> PendingSlots = [];
     private int PendingCount => PendingSlots.Count;
     private IReadOnlyList<RecurringRule> RecurringRules = [];
     private IReadOnlyList<SchoolHoliday> SchoolHolidays = [];
@@ -2145,14 +2360,14 @@ public class BookingCsvAdapter : IBookingCsvPort
         "Status", "Angelegt am", "Notizen"
     ];
 
-    public byte[] ExportBookings(IReadOnlyList<(BookingSlot Slot, HallRenter? Renter)> data,
+    public byte[] ExportBookings(IReadOnlyList<(BookingSlot Slot, HallMember? Member)> data,
                                  DateTime from, DateTime to)
     {
         var zurich = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
         var sb = new StringBuilder();
         sb.AppendLine(string.Join(";", Headers.Select(Q)));
 
-        foreach (var (slot, renter) in data.Where(x => !x.Slot.IsRecurringSlot))
+        foreach (var (slot, member) in data.Where(x => !x.Slot.IsRecurringSlot))
         {
             var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, zurich);
             var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   zurich);
@@ -2165,13 +2380,13 @@ public class BookingCsvAdapter : IBookingCsvPort
                 start.ToString("HH:mm"),
                 end.ToString("HH:mm"),
                 mins.ToString(),
-                renter?.Type.Value.ToString() ?? "",
-                renter?.ContactPerson ?? "",
-                renter?.BillingName ?? "",
-                renter?.BillingAddress ?? "",
-                renter?.BillingPostalCode ?? "",
-                renter?.BillingCity ?? "",
-                renter?.Email.Value ?? "",
+                member?.RenterType.Value.ToString() ?? "",
+                member?.ContactPerson ?? "",
+                member?.BillingName ?? "",
+                member?.BillingAddress ?? "",
+                member?.BillingPostalCode ?? "",
+                member?.BillingCity ?? "",
+                member?.Email ?? "",
                 slot.TotalBlocks?.ToString() ?? "",
                 slot.PricePerBlock?.ToString("F2") ?? "",
                 slot.TotalPrice?.ToString("F2") ?? "",
@@ -2206,27 +2421,29 @@ Ablehnungsbegründung nachvollziehbar.
 
 ## 6. Implementierungsreihenfolge
 
-1. **Domain-Schicht** (Value Objects, Aggregate Roots, Ports)
-2. **Infrastructure: Migration + Repositories** (DB-Tabellen via PetaPoco, CRUD — inkl. `SchoolHolidays`)
-3. **Magic-Link-Authentifizierung** (Use Cases + MVC-Controller für Validate → Cookie setzen)
-4. **Buchungslogik** (`CreateBookingUseCase` mit Konfliktprüfung + Audit-Log)
-5. **E-Mail-Adapter** (alle 5 Mail-Typen gegen Template ID 1)
-6. **REST-Controller** (Buchungs-API, Auth-Endpunkte, Schulferien, CSV-Export)
-7. **Blazor-Setup** (`Program.cs`: `AddServerSideBlazor()`, `MapBlazorHub()`, `_Imports.razor`)
-8. **`WochenkalenderComponent.razor`** (Wochenansicht, Slot-Farbcodierung, Wochen-Navigation)
-9. **`WochenkalenderComponent.razor` Mobile** (Tagansicht via `IsMobile`, Swipe-JS-Interop-Stub)
-10. **`BuchungsPickerComponent.razor`** (4-Schritt-Flow: Dauer → Datum → Zeit → Bestätigen)
-11. **Auth-Subflow im Picker** (Magic-Link-Request, Rückkehr-Erkennung via Query-Parameter)
-12. **Seriengenerator** (`CreateRecurringRuleUseCase` mit `IntervalWeeks`, `ExcludeSchoolHolidays`)
-13. **Umbraco-Konfig-Knoten** (uSync-Config, `IHallConfigurationPort`-Adapter)
-14. **Umbraco-Template-Shell** (`Reservierung.cshtml` mit `<component>`)
-15. **`ReservierungAdminComponent.razor`** (Tabs: Pendente, Alle, Serien-Regeln, Schulferien)
-16. **Admin-Wrapper-Page** (`ReservierungAdmin.cshtml` + `[UmbracoAdminAuthorize]`)
-17. **CSV-Export** (Adapter + Download-Link im Admin-Tab)
-18. **Audit-Log-Ansicht** als weiterer Admin-Tab
-19. **Cross-Browser Mobile-Tests** (Swipe, Tagansicht, iOS-Safari, Android Chrome)
-20. **Azure Deployment** (Env-Variablen, Blazor SignalR WebSocket prüfen)
-21. **Umbraco Backoffice:** Reservierungs-Seite + Konfig-Knoten anlegen, erste Ferienperiode erfassen
+1. **Umbraco Member Type `hallMember` anlegen** (via `ReservierungComposer`: `IMemberTypeService`, Custom Properties)
+2. **Domain-Schicht** (`HallMember` Record, `BookingSlot`, `RecurringRule`, Value Objects, Ports inkl. `IMemberManagerPort`)
+3. **`UmbracoMemberAdapter`** (implementiert `IMemberManagerPort` via `IMemberManager` + `SignInManager`)
+4. **Infrastructure: Migration + Repositories** (4 Tabellen: `MagicLinkTokens`, `BookingSlots`, `RecurringRules`, `BookingAuditLog`, `SchoolHolidays`)
+5. **Auth-Use-Cases** (`SendMagicLinkUseCase`, `ValidateMagicLinkUseCase`, `RegisterRenterUseCase`, `LoginWithPasswordUseCase`, `SetPasswordUseCase`, `RequestPasswordResetUseCase`, `ResetPasswordUseCase`)
+6. **E-Mail-Adapter** (alle 7 Mail-Typen: Bestätigung, Admin, Magic Link, Registrierung+Link, Passwort-Reset, Ablehnung, Bestätigung)
+7. **REST-Controller** (Auth-Endpunkte: Magic Link, Login mit Passwort, Passwort-Reset; Buchungs-API; Schulferien; CSV-Export)
+8. **Buchungslogik** (`CreateBookingUseCase` mit Konfliktprüfung + Audit-Log)
+9. **Seriengenerator** (`CreateRecurringRuleUseCase` mit `IntervalWeeks`, `ExcludeSchoolHolidays`)
+10. **Umbraco-Konfig-Knoten** (uSync-Config, `IHallConfigurationPort`-Adapter)
+11. **Blazor-Setup** (`Program.cs`: `AddServerSideBlazor()`, `MapBlazorHub()`, `_Imports.razor`)
+12. **`WochenkalenderComponent.razor`** (Wochenansicht, Slot-Farbcodierung, Wochen-Navigation)
+13. **`WochenkalenderComponent.razor` Mobile** (Tagansicht via `IsMobile`, Swipe-JS-Interop-Stub)
+14. **`BuchungsPickerComponent.razor`** (4-Schritt-Flow: Dauer → Datum → Zeit → Bestätigen)
+15. **Auth-Subflow im Picker** (Passwort-Login, Magic-Link-Fallback, Registrierungsformular, "Passwort einrichten"-Prompt nach Magic-Link-Login)
+16. **Umbraco-Template-Shell** (`Reservierung.cshtml` mit `<component>`)
+17. **`ReservierungAdminComponent.razor`** (Tabs: Pendente, Alle, Serien-Regeln, Schulferien)
+18. **Admin-Wrapper-Page** (`ReservierungAdmin.cshtml` + `[UmbracoAdminAuthorize]`)
+19. **CSV-Export** (Adapter + Download-Link im Admin-Tab)
+20. **Audit-Log-Ansicht** als weiterer Admin-Tab
+21. **Cross-Browser Mobile-Tests** (Swipe, Tagansicht, iOS-Safari, Android Chrome)
+22. **Azure Deployment** (Env-Variablen, Blazor SignalR WebSocket prüfen)
+23. **Umbraco Backoffice:** Reservierungs-Seite + Konfig-Knoten anlegen, erste Ferienperiode erfassen
 
 ---
 
@@ -2236,16 +2453,20 @@ Ablehnungsbegründung nachvollziehbar.
 - [ ] `_Imports.razor` anlegen (Blazor-weite Usings)
 - [ ] Azure App Service Environment Variables: `Brevo__ApiKey`, `Turnstile__SiteKey`, `Turnstile__SecretKey`
 - [ ] `appsettings.json`: Sektionen `Brevo` und `Turnstile` hinzufügen (Keys leer)
-- [ ] DB-Migration läuft automatisch beim ersten App-Start (6 neue Tabellen inkl. `SchoolHolidays`)
+- [ ] DB-Migration läuft automatisch beim ersten App-Start (5 Tabellen: `MagicLinkTokens`, `BookingSlots`, `RecurringRules`, `BookingAuditLog`, `SchoolHolidays` — kein `HallRenters`/`HallSessions`/`PasswordResetTokens`)
+- [ ] `ReservierungComposer` legt Member Type `hallMember` beim ersten Start an (oder via uSync/MemberTypes/hallMember.config)
+- [ ] Umbraco Members: Lockout-Schwelle und Token-Ablauf in `IdentityOptions` konfigurieren
 - [ ] uSync importiert `reservierung.config` und `reservierungKonfiguration.config` automatisch
 - [ ] Umbraco Backoffice: Konfigurations-Knoten anlegen, Preis und Öffnungszeiten einstellen
 - [ ] Umbraco Backoffice: Reservierungs-Seite anlegen, unter Homepage verschachteln, publizieren
 - [ ] Cloudflare Turnstile: neue Site für `sporthalle-sulzerallee.ch` anlegen
 - [ ] Blazor SignalR-Verbindung prüfen: Browser DevTools → Network → WS → `/_blazor` muss verbunden sein
 - [ ] Azure App Service WebSockets aktivieren (Portal: App Service → Konfiguration → Allgemeine Einstellungen → Websockets: Ein)
-- [ ] End-to-End Desktop: `WochenkalenderComponent` rendert Slots, "Slot buchen" öffnet `BuchungsPickerComponent`, 4 Schritte durchlaufen, Magic-Link empfangen, Rückkehr mit `?session=confirmed`, Buchung abschliessen
+- [ ] End-to-End Desktop: Registrierung (mit optionalem Passwort), Magic-Link aus Bestätigungsmail, Login mit Passwort, Passwort vergessen + Reset, Passwort nach Magic-Link-Login einrichten
+- [ ] End-to-End Desktop: `WochenkalenderComponent` rendert Slots, Buchungs-Picker, Rückkehr mit `?session=confirmed`, Buchung abschliessen
 - [ ] End-to-End Mobile (iOS Safari + Android Chrome): Tagansicht, Swipe-Navigation, Vollbild-Modal
 - [ ] Admin: `ReservierungAdminComponent` alle 4 Tabs prüfen; Bestätigen/Ablehnen löst E-Mail aus; Preis inline anpassen; Serien-Regel erstellen; Ferienperiode erfassen
+- [ ] Umbraco Backoffice Members-Tab: Mieterprofil sichtbar, Custom Properties korrekt befüllt
 - [ ] Schulferien + Serienregel mit `ExcludeSchoolHolidays = true`: generierte Slots prüfen
 - [ ] CSV-Export prüfen (Datumsbereich, Zeichensatz, Öffnung in Excel)
 - [ ] Audit-Log verifizieren (Status-Übergänge, Preisänderung)
