@@ -26,8 +26,10 @@ public class BrevoEmailAdapter : IEmailPort
 
     public async Task SendRegistrationConfirmationAsync(PassivMitglied member)
     {
-        // Phase 2 ergänzt hier VipField.GetLabel() für fieldDesc
-        var fieldDesc = $"Feld Nr. {member.FieldNumber.Value}";
+        var vipLabel = VipField.GetLabel(member.FieldNumber.Value);
+        var fieldDesc = vipLabel != null
+            ? $"Feld Nr. {member.FieldNumber.Value} ({vipLabel})"
+            : $"Feld Nr. {member.FieldNumber.Value}";
 
         var details = $"Feld: {fieldDesc}\n" +
                       $"Stufe: {member.Level.DisplayName} ({member.Level.Key}) – CHF {member.Level.YearlyFee}.–/Jahr\n" +

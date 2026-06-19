@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SporthalleWeb.Application.PassivMitgliedschaft;
 using SporthalleWeb.Domain.PassivMitgliedschaft;
+using SporthalleWeb.Domain.PassivMitgliedschaft.Ports;
 using SporthalleWeb.Presentation.PassivMitgliedschaft.Dtos;
 
 namespace SporthalleWeb.Presentation.PassivMitgliedschaft.Controllers;
@@ -11,13 +12,16 @@ public class PassivMitgliederController : ControllerBase
 {
     private readonly RegisterMemberUseCase _registerMember;
     private readonly GetFieldStatusesQuery _getFieldStatuses;
+    private readonly ICaptchaPort _captcha;
 
     public PassivMitgliederController(
         RegisterMemberUseCase registerMember,
-        GetFieldStatusesQuery getFieldStatuses)
+        GetFieldStatusesQuery getFieldStatuses,
+        ICaptchaPort captcha)
     {
         _registerMember = registerMember;
         _getFieldStatuses = getFieldStatuses;
+        _captcha = captcha;
     }
 
     [HttpGet("felder")]
@@ -40,6 +44,13 @@ public class PassivMitgliederController : ControllerBase
             string.IsNullOrWhiteSpace(req.AddressLine) || string.IsNullOrWhiteSpace(req.PostalCode) ||
             string.IsNullOrWhiteSpace(req.City) || string.IsNullOrWhiteSpace(req.Email))
             return BadRequest(new { error = "missing_fields" });
+
+        if (string.IsNullOrWhiteSpace(req.CaptchaToken))
+            return BadRequest(new { error = "captcha_required" });
+
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+        if (!await _captcha.VerifyAsync(req.CaptchaToken, remoteIp))
+            return BadRequest(new { error = "captcha_failed" });
 
         try
         {

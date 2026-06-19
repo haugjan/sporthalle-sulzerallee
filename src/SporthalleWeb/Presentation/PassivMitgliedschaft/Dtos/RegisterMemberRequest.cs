@@ -11,6 +11,6 @@ public record RegisterMemberRequest(
     string LevelKey,
     bool ShowNameOnFloor,
     string? DisplayName,
-    bool Consent
-    // Phase 2: string CaptchaToken
+    bool Consent,
+    string CaptchaToken
 );
