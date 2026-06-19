@@ -27,7 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wwwroot\media\**" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="wwwroot\media\**" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <PropertyGroup>
