@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SporthalleWeb.Application.Reservierung;
 using SporthalleWeb.Domain.Reservierung;
+using SporthalleWeb.Domain.Reservierung.Ports;
 using SporthalleWeb.Presentation.Reservierung.Dtos;
 
 namespace SporthalleWeb.Presentation.Reservierung.Controllers;
@@ -23,7 +24,9 @@ public sealed class ReservierungController(
     ConfirmBookingUseCase confirmBooking,
     RejectBookingUseCase rejectBooking,
     CreateRecurringRuleUseCase createRecurringRule,
-    BookingAdminService adminService) : ControllerBase
+    BookingAdminService adminService,
+    IBookingSlotRepository slotRepo,
+    IBookingCsvPort csvExport) : ControllerBase
 {
     // ── Calendar / week view ──────────────────────────────────────────────────
 
@@ -169,6 +172,16 @@ public sealed class ReservierungController(
     }
 
     // ── Bookings (member) ─────────────────────────────────────────────────────
+
+    [HttpGet("meine-buchungen")]
+    [Authorize]
+    public async Task<IActionResult> GetMeineBuchungen()
+    {
+        var memberId = GetMemberId();
+        if (memberId is null) return Unauthorized();
+        var slots = await slotRepo.GetForMemberAsync(memberId.Value);
+        return Ok(slots.Select(BookingSlotDto.From));
+    }
 
     [HttpPost("buchungen")]
     [Authorize]
@@ -325,6 +338,26 @@ public sealed class ReservierungController(
     {
         await adminService.DeleteHolidayAsync(id);
         return NoContent();
+    }
+
+    [HttpGet("admin/export")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> ExportCsv(
+        [FromQuery] string von, [FromQuery] string bis,
+        [FromQuery] bool nurBestaetigt = false)
+    {
+        if (!DateOnly.TryParseExact(von, "yyyy-MM-dd", null,
+                System.Globalization.DateTimeStyles.None, out var fromDate) ||
+            !DateOnly.TryParseExact(bis, "yyyy-MM-dd", null,
+                System.Globalization.DateTimeStyles.None, out var toDate))
+            return BadRequest(new { error = "Von und Bis müssen im Format YYYY-MM-DD angegeben werden." });
+
+        var fromUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        var toUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local).ToUniversalTime();
+        var csv = await csvExport.ExportAsync(fromUtc, toUtc, nurBestaetigt);
+
+        return File(csv, "text/csv; charset=utf-8",
+            $"buchungen_{von}_{bis}.csv");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
