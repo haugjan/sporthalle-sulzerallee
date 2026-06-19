@@ -10,5 +10,6 @@
     <PackageVersion Include="Umbraco.Cms.Persistence.Sqlite" Version="17.4.2" />
     <PackageVersion Include="Umbraco.StorageProviders.AzureBlob" Version="17.0.0" />
     <PackageVersion Include="uSync" Version="17.3.5" />
+    <PackageVersion Include="ClosedXML" Version="0.104.2" />
   </ItemGroup>
 </Project>

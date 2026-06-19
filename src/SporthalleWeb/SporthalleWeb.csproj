@@ -12,6 +12,7 @@
     <PackageReference Include="Umbraco.Cms.Persistence.Sqlite" />
     <PackageReference Include="Umbraco.StorageProviders.AzureBlob" />
     <PackageReference Include="uSync" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
 
   <ItemGroup>

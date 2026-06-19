@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SporthalleWeb.Application.PassivMitgliedschaft;
 using SporthalleWeb.Domain.PassivMitgliedschaft;
@@ -13,15 +14,18 @@ public class PassivMitgliederController : ControllerBase
     private readonly RegisterMemberUseCase _registerMember;
     private readonly GetFieldStatusesQuery _getFieldStatuses;
     private readonly ICaptchaPort _captcha;
+    private readonly AdminService _adminService;
 
     public PassivMitgliederController(
         RegisterMemberUseCase registerMember,
         GetFieldStatusesQuery getFieldStatuses,
-        ICaptchaPort captcha)
+        ICaptchaPort captcha,
+        AdminService adminService)
     {
         _registerMember = registerMember;
         _getFieldStatuses = getFieldStatuses;
         _captcha = captcha;
+        _adminService = adminService;
     }
 
     [HttpGet("felder")]
@@ -73,5 +77,78 @@ public class PassivMitgliederController : ControllerBase
         }
     }
 
-    // Phase 3: POST /{id}/paid, POST /{id}/notes, GET /admin/members, GET /admin/export/*
+    [Authorize]
+    [HttpPost("{id:int}/paid")]
+    public async Task<IActionResult> MarkAsPaid(int id)
+    {
+        try
+        {
+            await _adminService.MarkAsPaidAsync(id);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{id:int}/notes")]
+    public async Task<IActionResult> UpdateNotes(int id, [FromBody] UpdateNotesRequest req)
+    {
+        try
+        {
+            await _adminService.UpdateNotesAsync(id, req.Notes);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpGet("admin/members")]
+    public async Task<IActionResult> GetAllMembers()
+    {
+        var members = await _adminService.GetAllAsync();
+        return Ok(members.Select(m => new
+        {
+            m.Id,
+            FieldNumber = m.FieldNumber.Value,
+            VipLabel = VipField.GetLabel(m.FieldNumber.Value),
+            Level = m.Level.DisplayName,
+            LevelKey = m.Level.Key,
+            YearlyFee = m.Level.YearlyFee,
+            m.FirstName,
+            m.LastName,
+            Email = m.Email.Value,
+            m.AddressLine,
+            m.PostalCode,
+            m.City,
+            CreatedAt = m.CreatedAt.ToString("dd.MM.yyyy"),
+            PaidAt = m.PaidAt?.ToString("dd.MM.yyyy"),
+            m.Notes
+        }));
+    }
+
+    [Authorize]
+    [HttpGet("admin/export/excel")]
+    public async Task<IActionResult> ExportExcel()
+    {
+        var bytes = await _adminService.ExportExcelAsync();
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "passivmitglieder.xlsx");
+    }
+
+    [Authorize]
+    [HttpGet("admin/export/abaninja")]
+    public async Task<IActionResult> ExportAbaninja()
+    {
+        var bytes = await _adminService.ExportAbaninjaAsync();
+        return File(bytes, "text/csv; charset=utf-8", "passivmitglieder-abaninja.csv");
+    }
 }
+
+public record UpdateNotesRequest(string? Notes);
