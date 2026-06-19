@@ -4,7 +4,7 @@ using Umbraco.Cms.Infrastructure.Persistence.DatabaseAnnotations;
 namespace SporthalleWeb.Infrastructure.PassivMitgliedschaft.Persistence;
 
 [TableName("PassivMitglieder")]
-[PrimaryKey("Id", autoIncrement: true)]
+[PrimaryKey("Id", AutoIncrement = true)]
 [ExplicitColumns]
 public class PassivMitgliedDbRecord
 {
@@ -63,6 +63,6 @@ public class PassivMitgliedDbRecord
 
     [Column("Notes")]
     [NullSetting(NullSetting = NullSettings.Null)]
-    [SpecialDbType(SpecialDbTypes.NTEXT)]
+    [SpecialDbType(SpecialDbTypes.NVARCHARMAX)]
     public string? Notes { get; set; }
 }
