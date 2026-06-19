@@ -1,0 +1,239 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var heading = Model.Value<string>("pageHeading") ?? "Passivmitgliedschaft";
+    ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+    ViewBag.BodyClass = "page-passivmitglied";
+}
+@section Head {
+    <link rel="stylesheet" href="/css/passivmitglied.css" />
+}
+
+<div class="page-content">
+
+  <div class="page-header page-header--noise">
+    <h2>@heading</h2>
+  </div>
+  <div class="page-header-bar"></div>
+
+  <section class="pm-intro">
+    <h2>Werde Teil der Sporthalle Sulzerallee</h2>
+    <p>
+      Wähle deinen symbolischen Quadratmeter Hallenboden und unterstütze den Nachwuchssport in
+      Winterthur. Als Passivmitglied erhältst du je nach Stufe Zugang zu exklusiven Events und
+      bist Teil der Gemeinschaft, die diese Halle möglich macht.
+    </p>
+    <p class="pm-disclaimer">
+      <strong>Wichtig:</strong> Der Hallenboden ist symbolisch. «Besitzer:in eines Quadratmeters»
+      ist eine Metapher für die Mitgliedschaft. Der physische Boden verbleibt im Eigentum des
+      Vereins Sporthalle Sulzerallee.
+    </p>
+
+    <div class="pm-stufen">
+
+      <div class="pm-stufe pm-stufe--bronze">
+        <div class="pm-stufe__badge">Bronze</div>
+        <p class="pm-stufe__name">Hallenbodenbesitzer</p>
+        <p class="pm-stufe__price">CHF 50.–<span>/Jahr</span></p>
+        <ul class="pm-stufe__benefits">
+          <li>1m² Hallenboden symbolisch</li>
+          <li>Newsletter</li>
+        </ul>
+      </div>
+
+      <div class="pm-stufe pm-stufe--silber">
+        <div class="pm-stufe__badge">Silber</div>
+        <p class="pm-stufe__name">Chnebler</p>
+        <p class="pm-stufe__price">CHF 100.–<span>/Jahr</span></p>
+        <ul class="pm-stufe__benefits">
+          <li>1m² Hallenboden symbolisch</li>
+          <li>Zugang offene Sonntage (Familie)</li>
+          <li>Newsletter</li>
+        </ul>
+      </div>
+
+      <div class="pm-stufe pm-stufe--gold">
+        <div class="pm-stufe__badge">Gold</div>
+        <p class="pm-stufe__name">Cüpli-Chnebler</p>
+        <p class="pm-stufe__price">CHF 200.–<span>/Jahr</span></p>
+        <ul class="pm-stufe__benefits">
+          <li>1m² Hallenboden symbolisch</li>
+          <li>Zugang offene Sonntage (Familie)</li>
+          <li>Jährlicher Sponsor-Event</li>
+          <li>Newsletter</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="pm-form-section">
+    <h2>Jetzt anmelden</h2>
+
+    <form id="pm-form" novalidate>
+
+      <div class="pm-form-group">
+        <label for="pm-field">Feld-Nummer <span class="pm-required">*</span> <span class="pm-hint">(1–300)</span></label>
+        <input type="number" id="pm-field" name="fieldNumber" min="1" max="300" required placeholder="z.B. 42" />
+      </div>
+
+      <div class="pm-form-group">
+        <label>Mitgliedsstufe <span class="pm-required">*</span></label>
+        <div class="pm-radio-group">
+          <label class="pm-radio-label">
+            <input type="radio" name="levelKey" value="Bronze" required /> Hallenbodenbesitzer – CHF 50.–/Jahr
+          </label>
+          <label class="pm-radio-label">
+            <input type="radio" name="levelKey" value="Silber" /> Chnebler – CHF 100.–/Jahr
+          </label>
+          <label class="pm-radio-label">
+            <input type="radio" name="levelKey" value="Gold" /> Cüpli-Chnebler – CHF 200.–/Jahr
+          </label>
+        </div>
+      </div>
+
+      <div class="pm-form-row">
+        <div class="pm-form-group">
+          <label for="pm-firstname">Vorname <span class="pm-required">*</span></label>
+          <input type="text" id="pm-firstname" name="firstName" required autocomplete="given-name" />
+        </div>
+        <div class="pm-form-group">
+          <label for="pm-lastname">Nachname <span class="pm-required">*</span></label>
+          <input type="text" id="pm-lastname" name="lastName" required autocomplete="family-name" />
+        </div>
+      </div>
+
+      <div class="pm-form-group">
+        <label for="pm-address">Strasse + Nr. <span class="pm-required">*</span></label>
+        <input type="text" id="pm-address" name="addressLine" required autocomplete="address-line1" />
+      </div>
+
+      <div class="pm-form-row pm-form-row--plz">
+        <div class="pm-form-group pm-form-group--plz">
+          <label for="pm-plz">PLZ <span class="pm-required">*</span></label>
+          <input type="text" id="pm-plz" name="postalCode" required autocomplete="postal-code" />
+        </div>
+        <div class="pm-form-group">
+          <label for="pm-city">Ort <span class="pm-required">*</span></label>
+          <input type="text" id="pm-city" name="city" required autocomplete="address-level2" />
+        </div>
+      </div>
+
+      <div class="pm-form-group">
+        <label for="pm-email">E-Mail <span class="pm-required">*</span></label>
+        <input type="email" id="pm-email" name="email" required autocomplete="email" />
+      </div>
+
+      <div class="pm-form-group">
+        <label class="pm-checkbox-label">
+          <input type="checkbox" id="pm-showname" name="showNameOnFloor" />
+          Meinen Namen auf dem Bodenplan anzeigen
+        </label>
+      </div>
+
+      <div class="pm-form-group pm-displayname-group" id="pm-displayname-group" hidden>
+        <label for="pm-displayname">Anzeigename <span class="pm-required">*</span> <span class="pm-hint">(z.B. «Max M.» oder «Familie Meier»)</span></label>
+        <input type="text" id="pm-displayname" name="displayName" maxlength="200" />
+      </div>
+
+      <div class="pm-form-group pm-consent-group">
+        <label class="pm-checkbox-label">
+          <input type="checkbox" id="pm-consent" name="consent" required />
+          Ich möchte Passivmitglied werden und erkenne die jährliche Beitragspflicht (bis auf
+          Widerruf) an. <span class="pm-required">*</span>
+        </label>
+      </div>
+
+      <button type="submit" class="pm-btn-submit">Jetzt anmelden</button>
+
+    </form>
+
+    <div id="pm-success" class="pm-message pm-message--success" hidden>
+      <strong>Vielen Dank!</strong> Du erhältst in Kürze eine Bestätigung per E-Mail.
+      Die Rechnung für den Jahresbeitrag wird separat zugestellt.
+    </div>
+
+    <div id="pm-error" class="pm-message pm-message--error" hidden></div>
+
+  </section>
+
+</div>
+
+@section Scripts {
+<script>
+(function () {
+  const form = document.getElementById('pm-form');
+  const successEl = document.getElementById('pm-success');
+  const errorEl = document.getElementById('pm-error');
+  const showNameCb = document.getElementById('pm-showname');
+  const displayNameGroup = document.getElementById('pm-displayname-group');
+  const displayNameInput = document.getElementById('pm-displayname');
+
+  showNameCb.addEventListener('change', function () {
+    displayNameGroup.hidden = !this.checked;
+    displayNameInput.required = this.checked;
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    errorEl.hidden = true;
+    successEl.hidden = true;
+
+    const fd = new FormData(form);
+    const levelKey = fd.get('levelKey');
+    if (!levelKey) {
+      showError('Bitte wähle eine Mitgliedsstufe aus.');
+      return;
+    }
+
+    const payload = {
+      fieldNumber:    parseInt(fd.get('fieldNumber'), 10),
+      firstName:      fd.get('firstName'),
+      lastName:       fd.get('lastName'),
+      addressLine:    fd.get('addressLine'),
+      postalCode:     fd.get('postalCode'),
+      city:           fd.get('city'),
+      email:          fd.get('email'),
+      levelKey:       levelKey,
+      showNameOnFloor: showNameCb.checked,
+      displayName:    showNameCb.checked ? fd.get('displayName') : null,
+      consent:        document.getElementById('pm-consent').checked
+    };
+
+    const btn = form.querySelector('.pm-btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Wird verarbeitet…';
+
+    try {
+      const res = await fetch('/api/passivmitglieder/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        form.hidden = true;
+        successEl.hidden = false;
+      } else if (res.status === 409) {
+        showError('Dieses Feld ist bereits vergeben. Bitte wähle eine andere Feld-Nummer.');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showError(data.message || 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.');
+      }
+    } catch {
+      showError('Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Jetzt anmelden';
+    }
+  });
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+    errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+})();
+</script>
+}

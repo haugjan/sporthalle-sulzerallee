@@ -16,6 +16,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="stylesheet" href="/css/sporthalle.css" />
+  @RenderSection("Head", required: false)
   <title>@ViewBag.Title</title>
 </head>
 <body class="@ViewBag.BodyClass">
@@ -47,5 +48,6 @@
   </footer>
 
   <script src="/js/sporthalle.js"></script>
+  @RenderSection("Scripts", required: false)
 </body>
 </html>
