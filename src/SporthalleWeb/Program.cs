@@ -45,6 +45,8 @@ builder.Services.Configure<HostOptions>(options =>
     options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
 });
 
+builder.Services.AddServerSideBlazor();
+
 var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddBackOffice()
     .AddWebsite()
@@ -85,6 +87,7 @@ app.UseUmbraco()
     {
         u.UseBackOfficeEndpoints();
         u.UseWebsiteEndpoints();
+        u.EndpointRouteBuilder.MapBlazorHub();
     });
 
 await app.RunAsync();

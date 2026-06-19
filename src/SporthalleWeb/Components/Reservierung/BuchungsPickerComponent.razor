@@ -1,0 +1,234 @@
+@inject SporthalleWeb.Application.Reservierung.GetAvailableDaysQuery AvailableDaysQuery
+@inject SporthalleWeb.Application.Reservierung.GetAvailableTimeSlotsQuery AvailableTimeSlotsQuery
+@inject SporthalleWeb.Application.Reservierung.CreateBookingUseCase CreateBookingUseCase
+@inject SporthalleWeb.Domain.Reservierung.Ports.IHallConfigurationPort Config
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+
+<div class="buchungs-picker">
+    @switch (_step)
+    {
+        case Step.SelectDauerAndDate:
+            <h3>Buchungsdauer wählen</h3>
+            <div class="dauerauswahl">
+                @foreach (var d in _availableDauern)
+                {
+                    <button class="btn @(_selectedDauerMin == d ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SelectDauer(d)">
+                        @(d >= 60 ? $"{d / 60} h" : $"{d} min")
+                    </button>
+                }
+            </div>
+            @if (_selectedDauerMin > 0)
+            {
+                <h3 class="mt-3">Datum wählen</h3>
+                @if (_loadingDays)
+                {
+                    <p>Lade verfügbare Tage…</p>
+                }
+                else
+                {
+                    <div class="datumauswahl">
+                        @foreach (var tag in _availableDays)
+                        {
+                            <button class="btn btn-sm @(_selectedDate == tag ? "btn-primary" : "btn-outline-secondary")"
+                                    @onclick="() => SelectDate(tag)">
+                                @tag
+                            </button>
+                        }
+                        @if (!_availableDays.Any())
+                        {
+                            <p>Keine verfügbaren Tage in diesem Monat.</p>
+                        }
+                    </div>
+                    <div class="monat-nav mt-2">
+                        <button class="btn btn-sm btn-link" @onclick="PreviousMonth">&#8592; Vorheriger Monat</button>
+                        <strong>@_currentMonth.ToString("MMMM yyyy")</strong>
+                        <button class="btn btn-sm btn-link" @onclick="NextMonth">Nächster Monat &#8594;</button>
+                    </div>
+                }
+                @if (_selectedDate is not null)
+                {
+                    <button class="btn btn-primary mt-2" @onclick="GoToTimeSelect">Weiter &rarr;</button>
+                }
+            }
+            break;
+
+        case Step.SelectTime:
+            <h3>Uhrzeit wählen</h3>
+            @if (_loadingSlots)
+            {
+                <p>Lade freie Zeitfenster…</p>
+            }
+            else
+            {
+                <div class="zeitauswahl">
+                    @foreach (var slot in _availableSlots)
+                    {
+                        <button class="btn btn-sm @(slot.IsAvailable ? (_selectedSlot == slot ? "btn-primary" : "btn-outline-success") : "btn-outline-secondary disabled")"
+                                disabled="@(!slot.IsAvailable)"
+                                @onclick="() => SelectSlot(slot)">
+                            @slot.StartLocal – @slot.EndLocal
+                            @if (slot.IsAvailable)
+                            {
+                                <small class="ms-1">(CHF @slot.PriceTotal.ToString("0.–"))</small>
+                            }
+                        </button>
+                    }
+                </div>
+                <button class="btn btn-secondary mt-2" @onclick="() => _step = Step.SelectDauerAndDate">&larr; Zurück</button>
+                @if (_selectedSlot is not null)
+                {
+                    <button class="btn btn-primary mt-2 ms-2" @onclick="GoToConfirm">Weiter &rarr;</button>
+                }
+            }
+            break;
+
+        case Step.Confirm:
+            <h3>Buchung bestätigen</h3>
+            <dl class="row">
+                <dt class="col-sm-4">Datum</dt>
+                <dd class="col-sm-8">@_selectedDate</dd>
+                <dt class="col-sm-4">Uhrzeit</dt>
+                <dd class="col-sm-8">@_selectedSlot!.StartLocal – @_selectedSlot.EndLocal</dd>
+                <dt class="col-sm-4">Preis</dt>
+                <dd class="col-sm-8">CHF @_selectedSlot.PriceTotal.ToString("0.–")</dd>
+            </dl>
+            <div class="mb-3">
+                <label class="form-label">Anlass</label>
+                <select class="form-select" @bind="_eventType">
+                    @foreach (var a in _anlaesse)
+                    {
+                        <option value="@a">@a</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bemerkungen (optional)</label>
+                <textarea class="form-control" @bind="_notes" rows="3"></textarea>
+            </div>
+            @if (_error is not null)
+            {
+                <div class="alert alert-danger">@_error</div>
+            }
+            <button class="btn btn-secondary" @onclick="() => _step = Step.SelectTime">&larr; Zurück</button>
+            <button class="btn btn-primary ms-2" @onclick="SubmitBooking" disabled="@_submitting">
+                @(_submitting ? "Wird gesendet…" : "Buchungsanfrage absenden")
+            </button>
+            break;
+
+        case Step.Success:
+            <div class="alert alert-success">
+                <h4>Anfrage eingegangen!</h4>
+                <p>Ihre Buchungsanfrage wurde erfolgreich übermittelt. Wir bestätigen Ihnen die Buchung per E-Mail.</p>
+            </div>
+            <button class="btn btn-outline-primary" @onclick="Reset">Weitere Buchung</button>
+            break;
+    }
+</div>
+
+@code {
+    [Parameter] public int MemberId { get; set; }
+
+    private enum Step { SelectDauerAndDate, SelectTime, Confirm, Success }
+    private Step _step = Step.SelectDauerAndDate;
+
+    private IReadOnlyList<int> _availableDauern = [60, 120];
+    private IReadOnlyList<string> _anlaesse = ["Sport"];
+    private int _selectedDauerMin;
+    private DateOnly _currentMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private IReadOnlyList<string> _availableDays = [];
+    private string? _selectedDate;
+    private IReadOnlyList<SporthalleWeb.Application.Reservierung.SlotOption> _availableSlots = [];
+    private SporthalleWeb.Application.Reservierung.SlotOption? _selectedSlot;
+    private string _eventType = "";
+    private string? _notes;
+    private string? _error;
+    private bool _loadingDays;
+    private bool _loadingSlots;
+    private bool _submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _availableDauern = await Config.GetBuchbareDauernAsync();
+        _anlaesse = await Config.GetAnlasseAsync();
+        _eventType = _anlaesse.FirstOrDefault() ?? "";
+    }
+
+    private async Task SelectDauer(int dauernMin)
+    {
+        _selectedDauerMin = dauernMin;
+        _selectedDate = null;
+        await LoadDaysAsync();
+    }
+
+    private async Task LoadDaysAsync()
+    {
+        _loadingDays = true;
+        _availableDays = await AvailableDaysQuery.GetAsync(
+            _currentMonth.ToString("yyyy-MM"), _selectedDauerMin);
+        _loadingDays = false;
+    }
+
+    private void SelectDate(string date) => _selectedDate = date;
+
+    private async Task PreviousMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(-1);
+        await LoadDaysAsync();
+    }
+
+    private async Task NextMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(1);
+        await LoadDaysAsync();
+    }
+
+    private async Task GoToTimeSelect()
+    {
+        _step = Step.SelectTime;
+        _loadingSlots = true;
+        _availableSlots = await AvailableTimeSlotsQuery.GetAsync(_selectedDate!, _selectedDauerMin);
+        _loadingSlots = false;
+    }
+
+    private void SelectSlot(SporthalleWeb.Application.Reservierung.SlotOption slot)
+    {
+        if (slot.IsAvailable) _selectedSlot = slot;
+    }
+
+    private void GoToConfirm() => _step = Step.Confirm;
+
+    private async Task SubmitBooking()
+    {
+        _submitting = true;
+        _error = null;
+        try
+        {
+            var cmd = new SporthalleWeb.Application.Reservierung.CreateBookingCommand(
+                MemberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _eventType, _notes);
+            await CreateBookingUseCase.ExecuteAsync(cmd);
+            _step = Step.Success;
+        }
+        catch (SporthalleWeb.Domain.Reservierung.SlotConflictException)
+        {
+            _error = "Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle einen anderen Termin.";
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _step = Step.SelectDauerAndDate;
+        _selectedDauerMin = 0;
+        _selectedDate = null;
+        _selectedSlot = null;
+        _error = null;
+    }
+}

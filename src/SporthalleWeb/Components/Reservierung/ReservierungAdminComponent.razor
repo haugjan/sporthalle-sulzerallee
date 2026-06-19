@@ -1,0 +1,167 @@
+@inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
+@inject SporthalleWeb.Application.Reservierung.ConfirmBookingUseCase ConfirmUseCase
+@inject SporthalleWeb.Application.Reservierung.RejectBookingUseCase RejectUseCase
+
+<div class="reservierung-admin">
+    <h2>Ausstehende Buchungsanfragen</h2>
+
+    @if (_loading)
+    {
+        <p>Lade Anfragen…</p>
+    }
+    else if (!_pending.Any())
+    {
+        <div class="alert alert-info">Keine ausstehenden Anfragen.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Datum/Zeit</th>
+                        <th>Mieter</th>
+                        <th>Anlass</th>
+                        <th>Preis (CHF)</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _pending)
+                    {
+                        var slot = item.Slot;
+                        var member = item.Member;
+                        <tr>
+                            <td>
+                                @FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)
+                            </td>
+                            <td>
+                                @if (member is not null)
+                                {
+                                    <span>@member.ContactPerson</span><br />
+                                    <small class="text-muted">@member.Email</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">–</span>
+                                }
+                            </td>
+                            <td>@(slot.EventType ?? "–")</td>
+                            <td>@(slot.TotalPrice?.ToString("0.–") ?? "–")</td>
+                            <td>
+                                <button class="btn btn-sm btn-success me-1"
+                                        @onclick="() => Confirm(slot.Id)">
+                                    Bestätigen
+                                </button>
+                                <button class="btn btn-sm btn-danger"
+                                        @onclick="() => ShowRejectDialog(slot.Id)">
+                                    Ablehnen
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (_rejectSlotId is not null)
+    {
+        <div class="modal-overlay">
+            <div class="modal-box">
+                <h4>Buchung ablehnen</h4>
+                <textarea class="form-control" @bind="_rejectReason" rows="3"
+                          placeholder="Begründung (optional)"></textarea>
+                <div class="mt-2">
+                    <button class="btn btn-danger me-2" @onclick="ConfirmReject">Ablehnen</button>
+                    <button class="btn btn-secondary" @onclick="CancelReject">Abbrechen</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_message is not null)
+    {
+        <div class="alert alert-success mt-3">@_message</div>
+    }
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger mt-3">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+
+    private IReadOnlyList<(SporthalleWeb.Domain.Reservierung.BookingSlot Slot, SporthalleWeb.Domain.Reservierung.HallMember? Member)> _pending = [];
+    private bool _loading = true;
+    private int? _rejectSlotId;
+    private string? _rejectReason;
+    private string? _message;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _pending = await AdminService.GetPendingAsync();
+        _loading = false;
+    }
+
+    private async Task Confirm(int slotId)
+    {
+        _error = null;
+        _message = null;
+        try
+        {
+            await ConfirmUseCase.ExecuteAsync(slotId, AdminUser);
+            _message = $"Buchung #{slotId} wurde bestätigt.";
+            await LoadAsync();
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void ShowRejectDialog(int slotId)
+    {
+        _rejectSlotId = slotId;
+        _rejectReason = null;
+    }
+
+    private async Task ConfirmReject()
+    {
+        if (_rejectSlotId is null) return;
+        _error = null;
+        _message = null;
+        try
+        {
+            await RejectUseCase.ExecuteAsync(_rejectSlotId.Value, _rejectReason ?? "", AdminUser);
+            _message = $"Buchung #{_rejectSlotId} wurde abgelehnt.";
+            _rejectSlotId = null;
+            await LoadAsync();
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void CancelReject()
+    {
+        _rejectSlotId = null;
+        _rejectReason = null;
+    }
+
+    private string FormatSlot(DateTime startUtc, DateTime endUtc)
+    {
+        var start = TimeZoneInfo.ConvertTimeFromUtc(startUtc, Zurich);
+        var end = TimeZoneInfo.ConvertTimeFromUtc(endUtc, Zurich);
+        return $"{start:ddd d. MMM yyyy HH:mm} – {end:HH:mm}";
+    }
+}
