@@ -59,6 +59,12 @@ if (!builder.Environment.IsDevelopment())
 
 umbracoBuilder.Build();
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.PostConfigure<OpenIddict.Server.AspNetCore.OpenIddictServerAspNetCoreOptions>(
+        options => options.DisableTransportSecurityRequirement = true);
+}
+
 WebApplication app = builder.Build();
 
 
