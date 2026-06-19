@@ -1,11 +1,9 @@
-using SporthalleWeb.Domain.Reservierung;
+namespace SporthalleWeb.Presentation.Reservierung.Dtos;
 
-namespace SporthalleWeb.Application.Reservierung;
-
-public sealed record RegisterRenterCommand(
+public sealed record RegisterRenterRequest(
     string Email,
     string ContactPerson,
-    RenterType RenterType,
+    string RenterType,
     string BillingName,
     string BillingAddress,
     string BillingPostalCode,
@@ -13,5 +11,5 @@ public sealed record RegisterRenterCommand(
     string BillingCountry,
     string? Phone,
     bool HasKey,
-    string? Password
-);
+    string? Password,
+    string? CaptchaToken);
