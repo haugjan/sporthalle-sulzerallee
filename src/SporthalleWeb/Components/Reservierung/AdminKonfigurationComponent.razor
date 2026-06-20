@@ -41,7 +41,8 @@ else
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Buchungen möglich bis</label>
-                        <input type="date" class="form-control" @bind="_buchungenBisDatum" />
+                        <input type="date" class="form-control"
+                               @bind="_buchungenBisDatum" @bind:format="yyyy-MM-dd" />
                         <div class="form-text">Online-Buchungen bis einschliesslich dieses Datums. Leer lassen für unbegrenzt.</div>
                     </div>
                 </div>
