@@ -239,6 +239,11 @@
             case "Erfassen":
                 <AdminErfassenComponent AdminUser="@AdminUser" />
                 break;
+
+            // ── Konfiguration ─────────────────────────────────────────────────
+            case "Konfiguration":
+                <AdminKonfigurationComponent />
+                break;
         }
 
     </div>
@@ -349,7 +354,7 @@
     private static readonly System.Globalization.CultureInfo DeCh =
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
-    private static readonly string[] _tabs = ["Pendente", "Alle Buchungen", "Erfassen"];
+    private static readonly string[] _tabs = ["Pendente", "Alle Buchungen", "Erfassen", "Konfiguration"];
     private string _activeTab = "Pendente";
 
     // ── Pendente ────────────────────────────────────────────────────────────
