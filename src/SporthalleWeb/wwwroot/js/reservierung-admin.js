@@ -280,7 +280,7 @@ window.SporthalleAdmin = (function () {
   }
 
   function getAdminDefaultColor(slot) {
-    if (slot.type === 'Blocker') return '#37474f';
+    if (slot.type === 'Blocker') return '#78909C';
     if (slot.type === 'Reserved') return '#F1C40F';
     return '#444';
   }

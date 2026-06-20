@@ -261,7 +261,7 @@
       el.style.height = height + 'px';
       el.style.left = left + 'px';
       el.style.width = width + 'px';
-      el.style.background = slot.color || getDefaultColor(slot);
+      el.style.background = slot.type === 'Reserved' ? '#F1C40F' : (slot.color || getDefaultColor(slot));
 
       if (height >= 24) {
         var label = document.createElement('div');

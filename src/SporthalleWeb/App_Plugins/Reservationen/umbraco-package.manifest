@@ -1,0 +1,35 @@
+{
+  "$schema": "../../umbraco-package-schema.json",
+  "name": "Reservationen",
+  "version": "1.0.0",
+  "extensions": [
+    {
+      "type": "section",
+      "alias": "Sporthalle.Reservationen",
+      "name": "Reservationen",
+      "weight": 800,
+      "meta": {
+        "label": "Reservationen",
+        "pathname": "reservationen"
+      }
+    },
+    {
+      "type": "dashboard",
+      "alias": "Sporthalle.Reservationen.Dashboard",
+      "name": "Reservationen Dashboard",
+      "element": "/App_Plugins/Reservationen/reservationen-view.js",
+      "elementName": "reservationen-view",
+      "weight": 100,
+      "meta": {
+        "label": "Übersicht",
+        "pathname": "overview"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Sporthalle.Reservationen"
+        }
+      ]
+    }
+  ]
+}

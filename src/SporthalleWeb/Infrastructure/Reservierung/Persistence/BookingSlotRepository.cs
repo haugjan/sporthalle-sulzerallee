@@ -132,7 +132,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         }
 
         var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
-        var sql = new Sql($"SELECT * FROM BookingSlots {where} ORDER BY StartUtc DESC", args.ToArray());
+        var sql = new Sql($"SELECT * FROM BookingSlots {where} ORDER BY StartUtc", args.ToArray());
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
         return records.Select(MapToDomain).ToList();

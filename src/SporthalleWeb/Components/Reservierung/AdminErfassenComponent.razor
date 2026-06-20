@@ -79,8 +79,8 @@
           <div class="bm-field bm-field--2col">
             <label>Farbe
               <span style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem">
-                <span style="width:22px;height:22px;border-radius:4px;background:#37474f;display:inline-block;border:2px solid #333"></span>
-                <span style="font-size:0.85rem;color:#555;font-weight:400;text-transform:none;letter-spacing:0">Immer Anthrazit</span>
+                <span style="width:22px;height:22px;border-radius:4px;background:#78909C;display:inline-block;border:2px solid #333"></span>
+                <span style="font-size:0.85rem;color:#555;font-weight:400;text-transform:none;letter-spacing:0">Immer Grau</span>
               </span>
             </label>
           </div>
@@ -247,7 +247,7 @@
                 await AdminService.CreateSlotAsync(
                     SporthalleWeb.Domain.Reservierung.SlotType.Blocker,
                     startUtc, endUtc,
-                    payload.Titel.Trim(), "#37474f",
+                    payload.Titel.Trim(), "#78909C",
                     string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen.Trim(),
                     null, AdminUser);
 

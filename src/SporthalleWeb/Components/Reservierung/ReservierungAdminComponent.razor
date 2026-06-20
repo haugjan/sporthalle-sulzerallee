@@ -799,7 +799,7 @@
         try
         {
             var color = _editSlotType == SporthalleWeb.Domain.Reservierung.SlotType.Blocker
-                ? "#37474f"
+                ? "#78909C"
                 : (string.IsNullOrWhiteSpace(_editColor) ? null : _editColor.Trim());
             await AdminService.UpdateSlotAsync(_editSlotId.Value,
                 _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
