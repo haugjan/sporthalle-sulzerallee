@@ -5,6 +5,8 @@
     var imageUrl = Model.Value<string>("pageImage");
     var introText = Model.Value<string>("introText");
     var outroText = Model.Value<string>("outroText");
+    static bool HasText(string? html) =>
+        !string.IsNullOrWhiteSpace(System.Text.RegularExpressions.Regex.Replace(html ?? "", "<[^>]*>", ""));
     ViewBag.Title = heading + " – Sporthalle Sulzerallee";
 }
 
@@ -24,16 +26,16 @@
   </div>
   <div class="page-header-bar"></div>
 
-  @if (!string.IsNullOrEmpty(introText))
+  @if (HasText(introText))
   {
-    <section>
+    <section class="pm-intro-section">
       @Html.Raw(introText)
     </section>
   }
 
   @await Html.PartialAsync("~/Views/Partials/_PassivMitgliedschaftModule.cshtml")
 
-  @if (!string.IsNullOrEmpty(outroText))
+  @if (HasText(outroText))
   {
     <section>
       @Html.Raw(outroText)

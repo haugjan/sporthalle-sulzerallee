@@ -5,6 +5,11 @@
   margin: 0 auto;
 }
 
+/* ===== Intro-Section vor den Stufen-Cards ===== */
+.pm-intro-section {
+  padding-bottom: 1rem;
+}
+
 /* ===== Intro-Abschnitt (legacy, für evtl. eigene Klassen im Richtext) ===== */
 .pm-intro {
   padding: 4rem 2rem;
