@@ -69,6 +69,13 @@
     return date < today;
   }
 
+  function isShortNotice(date) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var diff = Math.round((date - today) / 86400000);
+    return diff === 1 || diff === 2;
+  }
+
   function blockToTimeLabel(blockIdx) {
     var totalMin = OPENING_HOUR_START * 60 + blockIdx * BLOCK_MINUTES;
     var h = String(Math.floor(totalMin / 60)).padStart(2, '0');
@@ -100,7 +107,7 @@
   // ── UTC → Zürich ──────────────────────────────────────────────────────────
 
   function getZurichParts(utcDate) {
-    var parts = new Intl.DateTimeFormat('en-US', {
+    var parts = new Intl.DateTimeFormat('de-CH', {
       timeZone: 'Europe/Zurich',
       year: 'numeric', month: 'numeric', day: 'numeric',
       hour: 'numeric', minute: 'numeric',
@@ -162,8 +169,8 @@
     days.forEach(function (day) {
       var cell = document.createElement('div');
       cell.className = 'cal-header-day';
-      if (isToday(day)) cell.classList.add('is-today');
-      else if (isPastDay(day)) cell.classList.add('is-past');
+      if (isPastDay(day)) cell.classList.add('is-past');
+      else if (isToday(day)) cell.classList.add('is-today');
       cell.textContent = formatDayHeader(day);
       grid.appendChild(cell);
     });
@@ -180,6 +187,7 @@
         var cell = document.createElement('div');
         cell.className = 'cal-cell' + (isHourStart ? ' hour-start' : '');
         if (isPastDay(day)) cell.classList.add('is-past');
+        else if (isToday(day)) cell.classList.add('is-today');
         grid.appendChild(cell);
       });
     }
@@ -239,24 +247,15 @@
       el.style.height = height + 'px';
       el.style.left = left + 'px';
       el.style.width = width + 'px';
+      el.style.background = slot.color || getDefaultColor(slot);
 
-      if (slot.color) {
-        el.style.background = slot.color;
-      }
-
-      if (height >= 16) {
+      if (height >= 24) {
         var label = document.createElement('div');
         label.className = 'booking-overlay__label';
-        var titleEl = document.createElement('span');
-        titleEl.className = 'bol-title';
-        titleEl.textContent = slot.title || '';
-        label.appendChild(titleEl);
-        if (height >= 40) {
-          var timeEl = document.createElement('span');
-          timeEl.className = 'bol-time';
-          timeEl.textContent = fmtTime(startZ.hour, startZ.minute) + '–' + fmtTime(endZ.hour, endZ.minute);
-          label.appendChild(timeEl);
-        }
+        var timeEl = document.createElement('span');
+        timeEl.className = 'bol-time';
+        timeEl.textContent = fmtTime(startZ.hour, startZ.minute) + '–' + fmtTime(endZ.hour, endZ.minute);
+        label.appendChild(timeEl);
         el.appendChild(label);
       }
 
@@ -265,8 +264,13 @@
   }
 
   function getOverlayMod(slot) {
-    if (slot.type === 'Booked') return 'confirmed';
+    if (slot.type === 'Booked' || slot.type === 'Blocker') return 'confirmed';
     return 'provisional'; // Reserved
+  }
+
+  function getDefaultColor(slot) {
+    if (slot.type === 'Reserved') return '#0078D4';
+    return '#444';
   }
 
   // ── Drag-to-Select ────────────────────────────────────────────────────────
@@ -365,6 +369,7 @@
     var target = e.target;
     if (!target.classList.contains('cal-cell')) return;
     if (target.classList.contains('is-past')) return;
+    if (target.classList.contains('is-today')) return;
 
     var layout = computeGridLayout();
     if (!layout) return;
@@ -378,7 +383,7 @@
     for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
 
     if (dayIdx < 0 || dayIdx >= days.length) return;
-    if (isPastDay(days[dayIdx])) return;
+    if (isPastDay(days[dayIdx]) || isToday(days[dayIdx])) return;
 
     var startBlock = blockFromY(relY, layout.contentTop);
     if (isBlockOccupied(dayIdx, startBlock, days)) return;
@@ -466,8 +471,10 @@
     var hint = document.getElementById('slot-panel-hint');
     var detail = document.getElementById('slot-panel-detail');
     var dateLabel = document.getElementById('slot-date-label');
-    var startInput = document.getElementById('slot-start');
-    var endInput = document.getElementById('slot-end');
+    var timeDisplay = document.getElementById('slot-time-display');
+    var metaEl = document.getElementById('slot-meta');
+    var buchBtn = document.getElementById('btn-jetzt-buchen');
+    var notice = document.getElementById('slot-short-notice');
 
     if (!detail) return;
 
@@ -475,10 +482,15 @@
     detail.hidden = false;
 
     if (dateLabel) dateLabel.textContent = formatDateLong(slot.day);
-    if (startInput) startInput.value = minutesToTimeStr(slot.startMin);
-    if (endInput) endInput.value = minutesToTimeStr(slot.endMin);
+    if (timeDisplay) timeDisplay.textContent =
+      minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
 
-    updateSlotMeta(slot);
+    var shortNotice = isShortNotice(slot.day);
+    if (metaEl) metaEl.hidden = shortNotice;
+    if (buchBtn) buchBtn.hidden = shortNotice;
+    if (notice) notice.hidden = !shortNotice;
+
+    if (!shortNotice) updateSlotMeta(slot);
 
     // Panel ins Sichtfeld scrollen (auf Mobilgeräten scrollt es nach unten,
     // auf Desktop wird es sichtbar gemacht falls es ausserhalb des Viewports ist)
@@ -532,35 +544,22 @@
       });
   }
 
-  function onSlotTimeChange() {
-    var startInput = document.getElementById('slot-start');
-    var endInput = document.getElementById('slot-end');
-    if (!startInput || !endInput || !selectedSlot) return;
-
-    var startParts = startInput.value.split(':');
-    var endParts = endInput.value.split(':');
-    if (startParts.length < 2 || endParts.length < 2) return;
-
-    var startMin = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-    var endMin = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-    var openStart = OPENING_HOUR_START * 60;
-    var openEnd = OPENING_HOUR_END * 60;
-
-    if (endMin - startMin < 60 || startMin < openStart || endMin > openEnd) return;
-
-    selectedSlot.startMin = startMin;
-    selectedSlot.endMin = endMin;
-    selectedSlot.startBlock = Math.round((startMin - openStart) / BLOCK_MINUTES);
-    selectedSlot.endBlock = Math.round((endMin - openStart) / BLOCK_MINUTES);
-    selectedSlot.startUtcIso = localDateToUtcIso(selectedSlot.day, startMin);
-    selectedSlot.endUtcIso = localDateToUtcIso(selectedSlot.day, endMin);
-
-    var layout = computeGridLayout();
-    if (layout) renderSelectionOverlay(selectedSlot.dayIdx, selectedSlot.startBlock, selectedSlot.endBlock, layout);
-    updateSlotMeta(selectedSlot);
-  }
-
   // ── Buchungs-Modal ────────────────────────────────────────────────────────
+
+  var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
+
+  function updateOrgField() {
+    var type = getVal('bm-renter-type');
+    var orgRow = document.getElementById('bm-org-row');
+    var orgLabel = document.getElementById('bm-org-label');
+    var firstLabel = document.getElementById('bm-firstname-label');
+    var lastLabel = document.getElementById('bm-lastname-label');
+    var isOrg = type !== 'Privatperson';
+    if (orgRow) orgRow.hidden = !isOrg;
+    if (isOrg && orgLabel) orgLabel.textContent = ORG_LABELS[type] || 'Organisationsname';
+    if (firstLabel) firstLabel.textContent = isOrg ? 'Vorname Kontaktperson' : 'Vorname';
+    if (lastLabel) lastLabel.textContent = isOrg ? 'Nachname Kontaktperson' : 'Nachname';
+  }
 
   function openBookingModal() {
     if (!selectedSlot) return;
@@ -586,11 +585,12 @@
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
 
+    updateOrgField();
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
 
     setTimeout(function () {
-      var f = document.getElementById('bm-name');
+      var f = document.getElementById('bm-anlass');
       if (f) f.focus();
     }, 60);
   }
@@ -614,27 +614,39 @@
   function submitGuestBooking() {
     if (!selectedSlot) return;
 
-    var name = getVal('bm-name');
-    var email = getVal('bm-email');
+    var renterType = getVal('bm-renter-type') || 'Privatperson';
+    var isOrg = renterType !== 'Privatperson';
+    var orgName = isOrg ? getVal('bm-org-name') : '';
+    var firstname = getVal('bm-firstname');
+    var lastname = getVal('bm-lastname');
     var phone = getVal('bm-phone');
-    var billingName = getVal('bm-billing-name');
+    var email = getVal('bm-email');
     var billingStreet = getVal('bm-billing-street');
+    var billingExtra = getVal('bm-billing-extra');
     var billingPlz = getVal('bm-billing-plz');
     var billingCity = getVal('bm-billing-city');
-    var renterType = getVal('bm-renter-type') || 'Privatperson';
     var anlass = getVal('bm-anlass');
     var notizen = getVal('bm-notizen');
 
     var errEl = document.getElementById('bm-error');
     if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
 
-    if (!name) { showModalError('Bitte gib deinen Namen ein.'); return; }
+    if (isOrg && !orgName) {
+      showModalError('Bitte gib den ' + (ORG_LABELS[renterType] || 'Organisationsnamen') + ' ein.');
+      return;
+    }
+    if (!firstname) { showModalError('Bitte gib den Vornamen ein.'); return; }
+    if (!lastname) { showModalError('Bitte gib den Nachnamen ein.'); return; }
+    if (!phone) { showModalError('Bitte gib die Handynummer ein (erreichbar während des Events).'); return; }
     if (!email || !email.includes('@')) { showModalError('Bitte gib eine gültige E-Mail-Adresse ein.'); return; }
-    if (!billingName) { showModalError('Bitte gib den Rechnungsnamen ein.'); return; }
-    if (!billingStreet) { showModalError('Bitte gib die Rechnungsstrasse ein.'); return; }
+    if (!billingStreet) { showModalError('Bitte gib die Strasse ein.'); return; }
     if (!billingPlz) { showModalError('Bitte gib die PLZ ein.'); return; }
     if (!billingCity) { showModalError('Bitte gib den Ort ein.'); return; }
-    if (!anlass) { showModalError('Bitte gib den Anlass ein.'); return; }
+    if (!anlass) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
+
+    var guestName = firstname + ' ' + lastname;
+    var billingName = isOrg ? orgName : guestName;
+    var billingAddress = billingStreet + (billingExtra ? ', ' + billingExtra : '');
 
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Wird gesendet…'; }
@@ -643,12 +655,14 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
-        guestName: name,
+        firstName: firstname,
+        lastName: lastname,
+        contactPerson: guestName,
         guestEmail: email,
-        guestPhone: phone || null,
+        guestPhone: phone,
         renterType: renterType,
         billingName: billingName,
-        billingAddress: billingStreet,
+        billingAddress: billingAddress,
         billingPostalCode: billingPlz,
         billingCity: billingCity,
         startUtc: selectedSlot.startUtcIso,
@@ -658,7 +672,11 @@
       })
     })
     .then(function (res) {
-      return res.json().then(function (data) { return { ok: res.ok, status: res.status, data: data }; });
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = JSON.parse(text); } catch (_) { data = { error: text.substring(0, 300) }; }
+        return { ok: res.ok, status: res.status, data: data };
+      });
     })
     .then(function (result) {
       if (result.ok) {
@@ -676,12 +694,12 @@
         showModalError('Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle einen anderen Termin.');
       } else {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
-        showModalError((result.data && result.data.error) ? result.data.error : 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+        showModalError((result.data && result.data.error) ? result.data.error : 'Fehler ' + result.status + '. Bitte versuche es erneut.');
       }
     })
-    .catch(function () {
+    .catch(function (err) {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
-      showModalError('Verbindungsfehler. Bitte prüfe deine Internetverbindung.');
+      showModalError('Verbindungsfehler: ' + (err && err.message ? err.message : 'Bitte prüfe deine Internetverbindung.'));
     });
   }
 
@@ -768,15 +786,13 @@
     document.addEventListener('mouseup', onDragEnd);
     document.addEventListener('touchend', onDragEnd);
 
-    // Zeit-Inputs
-    var startInput = document.getElementById('slot-start');
-    var endInput = document.getElementById('slot-end');
-    if (startInput) startInput.addEventListener('change', onSlotTimeChange);
-    if (endInput) endInput.addEventListener('change', onSlotTimeChange);
-
     // Slot-Panel-Button
     var buchBtn = document.getElementById('btn-jetzt-buchen');
     if (buchBtn) buchBtn.addEventListener('click', openBookingModal);
+
+    // Mietertyp-Auswahl → Organisationsfeld ein-/ausblenden
+    var renterTypeSelect = document.getElementById('bm-renter-type');
+    if (renterTypeSelect) renterTypeSelect.addEventListener('change', updateOrgField);
 
     // Modal-Buttons
     var closeBtn = document.getElementById('bm-close');
@@ -788,10 +804,6 @@
     if (submitBtn) submitBtn.addEventListener('click', submitGuestBooking);
     if (doneBtn) doneBtn.addEventListener('click', function () { closeBookingModal(); });
 
-    var modal = document.getElementById('booking-modal');
-    if (modal) {
-      modal.addEventListener('click', function (e) { if (e.target === modal) closeBookingModal(); });
-    }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBookingModal(); });
 
     updateWeekLabel();
