@@ -23,8 +23,9 @@ public sealed class RejectBookingUseCase(
                 await email.SendBookingRejectedToRenterAsync(slot, member);
         }
 
-        await slotRepo.DeleteAsync(slotId);
+        slot.Reject();
+        await slotRepo.UpdateAsync(slot);
         await audit.LogAsync("BookingSlot", slotId, "Rejected", adminUser,
-            new { Type = slot.Type.ToString(), Reason = reason }, null);
+            new { Type = "Rejected", Reason = reason }, null);
     }
 }

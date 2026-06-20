@@ -85,4 +85,28 @@ public sealed class BookingSlot
         Type = SlotType.Booked;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Reject()
+    {
+        if (Type != SlotType.Reserved)
+            throw new DomainException("Nur reservierte Buchungen können abgelehnt werden.");
+        Type = SlotType.Rejected;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reactivate()
+    {
+        if (Type != SlotType.Rejected)
+            throw new DomainException("Nur abgelehnte Buchungen können reaktiviert werden.");
+        Type = SlotType.Booked;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Update(string title, string? color, string? notes)
+    {
+        Title = title;
+        Color = color;
+        Notes = notes;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

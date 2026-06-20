@@ -43,8 +43,8 @@ public sealed class BookingAdminService(
         return saved;
     }
 
-    public async Task<IReadOnlyList<BookingSlot>> GetSlotsForPeriodAsync(DateOnly from, DateOnly toInclusive)
-        => await slotRepo.GetAllAsync(from, toInclusive, null);
+    public async Task<IReadOnlyList<BookingSlot>> GetSlotsForPeriodAsync(DateOnly from, DateOnly toInclusive, bool includeRejected = false)
+        => await slotRepo.GetAllAsync(from, toInclusive, null, includeRejected);
 
     public async Task<IReadOnlyList<(BookingSlot Slot, HallMember? Member)>> GetWeekSlotsWithMembersAsync(DateOnly monday)
     {
@@ -82,5 +82,26 @@ public sealed class BookingAdminService(
         await slotRepo.DeleteAsync(slotId);
         await audit.LogAsync("BookingSlot", slotId, "Deleted", adminUser,
             new { Type = slot.Type.ToString() }, null);
+    }
+
+    public async Task ReactivateSlotAsync(int slotId, string adminUser)
+    {
+        var slot = await slotRepo.FindByIdAsync(slotId)
+            ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
+        var overlaps = await slotRepo.GetActiveOverlapsAsync(slot.Slot);
+        if (overlaps.Count > 0)
+            throw new DomainException("Dieser Zeitslot überschneidet sich mit einer bestehenden Buchung und kann nicht reaktiviert werden.");
+        slot.Reactivate();
+        await slotRepo.UpdateAsync(slot);
+        await audit.LogAsync("BookingSlot", slotId, "Reactivated", adminUser, null, null);
+    }
+
+    public async Task UpdateSlotAsync(int slotId, string title, string? color, string? notes, string adminUser)
+    {
+        var slot = await slotRepo.FindByIdAsync(slotId)
+            ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
+        slot.Update(title, color, notes);
+        await slotRepo.UpdateAsync(slot);
+        await audit.LogAsync("BookingSlot", slotId, "Updated", adminUser, null, new { title, color, notes });
     }
 }

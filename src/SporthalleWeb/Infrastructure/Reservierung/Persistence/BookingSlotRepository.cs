@@ -23,8 +23,8 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1",
-            slot.EndUtc, slot.StartUtc);
+            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1 AND Type != @2",
+            slot.EndUtc, slot.StartUtc, SlotType.Rejected.ToString());
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
         return records.Select(MapToDomain).ToList();
@@ -39,11 +39,28 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         return record is null ? null : MapToDomain(record);
     }
 
+    public async Task<BookingSlot> CheckConflictAndSaveAsync(BookingSlot booking, TimeSlot slot)
+    {
+        using var scope = scopeProvider.CreateScope();
+
+        var overlapSql = new Sql(
+            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1 AND Type != @2",
+            slot.EndUtc, slot.StartUtc, SlotType.Rejected.ToString());
+        var overlaps = await scope.Database.FetchAsync<BookingSlotRecord>(overlapSql);
+        if (overlaps.Count > 0)
+            throw new SlotConflictException(slot, overlaps.Select(MapToDomain).ToList());
+
+        var record = MapToRecord(booking);
+        record.Id = Convert.ToInt32(await scope.Database.InsertAsync(record));
+        scope.Complete();
+        return MapToDomain(record);
+    }
+
     public async Task<BookingSlot> SaveAsync(BookingSlot slot)
     {
         using var scope = scopeProvider.CreateScope();
         var record = MapToRecord(slot);
-        record.Id = (int)(await scope.Database.InsertAsync(record))!;
+        record.Id = Convert.ToInt32(await scope.Database.InsertAsync(record));
         scope.Complete();
         return MapToDomain(record);
     }
@@ -86,7 +103,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         return records.Select(MapToDomain).ToList();
     }
 
-    public async Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, SlotType? type)
+    public async Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, SlotType? type, bool includeRejected = false)
     {
         using var scope = scopeProvider.CreateScope();
         var conditions = new List<string>();
@@ -105,8 +122,13 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         }
         if (type is not null)
         {
-            conditions.Add($"Type = @{idx}");
+            conditions.Add($"Type = @{idx++}");
             args.Add(type.ToString()!);
+        }
+        else if (!includeRejected)
+        {
+            conditions.Add($"Type != @{idx++}");
+            args.Add(SlotType.Rejected.ToString());
         }
 
         var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
