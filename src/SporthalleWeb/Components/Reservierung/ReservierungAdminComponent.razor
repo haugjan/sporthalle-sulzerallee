@@ -381,6 +381,27 @@
                 }
                 else
                 {
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Datum von</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" value="@_editStartDate"
+                                       @onchange="e => _editStartDate = e.Value?.ToString() ?? string.Empty" />
+                                <input type="time" class="form-control" value="@_editStartTime" step="1800"
+                                       @onchange="e => _editStartTime = e.Value?.ToString() ?? string.Empty" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Datum bis</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" value="@_editEndDate"
+                                       @onchange="e => _editEndDate = e.Value?.ToString() ?? string.Empty" />
+                                <input type="time" class="form-control" value="@_editEndTime" step="1800"
+                                       @onchange="e => _editEndTime = e.Value?.ToString() ?? string.Empty" />
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Reservierung.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
                         <input class="form-control" @bind="_editTitle" />
@@ -411,12 +432,44 @@
                     {
                         <hr />
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Kontaktperson</label>
-                            <input class="form-control" @bind="_editContactPerson" />
+                            <label class="form-label fw-semibold">E-Mail</label>
+                            <input class="form-control" value="@_editEmail" readonly />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-8">
+                                <label class="form-label fw-semibold">Kontaktperson</label>
+                                <input class="form-control" @bind="_editContactPerson" />
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label fw-semibold">Telefon</label>
+                                <input class="form-control" @bind="_editPhone" type="tel" />
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Telefon</label>
-                            <input class="form-control" @bind="_editPhone" type="tel" />
+                            <label class="form-label fw-semibold">Mietertyp</label>
+                            <select class="form-select" @bind="_editRenterType">
+                                <option value="Privatperson">Privatperson</option>
+                                <option value="Verein">Verein</option>
+                                <option value="Firma">Firma</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Rechnungsname</label>
+                            <input class="form-control" @bind="_editBillingName" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Rechnungsadresse</label>
+                            <input class="form-control" @bind="_editBillingAddress" />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-4">
+                                <label class="form-label fw-semibold">PLZ</label>
+                                <input class="form-control" @bind="_editBillingPostalCode" />
+                            </div>
+                            <div class="col-sm-8">
+                                <label class="form-label fw-semibold">Ort</label>
+                                <input class="form-control" @bind="_editBillingCity" />
+                            </div>
                         </div>
                     }
                 }
@@ -502,8 +555,18 @@
     private string _editNotes = "";
     private bool _editHasMember;
     private int? _editMemberId;
+    private string _editEmail = "";
     private string _editContactPerson = "";
     private string _editPhone = "";
+    private string _editRenterType = "";
+    private string _editBillingName = "";
+    private string _editBillingAddress = "";
+    private string _editBillingPostalCode = "";
+    private string _editBillingCity = "";
+    private string _editStartDate = "";
+    private string _editStartTime = "";
+    private string _editEndDate = "";
+    private string _editEndTime = "";
     private bool _editLoading;
 
     protected override async Task OnInitializedAsync() => await LoadPendingAsync();
@@ -635,15 +698,27 @@
         _editLoading = true;
         var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
         if (slot is null) { _editSlotId = null; _editLoading = false; return; }
-        _editSlotType        = slot.Type;
-        _editTitle           = slot.Title ?? "";
-        _editColor           = slot.Color ?? "#C0392B";
-        _editNotes           = slot.Notes ?? "";
-        _editHasMember       = member is not null;
-        _editMemberId        = member?.Id;
-        _editContactPerson   = member?.ContactPerson ?? "";
-        _editPhone           = member?.Phone ?? "";
-        _editLoading         = false;
+        _editSlotType           = slot.Type;
+        _editTitle              = slot.Title ?? "";
+        _editColor              = slot.Color ?? "#C0392B";
+        _editNotes              = slot.Notes ?? "";
+        _editHasMember          = member is not null;
+        _editMemberId           = member?.Id;
+        _editEmail              = member?.Email ?? "";
+        _editContactPerson      = member?.ContactPerson ?? "";
+        _editPhone              = member?.Phone ?? "";
+        _editRenterType         = member?.RenterType.Value.ToString() ?? "Privatperson";
+        _editBillingName        = member?.BillingName ?? "";
+        _editBillingAddress     = member?.BillingAddress ?? "";
+        _editBillingPostalCode  = member?.BillingPostalCode ?? "";
+        _editBillingCity        = member?.BillingCity ?? "";
+        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
+        var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
+        _editStartDate = startLocal.ToString("yyyy-MM-dd");
+        _editStartTime = startLocal.ToString("HH:mm");
+        _editEndDate   = endLocal.ToString("yyyy-MM-dd");
+        _editEndTime   = endLocal.ToString("HH:mm");
+        _editLoading   = false;
     }
 
     private void CancelEdit() { _editSlotId = null; }
@@ -660,10 +735,26 @@
             await AdminService.UpdateSlotAsync(_editSlotId.Value,
                 _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
                 AdminUser);
+
+            if (DateTime.TryParse(_editStartDate + "T" + _editStartTime, out var startLocal) &&
+                DateTime.TryParse(_editEndDate   + "T" + _editEndTime,   out var endLocal))
+            {
+                var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, Zurich);
+                var endUtc   = TimeZoneInfo.ConvertTimeToUtc(endLocal,   Zurich);
+                await AdminService.RescheduleSlotAsync(_editSlotId.Value, startUtc, endUtc, AdminUser);
+            }
+
             if (_editHasMember && _editMemberId.HasValue)
-                await AdminService.UpdateMemberContactAsync(_editMemberId.Value,
-                    _editContactPerson.Trim(), string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone.Trim(),
+                await AdminService.UpdateMemberAsync(_editMemberId.Value,
+                    _editContactPerson.Trim(),
+                    string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone.Trim(),
+                    _editRenterType,
+                    _editBillingName.Trim(),
+                    _editBillingAddress.Trim(),
+                    _editBillingPostalCode.Trim(),
+                    _editBillingCity.Trim(),
                     AdminUser);
+
             _message = "Buchung wurde gespeichert.";
             _editSlotId = null;
             await LoadPeriodAsync();

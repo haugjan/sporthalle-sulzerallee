@@ -129,12 +129,28 @@ public sealed class BookingAdminService(
         return (slot, member);
     }
 
-    public async Task UpdateMemberContactAsync(int memberId, string contactPerson, string? phone, string adminUser)
+    public async Task RescheduleSlotAsync(int slotId, DateTime startUtc, DateTime endUtc, string adminUser)
+    {
+        var slot = await slotRepo.FindByIdAsync(slotId)
+            ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
+        var newSlot = new TimeSlot(startUtc, endUtc);
+        var overlaps = await slotRepo.GetActiveOverlapsAsync(newSlot);
+        if (overlaps.Any(o => o.Id != slotId))
+            throw new DomainException("Der neue Zeitraum überschneidet sich mit einer bestehenden Buchung.");
+        slot.Reschedule(newSlot);
+        await slotRepo.UpdateAsync(slot);
+        await audit.LogAsync("BookingSlot", slotId, "Rescheduled", adminUser, null, new { startUtc, endUtc });
+    }
+
+    public async Task UpdateMemberAsync(int memberId, string contactPerson, string? phone,
+        string renterType, string billingName, string billingAddress,
+        string billingPostalCode, string billingCity, string adminUser)
     {
         var member = await members.FindByIdAsync(memberId)
             ?? throw new DomainException($"Mieter {memberId} nicht gefunden.");
-        await members.UpdateProfileAsync(memberId, contactPerson, member.BillingName,
-            member.BillingAddress, member.BillingPostalCode, member.BillingCity, phone, member.HasKey);
-        await audit.LogAsync("HallMember", memberId, "ContactUpdated", adminUser, null, new { contactPerson, phone });
+        await members.UpdateProfileAsync(memberId, contactPerson, billingName,
+            billingAddress, billingPostalCode, billingCity, phone, member.HasKey);
+        await audit.LogAsync("HallMember", memberId, "Updated", adminUser, null,
+            new { contactPerson, phone, renterType, billingName, billingAddress, billingPostalCode, billingCity });
     }
 }

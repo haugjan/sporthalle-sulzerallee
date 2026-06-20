@@ -109,4 +109,10 @@ public sealed class BookingSlot
         Notes = notes;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Reschedule(TimeSlot newSlot)
+    {
+        Slot = newSlot;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
