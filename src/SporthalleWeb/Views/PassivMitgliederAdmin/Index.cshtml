@@ -196,7 +196,10 @@
                             <td>@m.FirstName @m.LastName</td>
                             <td><a href="mailto:@m.Email.Value">@m.Email.Value</a></td>
                             <td>@m.AddressLine<br />@m.PostalCode @m.City</td>
-                            <td>@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")<br />
+                                <span style="color:#888;font-size:0.78rem;">@m.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+                            </td>
                             <td class="paid-cell">
                                 @if (m.PaidAt.HasValue)
                                 {
