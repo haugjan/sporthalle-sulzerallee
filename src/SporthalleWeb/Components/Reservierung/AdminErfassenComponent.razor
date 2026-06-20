@@ -1,0 +1,475 @@
+@inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
+@inject SporthalleWeb.Domain.Reservierung.Ports.IHallConfigurationPort Config
+@inject SporthalleWeb.Domain.Reservierung.Ports.IMemberManagerPort Members
+@inject SporthalleWeb.Application.Reservierung.GetAvailableDaysQuery AvailDays
+@inject SporthalleWeb.Application.Reservierung.GetAvailableTimeSlotsQuery AvailSlots
+@inject SporthalleWeb.Application.Reservierung.CreateBookingUseCase CreateBooking
+@using System.Globalization
+
+<div class="admin-erfassen">
+
+    @switch (_step)
+    {
+        // ── Schritt 1: Dauer ───────────────────────────────────────────────
+        case Step.Dauer:
+            <h5 class="mb-3">Buchungsdauer wählen</h5>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var d in _dauern)
+                {
+                    <button class="btn @(_selectedDauer == d ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SelectDauerAsync(d)">
+                        @(d >= 60 ? $"{d / 60} h" : $"{d} min")
+                    </button>
+                }
+            </div>
+            break;
+
+        // ── Schritt 2: Datum ───────────────────────────────────────────────
+        case Step.Datum:
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevMonthAsync">&larr;</button>
+                <strong>@_month.ToString("MMMM yyyy", DeCh)</strong>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="NextMonthAsync">&rarr;</button>
+            </div>
+            @if (_loadingDays)
+            {
+                <p>Lade verfügbare Tage…</p>
+            }
+            else if (!_verfuegbareTage.Any())
+            {
+                <p class="text-muted">Keine verfügbaren Tage in diesem Monat.</p>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var tag in _verfuegbareTage)
+                    {
+                        var d = DateOnly.Parse(tag);
+                        <button class="btn btn-sm @(_selectedDate == tag ? "btn-primary" : "btn-outline-secondary")"
+                                @onclick="() => SelectDateAsync(tag)">
+                            @d.ToString("ddd d. MMM", DeCh)
+                        </button>
+                    }
+                </div>
+            }
+            <button class="btn btn-secondary" @onclick="() => _step = Step.Dauer">&larr; Zurück</button>
+            break;
+
+        // ── Schritt 3: Zeit ────────────────────────────────────────────────
+        case Step.Zeit:
+            <h6 class="mb-3">@DateOnly.Parse(_selectedDate!).ToString("dddd, d. MMMM yyyy", DeCh) &middot; @_selectedDauer min</h6>
+
+            @if (_dayBookings.Any())
+            {
+                <div class="mb-3 p-3 rounded" style="background:#f0f4f8">
+                    <small class="text-muted fw-semibold d-block mb-2">Bestehende Buchungen an diesem Tag:</small>
+                    @foreach (var (slot, member) in _dayBookings)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                            <span class="badge @TypeBadge(slot.Type.ToString()) badge-sm">@slot.Type</span>
+                            <span class="small text-muted">@FormatTime(slot.Slot.StartUtc)–@FormatTime(slot.Slot.EndUtc)</span>
+                            <span class="small fw-semibold">@slot.Title</span>
+                            @if (member is not null)
+                            {
+                                <span class="small text-muted">| @member.ContactPerson
+                                    @if (!string.IsNullOrEmpty(member.BillingName) && member.BillingName != member.ContactPerson)
+                                    {
+                                        <text> (@member.BillingName)</text>
+                                    }
+                                </span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_loadingSlots)
+            {
+                <p>Lade freie Zeitfenster…</p>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var slot in _slots)
+                    {
+                        var cls = slot.IsAvailable
+                            ? (_selectedSlot == slot ? "btn-primary" : "btn-outline-success")
+                            : "btn-outline-secondary";
+                        <button class="btn btn-sm @cls"
+                                disabled="@(!slot.IsAvailable)"
+                                @onclick="() => SelectSlot(slot)">
+                            @slot.StartLocal – @slot.EndLocal
+                        </button>
+                    }
+                </div>
+            }
+            <button class="btn btn-secondary" @onclick="() => _step = Step.Datum">&larr; Zurück</button>
+            break;
+
+        // ── Schritt 4: Typ (Blocker oder Event) ───────────────────────────
+        case Step.Typ:
+            <p class="text-muted small mb-3">
+                @DateOnly.Parse(_selectedDate!).ToString("ddd d. MMM yyyy", DeCh),
+                @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr &middot; @_selectedDauer min
+            </p>
+
+            <div class="d-flex gap-3 mb-4">
+                <button class="btn btn-lg @(_isBlocker ? "btn-secondary" : "btn-outline-secondary") flex-fill"
+                        style="max-width:200px"
+                        @onclick="() => _isBlocker = true">
+                    <div class="fw-bold">Blocker</div>
+                    <small class="d-block">Intern, nicht öffentlich</small>
+                </button>
+                <button class="btn btn-lg @(!_isBlocker ? "btn-primary" : "btn-outline-primary") flex-fill"
+                        style="max-width:200px"
+                        @onclick="() => _isBlocker = false">
+                    <div class="fw-bold">Buchungsanfrage</div>
+                    <small class="d-block">Mieter + Details erfassen</small>
+                </button>
+            </div>
+
+            @if (_isBlocker)
+            {
+                <div class="mb-3" style="max-width:400px">
+                    <label class="form-label fw-semibold">Bezeichnung *</label>
+                    <input type="text" class="form-control" placeholder="z.B. Hallenpflege, Wartung, …"
+                           @bind="_blockerTitel" />
+                </div>
+                @if (_typError is not null)
+                {
+                    <div class="alert alert-danger py-2">@_typError</div>
+                }
+                <div class="d-flex gap-2 mt-2">
+                    <button class="btn btn-secondary" @onclick="() => _step = Step.Zeit">&larr; Zurück</button>
+                    <button class="btn btn-primary" @onclick="SaveBlockerAsync" disabled="@_submitting">
+                        @(_submitting ? "Speichern…" : "Blocker speichern")
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex gap-2 mt-2">
+                    <button class="btn btn-secondary" @onclick="() => _step = Step.Zeit">&larr; Zurück</button>
+                    <button class="btn btn-primary" @onclick="() => _step = Step.Kontakt">Weiter zu Kontaktdaten &rarr;</button>
+                </div>
+            }
+            break;
+
+        // ── Schritt 5: Kontakt (nur Event) ────────────────────────────────
+        case Step.Kontakt:
+            <h5 class="mb-1">Kontaktdaten</h5>
+            <p class="text-muted small mb-3">
+                @DateOnly.Parse(_selectedDate!).ToString("ddd d. MMM yyyy", DeCh),
+                @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr
+            </p>
+            <div style="max-width:500px">
+                <div class="mb-3">
+                    <label class="form-label">Name / Kontaktperson *</label>
+                    <input type="text" class="form-control" @bind="_guestName" placeholder="Vor- und Nachname" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">E-Mail *</label>
+                    <input type="email" class="form-control" @bind="_guestEmail" placeholder="name@beispiel.ch" />
+                    <div class="form-text">Existiert die E-Mail bereits, wird das bestehende Konto verknüpft.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Telefon (optional)</label>
+                    <input type="tel" class="form-control" @bind="_guestPhone" placeholder="+41 79 000 00 00" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mietertyp *</label>
+                    <select class="form-select" @bind="_guestRenterTypeStr">
+                        <option value="Privatperson">Privatperson</option>
+                        <option value="Verein">Verein</option>
+                        <option value="Firma">Firma</option>
+                    </select>
+                </div>
+                @if (_kontaktError is not null)
+                {
+                    <div class="alert alert-danger py-2">@_kontaktError</div>
+                }
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" @onclick="() => _step = Step.Typ">&larr; Zurück</button>
+                    <button class="btn btn-primary" @onclick="KontaktWeiterAsync">Weiter &rarr;</button>
+                </div>
+            </div>
+            break;
+
+        // ── Schritt 6: Bestätigen (nur Event) ─────────────────────────────
+        case Step.Bestaetigen:
+            <h5 class="mb-3">Buchung bestätigen</h5>
+            <dl class="row mb-3">
+                <dt class="col-sm-4">Datum / Zeit</dt>
+                <dd class="col-sm-8">@DateOnly.Parse(_selectedDate!).ToString("ddd d. MMM yyyy", DeCh), @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr</dd>
+                <dt class="col-sm-4">Kontakt</dt>
+                <dd class="col-sm-8">@_guestName (@_guestEmail)</dd>
+                <dt class="col-sm-4">Typ</dt>
+                <dd class="col-sm-8">@_guestRenterTypeStr</dd>
+            </dl>
+            <div class="mb-3" style="max-width:400px">
+                <label class="form-label">Anlass *</label>
+                <select class="form-select" @bind="_anlass">
+                    @foreach (var a in _anlaesse)
+                    {
+                        <option value="@a">@a</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3" style="max-width:400px">
+                <label class="form-label">Bemerkungen (optional)</label>
+                <textarea class="form-control" @bind="_notizen" rows="3"></textarea>
+            </div>
+            @if (_error is not null)
+            {
+                <div class="alert alert-danger">@_error</div>
+            }
+            <div class="d-flex gap-2">
+                <button class="btn btn-secondary" @onclick="() => _step = Step.Kontakt">&larr; Zurück</button>
+                <button class="btn btn-primary" @onclick="SubmitEventAsync" disabled="@_submitting">
+                    @(_submitting ? "Wird gespeichert…" : "Buchungsanfrage erstellen")
+                </button>
+            </div>
+            break;
+
+        // ── Schritt 7: Bestätigung ─────────────────────────────────────────
+        case Step.Bestaetigung:
+            <div class="alert alert-success">
+                <h5 class="alert-heading">@(_isBlocker ? "Blocker gespeichert" : "Buchungsanfrage erstellt")</h5>
+                @if (_isBlocker)
+                {
+                    <p class="mb-0">Der Blocker «@_blockerTitel» wurde gespeichert und erscheint im Kalender.</p>
+                }
+                else
+                {
+                    <p class="mb-0">Die Buchungsanfrage für @_guestName wurde erstellt und erscheint unter «Pendente».</p>
+                }
+            </div>
+            <button class="btn btn-outline-primary mt-2" @onclick="Reset">Weiteren Slot erfassen</button>
+            break;
+    }
+
+</div>
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+    private static readonly CultureInfo DeCh = CultureInfo.GetCultureInfo("de-CH");
+
+    private enum Step { Dauer, Datum, Zeit, Typ, Kontakt, Bestaetigen, Bestaetigung }
+    private Step _step = Step.Dauer;
+
+    // Slot selection
+    private IReadOnlyList<int> _dauern = [];
+    private int _selectedDauer;
+    private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
+    private IReadOnlyList<string> _verfuegbareTage = [];
+    private bool _loadingDays;
+    private string? _selectedDate;
+    private IReadOnlyList<SporthalleWeb.Application.Reservierung.SlotOption> _slots = [];
+    private bool _loadingSlots;
+    private SporthalleWeb.Application.Reservierung.SlotOption? _selectedSlot;
+
+    // Day bookings (shown in Zeit step)
+    private IReadOnlyList<(SporthalleWeb.Domain.Reservierung.BookingSlot Slot, SporthalleWeb.Domain.Reservierung.HallMember? Member)> _dayBookings = [];
+    private bool _loadingDayBookings;
+
+    // Typ toggle
+    private bool _isBlocker = true;
+
+    // Blocker fields
+    private string _blockerTitel = "";
+
+    // Event fields
+    private string _guestName = "";
+    private string _guestEmail = "";
+    private string? _guestPhone;
+    private string _guestRenterTypeStr = "Privatperson";
+    private string _anlass = "";
+    private string? _notizen;
+    private IReadOnlyList<string> _anlaesse = [];
+
+    // UI state
+    private bool _submitting;
+    private string? _error;
+    private string? _typError;
+    private string? _kontaktError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dauern = await Config.GetBuchbareDauernAsync();
+        _anlaesse = await Config.GetAnlasseAsync();
+        _anlass = _anlaesse.FirstOrDefault() ?? "";
+    }
+
+    // ── Dauer ────────────────────────────────────────────────────────────────
+
+    private async Task SelectDauerAsync(int d)
+    {
+        _selectedDauer = d;
+        await LoadDaysAsync();
+        _step = Step.Datum;
+    }
+
+    // ── Datum ─────────────────────────────────────────────────────────────────
+
+    private async Task LoadDaysAsync()
+    {
+        _loadingDays = true;
+        _verfuegbareTage = await AvailDays.GetAsync(_month.ToString("yyyy-MM"), _selectedDauer);
+        _loadingDays = false;
+    }
+
+    private async Task PrevMonthAsync() { _month = _month.AddMonths(-1); await LoadDaysAsync(); }
+    private async Task NextMonthAsync() { _month = _month.AddMonths(1); await LoadDaysAsync(); }
+
+    private async Task SelectDateAsync(string date)
+    {
+        _selectedDate = date;
+        _step = Step.Zeit;
+        _loadingSlots = true;
+        _loadingDayBookings = true;
+        _slots = await AvailSlots.GetAsync(date, _selectedDauer);
+        _loadingSlots = false;
+        _dayBookings = await AdminService.GetSlotsWithMembersForDateAsync(DateOnly.Parse(date));
+        _loadingDayBookings = false;
+    }
+
+    // ── Zeit ──────────────────────────────────────────────────────────────────
+
+    private void SelectSlot(SporthalleWeb.Application.Reservierung.SlotOption slot)
+    {
+        if (!slot.IsAvailable) return;
+        _selectedSlot = slot;
+        _isBlocker = true;
+        _blockerTitel = "";
+        _typError = null;
+        _step = Step.Typ;
+    }
+
+    // ── Typ: Blocker ──────────────────────────────────────────────────────────
+
+    private async Task SaveBlockerAsync()
+    {
+        _typError = null;
+        if (string.IsNullOrWhiteSpace(_blockerTitel))
+        {
+            _typError = "Bezeichnung ist erforderlich.";
+            return;
+        }
+        _submitting = true;
+        try
+        {
+            await AdminService.CreateSlotAsync(
+                SporthalleWeb.Domain.Reservierung.SlotType.Blocker,
+                _selectedSlot!.StartUtc,
+                _selectedSlot.EndUtc,
+                _blockerTitel.Trim(),
+                null, null, null,
+                AdminUser);
+            _step = Step.Bestaetigung;
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
+        {
+            _typError = ex.Message;
+        }
+        finally { _submitting = false; }
+    }
+
+    // ── Kontakt ───────────────────────────────────────────────────────────────
+
+    private void KontaktWeiterAsync()
+    {
+        _kontaktError = null;
+        if (string.IsNullOrWhiteSpace(_guestName))
+        { _kontaktError = "Bitte den Namen eingeben."; return; }
+        if (string.IsNullOrWhiteSpace(_guestEmail) || !_guestEmail.Contains('@'))
+        { _kontaktError = "Bitte eine gültige E-Mail-Adresse eingeben."; return; }
+        _step = Step.Bestaetigen;
+    }
+
+    // ── Submit Event ──────────────────────────────────────────────────────────
+
+    private async Task SubmitEventAsync()
+    {
+        _submitting = true;
+        _error = null;
+        try
+        {
+            // Use existing member or create new one
+            var existing = await Members.FindByEmailAsync(_guestEmail.Trim());
+            int memberId;
+            if (existing is not null)
+            {
+                memberId = existing.Id;
+            }
+            else
+            {
+                var regCmd = new SporthalleWeb.Application.Reservierung.RegisterRenterCommand(
+                    Email: _guestEmail.Trim(),
+                    ContactPerson: _guestName.Trim(),
+                    RenterType: new SporthalleWeb.Domain.Reservierung.RenterType(_guestRenterTypeStr),
+                    BillingName: _guestName.Trim(),
+                    BillingAddress: "",
+                    BillingPostalCode: "",
+                    BillingCity: "",
+                    BillingCountry: "CH",
+                    Phone: string.IsNullOrWhiteSpace(_guestPhone) ? null : _guestPhone.Trim(),
+                    HasKey: false,
+                    Password: null);
+                var member = await Members.CreateAsync(regCmd, null);
+                memberId = member.Id;
+            }
+
+            var bookCmd = new SporthalleWeb.Application.Reservierung.CreateBookingCommand(
+                memberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _anlass, _notizen);
+            await CreateBooking.ExecuteAsync(bookCmd);
+            _step = Step.Bestaetigung;
+        }
+        catch (SporthalleWeb.Domain.Reservierung.SlotConflictException)
+        {
+            _error = "Dieser Zeitslot ist nicht mehr verfügbar. Bitte wähle einen anderen Termin.";
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex)
+        {
+            _error = ex.Message;
+        }
+        finally { _submitting = false; }
+    }
+
+    // ── Reset ─────────────────────────────────────────────────────────────────
+
+    private void Reset()
+    {
+        _step = Step.Dauer;
+        _selectedDauer = 0;
+        _selectedDate = null;
+        _selectedSlot = null;
+        _isBlocker = true;
+        _blockerTitel = "";
+        _guestName = "";
+        _guestEmail = "";
+        _guestPhone = null;
+        _guestRenterTypeStr = "Privatperson";
+        _anlass = _anlaesse.FirstOrDefault() ?? "";
+        _notizen = null;
+        _error = null;
+        _typError = null;
+        _kontaktError = null;
+        _dayBookings = [];
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private string FormatTime(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(utc, Zurich).ToString("HH:mm");
+
+    private static string TypeBadge(string type) => type switch
+    {
+        "Booked"   => "bg-success",
+        "Reserved" => "bg-warning text-dark",
+        "Blocker"  => "bg-secondary",
+        _          => "bg-secondary"
+    };
+}
