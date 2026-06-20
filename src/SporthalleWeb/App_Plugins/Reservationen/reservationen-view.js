@@ -1,16 +1,22 @@
-class ReservationenView extends HTMLElement {
-  connectedCallback() {
-    this.style.cssText = 'display:block;width:100%;height:100%;';
+import { LitElement, html, css } from '@umbraco-cms/backoffice/external/lit';
 
-    const iframe = document.createElement('iframe');
-    iframe.src = '/reservierung/backoffice-admin';
-    iframe.style.cssText = 'width:100%;height:calc(100vh - 60px);border:none;display:block;';
+class ReservationenView extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    iframe {
+      width: 100%;
+      height: calc(100vh - 60px);
+      border: none;
+      display: block;
+    }
+  `;
 
-    this.appendChild(iframe);
-  }
-
-  disconnectedCallback() {
-    this.innerHTML = '';
+  render() {
+    return html`<iframe src="/reservierung/backoffice-admin"></iframe>`;
   }
 }
 
