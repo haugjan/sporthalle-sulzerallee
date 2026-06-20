@@ -11,6 +11,10 @@
   padding-bottom: 1rem;
 }
 
+.pm-outro-section {
+  padding-top: 2rem;
+}
+
 /* ===== Intro-Abschnitt (legacy, für evtl. eigene Klassen im Richtext) ===== */
 .pm-intro {
   padding: 4rem 2rem;
