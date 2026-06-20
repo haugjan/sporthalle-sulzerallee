@@ -11,7 +11,13 @@
       "meta": {
         "label": "Passivmitglieder",
         "pathname": "passivmitglieder"
-      }
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionUserPermission",
+          "match": "pm.Section"
+        }
+      ]
     },
     {
       "type": "dashboard",

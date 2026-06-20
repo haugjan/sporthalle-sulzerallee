@@ -6,6 +6,7 @@ using SporthalleWeb.Infrastructure.PassivMitgliedschaft.Excel;
 using SporthalleWeb.Infrastructure.PassivMitgliedschaft.Persistence;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
+using Umbraco.Cms.Infrastructure.Manifest;
 
 namespace SporthalleWeb.Infrastructure.PassivMitgliedschaft.Composition;
 
@@ -13,6 +14,8 @@ public class PassivMitgliederComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
+        builder.Services.AddSingleton<IPackageManifestReader, PassivMitgliederManifestReader>();
+
         // Persistence
         builder.AddComponent<PassivMitgliederMigrationComponent>();
         builder.Services.AddScoped<IPassivMitgliederRepository, PassivMitgliederRepository>();
