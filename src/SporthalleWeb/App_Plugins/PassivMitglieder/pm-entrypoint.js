@@ -1,24 +1,22 @@
-class PmAdminElement extends HTMLElement {
-  connectedCallback() {
-    const style = document.createElement('style');
-    style.textContent = `
-      pm-admin {
-        display: block;
-        position: absolute;
-        inset: 0;
-      }
-      pm-admin iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-        display: block;
-      }
-    `;
-    document.head.appendChild(style);
+import { LitElement, html, css } from '@umbraco-cms/backoffice/external/lit';
 
-    const iframe = document.createElement('iframe');
-    iframe.src = '/passivmitglieder/admin';
-    this.appendChild(iframe);
+class PmAdminElement extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      position: absolute;
+      inset: 0;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+  `;
+
+  render() {
+    return html`<iframe src="/passivmitglieder/admin"></iframe>`;
   }
 }
 customElements.define('pm-admin', PmAdminElement);
