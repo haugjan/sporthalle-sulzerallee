@@ -77,13 +77,15 @@
 
         .level-key {
             display: inline-block;
-            background: #1A5FAD;
             color: #fff;
             border-radius: 3px;
             padding: 1px 6px;
             font-size: 0.75rem;
             font-weight: 600;
         }
+        .level-key--bronze { background: #cd7f32; }
+        .level-key--silber { background: #9e9e9e; }
+        .level-key--gold   { background: #c9a227; }
         .level-name { color: #666; font-size: 0.78rem; }
 
         .paid-mark { color: #16a34a; font-weight: 500; }
@@ -182,7 +184,7 @@
                             <td>@m.FieldNumber.Value</td>
                             <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
                             <td>
-                                <span class="level-key">@m.Level.Key</span><br />
+                                <span class="level-key level-key--@m.Level.Key.ToLowerInvariant()">@m.Level.Key</span><br />
                                 <span class="level-name">@m.Level.DisplayName</span>
                             </td>
                             <td>@m.FirstName @m.LastName</td>
