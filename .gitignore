@@ -34,5 +34,3 @@ appsettings.*.secret.json
 *.PublishSettings
 *.pubxml.user
 
-# Local planning docs
-# /docs/ — removed: planning docs are now version-controlled

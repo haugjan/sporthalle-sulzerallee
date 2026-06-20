@@ -54,6 +54,13 @@ var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddWebsite()
     .AddComposers();
 
+// Allow HTTP in local development (OpenIddict requires HTTPS by default).
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.PostConfigure<OpenIddict.Server.AspNetCore.OpenIddictServerAspNetCoreOptions>(options =>
+        options.DisableTransportSecurityRequirement = true);
+}
+
 // Azure Blob Storage for media: only active outside local development.
 // Connection string is injected via Azure App Service environment variables.
 if (!builder.Environment.IsDevelopment())
@@ -62,12 +69,6 @@ if (!builder.Environment.IsDevelopment())
 }
 
 umbracoBuilder.Build();
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.PostConfigure<OpenIddict.Server.AspNetCore.OpenIddictServerAspNetCoreOptions>(
-        options => options.DisableTransportSecurityRequirement = true);
-}
 
 WebApplication app = builder.Build();
 
@@ -91,6 +92,7 @@ app.UseUmbraco()
     {
         u.UseBackOfficeEndpoints();
         u.UseWebsiteEndpoints();
+        u.EndpointRouteBuilder.MapBlazorHub();
     });
 
 await app.RunAsync();

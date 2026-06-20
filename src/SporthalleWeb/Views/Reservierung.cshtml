@@ -1,0 +1,51 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@{
+  Layout = "~/Views/Shared/_Layout.cshtml";
+  var heading   = Model.Value<string>("pageHeading") ?? Model.Name;
+  var imageUrl  = Model.Value<string>("pageImage");
+  var introText = Model.Value<string>("introText");
+  var textAfter = Model.Value<string>("textAfter");
+  ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+}
+
+@section Styles {
+  <link rel="stylesheet" href="/css/reservierung.css" />
+}
+
+<div class="page-content">
+  <div class="page-header">
+    @if (!string.IsNullOrWhiteSpace(imageUrl))
+    {
+      <img src="@imageUrl" alt="" aria-hidden="true" />
+    }
+    <h2>@heading</h2>
+  </div>
+  <div class="page-header-bar"></div>
+
+  @if (!string.IsNullOrWhiteSpace(introText))
+  {
+    <section class="reservierung-intro">
+      <p>@introText</p>
+    </section>
+  }
+
+  <section class="reservierung-section">
+    @await Html.PartialAsync("~/Views/Partials/_ReservierungsKalender.cshtml")
+  </section>
+
+  <section class="reservierung-section reservierung-picker-section">
+    <component type="typeof(SporthalleWeb.Components.Reservierung.BuchungsPickerComponent)"
+               render-mode="Server" />
+  </section>
+
+  @if (!string.IsNullOrWhiteSpace(textAfter))
+  {
+    <section class="reservierung-intro reservierung-after">
+      <p>@textAfter</p>
+    </section>
+  }
+</div>
+
+@section Scripts {
+  <script src="/js/reservierung.js"></script>
+}

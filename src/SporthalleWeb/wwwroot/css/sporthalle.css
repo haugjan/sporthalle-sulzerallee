@@ -332,6 +332,23 @@ body.page-home footer {
   height: auto;
 }
 
+/* Admin-Link (Zahnrad-Icon) */
+.nav-admin-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  text-decoration: none;
+  padding: 0.25rem;
+  margin-left: 1rem;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.nav-admin-link:hover {
+  color: rgb(235, 80, 75);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .hero-announcement {
