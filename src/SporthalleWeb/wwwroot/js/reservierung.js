@@ -411,7 +411,7 @@
     var xy = getClientXY(e);
     var relY = xy.y - layout.gridRect.top;
     var rawBlock = blockFromY(relY, layout.contentTop) + 1;
-    var endBlock = Math.max(dragState.startBlock + 2, Math.min(TOTAL_BLOCKS, rawBlock));
+    var endBlock = Math.min(TOTAL_BLOCKS, Math.max(dragState.startBlock + 2, Math.min(TOTAL_BLOCKS, rawBlock)));
 
     dragState.currentEndBlock = endBlock;
     dragState.layout = layout;
@@ -431,6 +431,9 @@
     // Mindestdauer 60 min
     if (endBlock - startBlock < 2) endBlock = startBlock + 2;
 
+    // Abschneiden an Schliesszeit
+    endBlock = Math.min(TOTAL_BLOCKS, endBlock);
+
     // Abschneiden an belegten Blöcken
     for (var b = startBlock; b < endBlock; b++) {
       if (isBlockOccupied(dayIdx, b, dragState.days)) {
@@ -441,6 +444,7 @@
 
     dragState = null;
 
+    // Mindestdauer nach Clamp erneut prüfen
     if (endBlock - startBlock < 2) {
       clearSelectionOverlay();
       return;

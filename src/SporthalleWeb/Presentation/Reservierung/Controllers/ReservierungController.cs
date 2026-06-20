@@ -51,6 +51,16 @@ public sealed class ReservierungController(
         if (req.EndUtc <= req.StartUtc || (req.EndUtc - req.StartUtc).TotalMinutes < 60)
             return BadRequest(new { error = "Mindestdauer ist 60 Minuten." });
 
+        var zurich = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+        var endLocal = TimeZoneInfo.ConvertTimeFromUtc(req.EndUtc, zurich);
+        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(req.StartUtc, zurich);
+        var closingHour = await hallConfig.GetOpeningHourEndAsync();
+        var openingHour = await hallConfig.GetOpeningHourStartAsync();
+        if (endLocal.Hour > closingHour || (endLocal.Hour == closingHour && endLocal.Minute > 0))
+            return BadRequest(new { error = $"Buchungsende darf nicht nach {closingHour}:00 Uhr liegen." });
+        if (startLocal.Hour < openingHour)
+            return BadRequest(new { error = $"Buchungsstart darf nicht vor {openingHour}:00 Uhr liegen." });
+
         try
         {
             var existing = await memberManager.FindByEmailAsync(req.GuestEmail.Trim());
