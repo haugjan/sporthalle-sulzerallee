@@ -28,7 +28,7 @@ internal sealed class ReservationenManifestReader : IPackageManifestReader
                     type = "section",
                     alias = "Sporthalle.Reservationen",
                     name = "Reservationen",
-                    weight = 110,
+                    weight = 101,
                     meta = new { label = "Reservationen", pathname = "reservationen" }
                 },
                 new
