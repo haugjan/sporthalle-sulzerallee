@@ -279,7 +279,7 @@
 
 /* ===== Stufen-Abschnitt (im Modul) ===== */
 .pm-stufen-section {
-  padding: 3rem 2rem 2rem;
+  padding: 0 2rem 2rem;
   max-width: 1100px;
   margin: 0 auto;
 }
