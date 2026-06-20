@@ -161,6 +161,21 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
+.booking-overlay--provisional::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0px,
+    transparent 4px,
+    rgba(255, 255, 255, 0.3) 4px,
+    rgba(255, 255, 255, 0.3) 8px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
 .booking-overlay__label {
   display: flex;
   flex-direction: column;
@@ -210,7 +225,16 @@
 }
 
 .legend-dot.confirmed  { background: #444; }
-.legend-dot.provisional { background: #0078D4; }
+.legend-dot.provisional {
+  background: #0078D4;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.45) 3px,
+    rgba(255, 255, 255, 0.45) 5px
+  );
+}
 .legend-dot.recurring  { background: #37474f; }
 .legend-dot.free       { background: #fff; border: 1px solid #ccc; }
 
