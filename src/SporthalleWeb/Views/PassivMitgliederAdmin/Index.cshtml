@@ -190,7 +190,7 @@
                             <td>@m.FieldNumber.Value</td>
                             <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
                             <td>
-                                <span style="display:inline-block;background:@LevelColor(m.Level.Key);color:#fff;border-radius:3px;padding:1px 6px;font-size:0.75rem;font-weight:600;">@m.Level.Key</span><br />
+                                <span data-level="@m.Level.Key">@m.Level.Key</span><br />
                                 <span class="level-name">@m.Level.DisplayName</span>
                             </td>
                             <td>@m.FirstName @m.LastName</td>
@@ -277,6 +277,13 @@
             showStatus('Notiz konnte nicht gespeichert werden: ' + e.message, true);
         }
     }
+
+    // Level-Badge-Farben
+    const LEVEL_COLORS = { 'Bronze': '#cd7f32', 'Silber': '#9e9e9e', 'Gold': '#c9a227' };
+    document.querySelectorAll('[data-level]').forEach(function(el) {
+        var bg = LEVEL_COLORS[el.getAttribute('data-level')] || '#666';
+        el.style.cssText = 'display:inline-block;background:' + bg + ';color:#fff;border-radius:3px;padding:1px 6px;font-size:0.75rem;font-weight:600;';
+    });
 </script>
 
 </body>
