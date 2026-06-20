@@ -51,7 +51,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
             throw new SlotConflictException(slot, overlaps.Select(MapToDomain).ToList());
 
         var record = MapToRecord(booking);
-        record.Id = Convert.ToInt32(await scope.Database.InsertAsync(record));
+        await scope.Database.InsertAsync(record);
         scope.Complete();
         return MapToDomain(record);
     }
@@ -60,7 +60,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var record = MapToRecord(slot);
-        record.Id = Convert.ToInt32(await scope.Database.InsertAsync(record));
+        await scope.Database.InsertAsync(record);
         scope.Complete();
         return MapToDomain(record);
     }
@@ -140,8 +140,8 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
 
     private static BookingSlot MapToDomain(BookingSlotRecord r) =>
         BookingSlot.FromPersistence(
-            id: r.Id,
-            memberId: r.MemberId,
+            id: (int)r.Id,
+            memberId: r.MemberId.HasValue ? (int?)r.MemberId.Value : null,
             type: r.Type,
             startUtc: DateTime.SpecifyKind(r.StartUtc, DateTimeKind.Utc),
             endUtc: DateTime.SpecifyKind(r.EndUtc, DateTimeKind.Utc),
