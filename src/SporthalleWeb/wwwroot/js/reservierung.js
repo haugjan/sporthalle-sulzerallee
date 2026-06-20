@@ -10,6 +10,7 @@
   var CELL_GAP = 1;
   var CELL_STEP = CELL_HEIGHT + CELL_GAP;
 
+  var DAYS_TO_SHOW = 7;
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -43,10 +44,14 @@
     return y + '-' + m + '-' + day;
   }
 
-  function formatWeekLabel(monday) {
-    var sunday = addDays(monday, 6);
+  function checkMobile() {
+    DAYS_TO_SHOW = window.innerWidth < 768 ? 3 : 7;
+  }
+
+  function formatWeekLabel(start) {
+    var end = addDays(start, DAYS_TO_SHOW - 1);
     var opts = { day: '2-digit', month: '2-digit', year: 'numeric' };
-    return monday.toLocaleDateString('de-CH', opts) + ' – ' + sunday.toLocaleDateString('de-CH', opts);
+    return start.toLocaleDateString('de-CH', opts) + ' – ' + end.toLocaleDateString('de-CH', opts);
   }
 
   function formatDayHeader(date) {
@@ -156,10 +161,12 @@
     var grid = document.getElementById('calendar-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    grid.style.gridTemplateColumns = '48px repeat(' + DAYS_TO_SHOW + ', 1fr)';
+    grid.style.minWidth = DAYS_TO_SHOW === 3 ? '280px' : '560px';
     selectionEl = null;
 
     var days = [];
-    for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+    for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
 
     // Kopfzeile
     var timeCorner = document.createElement('div');
@@ -386,7 +393,7 @@
 
     var dayIdx = dayIdxFromX(relX, layout.cols);
     var days = [];
-    for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+    for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
 
     if (dayIdx < 0 || dayIdx >= days.length) return;
     if (isPastDay(days[dayIdx]) || isToday(days[dayIdx])) return;
@@ -699,7 +706,7 @@
   }
 
   function navigateWeek(delta) {
-    currentMonday = addDays(currentMonday, delta * 7);
+    currentMonday = addDays(currentMonday, delta * DAYS_TO_SHOW);
     updateWeekLabel();
     loadWeek();
   }
@@ -734,6 +741,12 @@
   // ── Init ──────────────────────────────────────────────────────────────────
 
   function init() {
+    checkMobile();
+    if (DAYS_TO_SHOW === 3) {
+      currentMonday = new Date();
+      currentMonday.setHours(0, 0, 0, 0);
+    }
+
     var prevBtn = document.getElementById('prev-week');
     var nextBtn = document.getElementById('next-week');
     if (prevBtn) prevBtn.addEventListener('click', function () { navigateWeek(-1); });
@@ -742,10 +755,19 @@
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
+        var prevDays = DAYS_TO_SHOW;
+        checkMobile();
         var grid = document.getElementById('calendar-grid');
-        if (!grid || !lastSlots.length) return;
+        if (!grid) return;
+        if (prevDays !== DAYS_TO_SHOW) {
+          if (DAYS_TO_SHOW === 7) currentMonday = getMonday(currentMonday);
+          updateWeekLabel();
+          renderGrid(lastSlots);
+          return;
+        }
+        if (!lastSlots.length) return;
         var days = [];
-        for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+        for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
         renderBookingOverlays(lastSlots, days, grid);
         if (selectedSlot) {
           var layout = computeGridLayout();
