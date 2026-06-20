@@ -38,4 +38,7 @@ public sealed class UmbracoHallConfigurationAdapter(IContentService contentServi
         var result = raw.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
         return Task.FromResult<IReadOnlyList<string>>(result);
     }
+
+    public Task<string?> GetPreisTextAsync() =>
+        Task.FromResult(GetConfigNode()?.GetValue<string>("preisText"));
 }

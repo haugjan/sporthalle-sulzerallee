@@ -472,7 +472,6 @@
     var detail = document.getElementById('slot-panel-detail');
     var dateLabel = document.getElementById('slot-date-label');
     var timeDisplay = document.getElementById('slot-time-display');
-    var metaEl = document.getElementById('slot-meta');
     var buchBtn = document.getElementById('btn-jetzt-buchen');
     var notice = document.getElementById('slot-short-notice');
 
@@ -486,11 +485,8 @@
       minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
 
     var shortNotice = isShortNotice(slot.day);
-    if (metaEl) metaEl.hidden = shortNotice;
     if (buchBtn) buchBtn.hidden = shortNotice;
     if (notice) notice.hidden = !shortNotice;
-
-    if (!shortNotice) updateSlotMeta(slot);
 
     // Panel ins Sichtfeld scrollen (auf Mobilgeräten scrollt es nach unten,
     // auf Desktop wird es sichtbar gemacht falls es ausserhalb des Viewports ist)
@@ -505,44 +501,6 @@
     }
   }
 
-  function updateSlotMeta(slot) {
-    var metaEl = document.getElementById('slot-meta');
-    if (!metaEl) return;
-
-    var durationMin = slot.endMin - slot.startMin;
-    if (durationMin < 60) {
-      metaEl.textContent = 'Mindestdauer: 60 Minuten';
-      return;
-    }
-
-    var durationText = durationMin % 60 === 0
-      ? (durationMin / 60) + ' Stunde' + (durationMin / 60 !== 1 ? 'n' : '')
-      : Math.floor(durationMin / 60) + ' h ' + (durationMin % 60) + ' min';
-
-    metaEl.textContent = 'Dauer: ' + durationText + ' · Preis wird berechnet…';
-
-    var datum = toLocalDateStr(slot.day);
-    fetch('/api/reservierung/verfuegbare-slots?datum=' + datum + '&dauern=' + durationMin)
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (slots) {
-        if (!slots) return;
-        var startStr = minutesToTimeStr(slot.startMin);
-        var match = null;
-        for (var i = 0; i < slots.length; i++) {
-          if (slots[i].startLocal === startStr && slots[i].isAvailable) { match = slots[i]; break; }
-        }
-        if (match) {
-          var price = parseFloat(match.priceTotal);
-          var priceStr = price % 1 === 0 ? price.toFixed(0) + '.–' : price.toFixed(2);
-          metaEl.textContent = 'Dauer: ' + durationText + ' · CHF ' + priceStr;
-        } else {
-          metaEl.textContent = 'Dauer: ' + durationText + ' · Preis auf Anfrage';
-        }
-      })
-      .catch(function () {
-        metaEl.textContent = 'Dauer: ' + durationText;
-      });
-  }
 
   // ── Buchungs-Modal ────────────────────────────────────────────────────────
 
@@ -746,6 +704,14 @@
           if (cfg.oeffnungVon !== undefined) OPENING_HOUR_START = cfg.oeffnungVon;
           if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
+          if (cfg.preisText) {
+            var panel = document.getElementById('preis-panel');
+            var text = document.getElementById('preis-panel-text');
+            if (panel && text) {
+              text.textContent = cfg.preisText;
+              panel.hidden = false;
+            }
+          }
         }
         callback();
       })

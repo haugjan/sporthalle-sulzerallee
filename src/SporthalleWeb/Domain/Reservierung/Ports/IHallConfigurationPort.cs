@@ -8,4 +8,5 @@ public interface IHallConfigurationPort
     Task<int> GetMaxWeeksAheadAsync();
     Task<IReadOnlyList<int>> GetBuchbareDauernAsync();
     Task<IReadOnlyList<string>> GetAnlasseAsync();
+    Task<string?> GetPreisTextAsync();
 }

@@ -37,7 +37,8 @@ public sealed class ReservierungController(
         var oeffnungVon = await hallConfig.GetOpeningHourStartAsync();
         var oeffnungBis = await hallConfig.GetOpeningHourEndAsync();
         var dauern = await hallConfig.GetBuchbareDauernAsync();
-        return Ok(new { oeffnungVon, oeffnungBis, buchbareDauern = dauern });
+        var preisText = await hallConfig.GetPreisTextAsync();
+        return Ok(new { oeffnungVon, oeffnungBis, buchbareDauern = dauern, preisText });
     }
 
     // ── Gast-Buchung (ohne Login) ─────────────────────────────────────────────
@@ -58,7 +59,7 @@ public sealed class ReservierungController(
             {
                 await memberManager.UpdateProfileAsync(
                     existing.Id,
-                    req.GuestName.Trim(),
+                    req.ContactPerson.Trim(),
                     req.BillingName.Trim(),
                     req.BillingAddress.Trim(),
                     req.BillingPostalCode.Trim(),
@@ -71,7 +72,7 @@ public sealed class ReservierungController(
             {
                 var cmd = new RegisterRenterCommand(
                     Email: req.GuestEmail.Trim(),
-                    ContactPerson: req.GuestName.Trim(),
+                    ContactPerson: req.ContactPerson.Trim(),
                     RenterType: new RenterType(req.RenterType),
                     BillingName: req.BillingName.Trim(),
                     BillingAddress: req.BillingAddress.Trim(),
@@ -345,7 +346,9 @@ public sealed class ReservierungController(
 }
 
 public sealed record GastBuchungRequest(
-    string GuestName,
+    string FirstName,
+    string LastName,
+    string ContactPerson,
     string GuestEmail,
     string? GuestPhone,
     string RenterType,
