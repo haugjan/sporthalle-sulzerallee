@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Umbraco.Cms.Web.Common.Authorization;
+using Umbraco.Cms.Core;
 
 namespace SporthalleWeb.Pages;
 
-[Authorize(Policy = AuthorizationPolicies.BackOfficeAccess)]
+[Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
 public class PassivMemberAdminModel : PageModel
 {
     public void OnGet() { }

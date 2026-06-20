@@ -12,7 +12,9 @@ public class PassivMitgliederMigrationPlan : MigrationPlan
 {
     public PassivMitgliederMigrationPlan() : base("PassivMitglieder")
     {
-        From(string.Empty).To<CreatePassivMitgliederTableMigration>("passivmitglieder-v1");
+        From(string.Empty)
+            .To<CreatePassivMitgliederTableMigration>("passivmitglieder-v1")
+            .To<FixPassivMitgliederAutoIncrementMigration>("passivmitglieder-v2");
     }
 }
 
@@ -33,6 +35,43 @@ public class CreatePassivMitgliederTableMigration : MigrationBase
                 .Unique()
                 .Do();
         }
+    }
+}
+
+public class FixPassivMitgliederAutoIncrementMigration : MigrationBase
+{
+    public FixPassivMitgliederAutoIncrementMigration(IMigrationContext context) : base(context) { }
+
+    protected override void Migrate()
+    {
+        if (IndexExists("IX_PassivMitglieder_FieldNumber"))
+            Delete.Index("IX_PassivMitglieder_FieldNumber").OnTable("PassivMitglieder").Do();
+
+        Delete.Table("PassivMitglieder").Do();
+
+        Create.Table("PassivMitglieder")
+            .WithColumn("Id").AsInt32().NotNullable().PrimaryKey().Identity()
+            .WithColumn("FieldNumber").AsInt32().NotNullable()
+            .WithColumn("FirstName").AsString(100).NotNullable()
+            .WithColumn("LastName").AsString(100).NotNullable()
+            .WithColumn("AddressLine").AsString(300).NotNullable()
+            .WithColumn("PostalCode").AsString(20).NotNullable()
+            .WithColumn("City").AsString(100).NotNullable()
+            .WithColumn("Country").AsString(100).NotNullable()
+            .WithColumn("Email").AsString(200).NotNullable()
+            .WithColumn("MembershipLevel").AsString(20).NotNullable()
+            .WithColumn("ShowNameOnFloor").AsBoolean().NotNullable()
+            .WithColumn("DisplayName").AsString(200).Nullable()
+            .WithColumn("CreatedAt").AsDateTime().NotNullable()
+            .WithColumn("PaidAt").AsDateTime().Nullable()
+            .WithColumn("Notes").AsString(int.MaxValue).Nullable()
+            .Do();
+
+        Create.Index("IX_PassivMitglieder_FieldNumber")
+            .OnTable("PassivMitglieder")
+            .OnColumn("FieldNumber")
+            .Unique()
+            .Do();
     }
 }
 

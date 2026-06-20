@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SporthalleWeb.Domain.PassivMitgliedschaft;
 using SporthalleWeb.Domain.PassivMitgliedschaft.Ports;
 
@@ -7,11 +8,16 @@ public sealed class RegisterMemberUseCase
 {
     private readonly IPassivMitgliederRepository _repo;
     private readonly IEmailPort _email;
+    private readonly ILogger<RegisterMemberUseCase> _logger;
 
-    public RegisterMemberUseCase(IPassivMitgliederRepository repo, IEmailPort email)
+    public RegisterMemberUseCase(
+        IPassivMitgliederRepository repo,
+        IEmailPort email,
+        ILogger<RegisterMemberUseCase> logger)
     {
         _repo = repo;
         _email = email;
+        _logger = logger;
     }
 
     public async Task<PassivMitglied> ExecuteAsync(RegisterMemberCommand cmd)
@@ -34,7 +40,16 @@ public sealed class RegisterMemberUseCase
             cmd.DisplayName);
 
         await _repo.SaveAsync(member);
-        await _email.SendRegistrationConfirmationAsync(member);
+
+        try
+        {
+            await _email.SendRegistrationConfirmationAsync(member);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Confirmation email failed for member {Email} (field {Field}); registration is saved.",
+                member.Email.Value, member.FieldNumber.Value);
+        }
 
         return member;
     }
