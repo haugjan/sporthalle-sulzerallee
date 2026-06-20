@@ -1,0 +1,47 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var heading = Model.Value<string>("pageHeading") ?? "Passivmitgliedschaft";
+    var imageUrl = Model.Value<string>("pageImage");
+    var introText = Model.Value<string>("introText");
+    var outroText = Model.Value<string>("outroText");
+    ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+}
+
+@section Head {
+    <link rel="stylesheet" href="/css/passivmitglied.css" />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+}
+
+<div class="page-passivmitglied">
+
+  <div class="page-header">
+    @if (!string.IsNullOrEmpty(imageUrl))
+    {
+      <img src="@imageUrl" alt="" aria-hidden="true" />
+    }
+    <h2>@heading</h2>
+  </div>
+  <div class="page-header-bar"></div>
+
+  @if (!string.IsNullOrEmpty(introText))
+  {
+    <section>
+      @Html.Raw(introText)
+    </section>
+  }
+
+  @await Html.PartialAsync("~/Views/Partials/_PassivMitgliedschaftModule.cshtml")
+
+  @if (!string.IsNullOrEmpty(outroText))
+  {
+    <section>
+      @Html.Raw(outroText)
+    </section>
+  }
+
+</div>
+
+@section Scripts {
+    <script src="/js/passivmitglied.js" defer></script>
+}

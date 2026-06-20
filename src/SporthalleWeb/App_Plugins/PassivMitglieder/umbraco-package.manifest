@@ -1,0 +1,41 @@
+{
+  "name": "PassivMitglieder",
+  "version": "1.0.0",
+  "allowTelemetry": false,
+  "extensions": [
+    {
+      "type": "section",
+      "alias": "pm.Section",
+      "name": "Passivmitglieder",
+      "weight": 900,
+      "meta": {
+        "label": "Passivmitglieder",
+        "pathname": "passivmitglieder"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionUserPermission",
+          "match": "pm.Section"
+        }
+      ]
+    },
+    {
+      "type": "dashboard",
+      "alias": "pm.Dashboard",
+      "name": "Passivmitglieder",
+      "element": "/App_Plugins/PassivMitglieder/pm-admin.js",
+      "elementName": "pm-admin",
+      "weight": 100,
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "pm.Section"
+        }
+      ],
+      "meta": {
+        "label": "Passivmitglieder",
+        "pathname": "passivmitglieder"
+      }
+    }
+  ]
+}

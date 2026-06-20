@@ -45,7 +45,9 @@ builder.Services.Configure<HostOptions>(options =>
     options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
 });
 
+builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddHttpContextAccessor();
 
 var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddBackOffice()
@@ -76,6 +78,9 @@ await app.BootUmbracoAsync();
 // Serve wwwroot static files before Umbraco's media middleware so that
 // /media/* files committed to wwwroot/media/ are reachable directly.
 app.UseStaticFiles();
+
+app.MapBlazorHub();
+app.MapRazorPages();
 
 app.UseUmbraco()
     .WithMiddleware(u =>
