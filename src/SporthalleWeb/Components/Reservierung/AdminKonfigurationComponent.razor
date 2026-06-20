@@ -17,13 +17,11 @@ else
                 <div class="row g-3">
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Beginn)</label>
-                        <input type="number" class="form-control" @bind="_kalenderBeginn" min="0" max="23" />
-                        <div class="form-text">Stunde (0–23), z.B. 7 für 07:00</div>
+                        <input type="time" class="form-control" @bind="_kalenderBeginnTime" step="3600" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Ende)</label>
-                        <input type="number" class="form-control" @bind="_kalenderEnde" min="1" max="24" />
-                        <div class="form-text">Stunde (1–24), z.B. 23 für 23:00</div>
+                        <input type="time" class="form-control" @bind="_kalenderEndeTime" step="3600" />
                     </div>
                 </div>
             </div>
@@ -110,10 +108,9 @@ else
     private bool _saved;
     private string? _saveError;
 
-    private int _kalenderBeginn = 7;
-    private int _kalenderEnde = 23;
+    private string _kalenderBeginnTime = "07:00";
+    private string _kalenderEndeTime = "23:00";
     private int _vorlaufzeitTage = 3;
-    private int _maxWochenVoraus = 12;
     private string _mailReservationAdresse = "";
     private string _mailReservationText = "";
     private string _mailBestaetigungAdresse = "";
@@ -122,14 +119,13 @@ else
     protected override async Task OnInitializedAsync()
     {
         var cfg = await Config.GetAllAsync();
-        _kalenderBeginn         = Parse(cfg, "kalender_beginn", 7);
-        _kalenderEnde           = Parse(cfg, "kalender_ende", 23);
-        _vorlaufzeitTage        = Parse(cfg, "vorlaufzeit_tage", 3);
-        _maxWochenVoraus        = Parse(cfg, "max_wochen_voraus", 12);
-        _mailReservationAdresse = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
-        _mailReservationText    = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
+        _kalenderBeginnTime      = IntToTime(Parse(cfg, "kalender_beginn", 7));
+        _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
+        _vorlaufzeitTage         = Parse(cfg, "vorlaufzeit_tage", 3);
+        _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
+        _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
-        _mailBestaetigungText   = cfg.GetValueOrDefault("mail_bestaetigung_text") ?? "";
+        _mailBestaetigungText    = cfg.GetValueOrDefault("mail_bestaetigung_text") ?? "";
         _loading = false;
     }
 
@@ -141,10 +137,9 @@ else
         {
             await Config.SetManyAsync(new Dictionary<string, string?>
             {
-                ["kalender_beginn"]           = _kalenderBeginn.ToString(),
-                ["kalender_ende"]             = _kalenderEnde.ToString(),
+                ["kalender_beginn"]           = TimeToInt(_kalenderBeginnTime).ToString(),
+                ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _vorlaufzeitTage.ToString(),
-                ["max_wochen_voraus"]         = _maxWochenVoraus.ToString(),
                 ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
                 ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),
@@ -156,6 +151,14 @@ else
         {
             _saveError = "Fehler beim Speichern: " + ex.Message;
         }
+    }
+
+    private static string IntToTime(int hour) => $"{hour:00}:00";
+
+    private static int TimeToInt(string time)
+    {
+        if (time.Length >= 2 && int.TryParse(time.AsSpan(0, 2), out var h)) return h;
+        return 7;
     }
 
     private static int Parse(Dictionary<string, string?> cfg, string key, int fallback)
