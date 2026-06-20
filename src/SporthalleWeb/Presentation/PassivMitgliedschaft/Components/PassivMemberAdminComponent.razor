@@ -1,0 +1,173 @@
+@using System.Linq
+@using SporthalleWeb.Application.PassivMitgliedschaft
+@using SporthalleWeb.Domain.PassivMitgliedschaft
+@using SporthalleWeb.Domain.PassivMitgliedschaft.Ports
+@inject AdminService AdminSvc
+@inject IPassivMitgliederRepository Repo
+
+<div class="admin-panel">
+    <div class="admin-header">
+        <h1>Passivmitglieder-Verwaltung</h1>
+        <div class="admin-toolbar">
+            <a href="/api/passivmitglieder/admin/export/excel" class="admin-btn admin-btn--secondary" target="_blank">
+                Excel-Export
+            </a>
+            <a href="/api/passivmitglieder/admin/export/abaninja" class="admin-btn admin-btn--secondary" target="_blank">
+                AbaNinja-CSV
+            </a>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <p class="admin-loading">Lade Mitglieder…</p>
+    }
+    else if (Members.Count == 0)
+    {
+        <p class="admin-empty">Noch keine Passivmitglieder registriert.</p>
+    }
+    else
+    {
+        <p class="admin-count">@Members.Count Mitglied@(Members.Count == 1 ? "" : "er")</p>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" @onclick='() => SortBy("FieldNumber")'>Feld @SortIndicator("FieldNumber")</th>
+                        <th>VIP</th>
+                        <th class="sortable" @onclick='() => SortBy("Level")'>Stufe @SortIndicator("Level")</th>
+                        <th class="sortable" @onclick='() => SortBy("LastName")'>Name @SortIndicator("LastName")</th>
+                        <th>E-Mail</th>
+                        <th>Adresse</th>
+                        <th class="sortable" @onclick='() => SortBy("CreatedAt")'>Angemeldet @SortIndicator("CreatedAt")</th>
+                        <th>Bezahlt</th>
+                        <th>Notizen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in SortedMembers)
+                    {
+                        <tr class="@(m.PaidAt.HasValue ? "row-paid" : "")">
+                            <td>@m.FieldNumber.Value</td>
+                            <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
+                            <td>
+                                <span class="level-badge level-badge--@m.Level.Key.ToLowerInvariant()">@m.Level.Key</span>
+                                <br /><small>@m.Level.DisplayName</small>
+                            </td>
+                            <td>@m.FirstName @m.LastName</td>
+                            <td><a href="mailto:@m.Email.Value">@m.Email.Value</a></td>
+                            <td>@m.AddressLine, @m.PostalCode @m.City</td>
+                            <td>@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @if (m.PaidAt.HasValue)
+                                {
+                                    <span class="paid-check" title="Bezahlt am @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")">✓ @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                }
+                                else
+                                {
+                                    <button class="admin-btn admin-btn--small admin-btn--pay"
+                                            @onclick="() => MarkAsPaidAsync(m.Id)"
+                                            disabled="@BusyIds.Contains(m.Id)">
+                                        Als bezahlt markieren
+                                    </button>
+                                }
+                            </td>
+                            <td>
+                                <textarea class="admin-notes"
+                                          rows="2"
+                                          @bind="NotesBuffer[m.Id]"
+                                          @onblur="() => SaveNotesAsync(m.Id)"></textarea>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (StatusMessage is not null)
+    {
+        <div class="admin-status @(StatusIsError ? "admin-status--error" : "admin-status--success")">
+            @StatusMessage
+        </div>
+    }
+</div>
+
+@code {
+    private bool IsLoading = true;
+    private IReadOnlyList<PassivMitglied> Members = [];
+    private string SortColumn = "FieldNumber";
+    private Dictionary<int, string?> NotesBuffer = [];
+    private HashSet<int> BusyIds = [];
+    private string? StatusMessage;
+    private bool StatusIsError;
+
+    private IEnumerable<PassivMitglied> SortedMembers => SortColumn switch
+    {
+        "Level"     => Members.OrderBy(m => m.Level.YearlyFee),
+        "LastName"  => Members.OrderBy(m => m.LastName).ThenBy(m => m.FirstName),
+        "CreatedAt" => Members.OrderByDescending(m => m.CreatedAt),
+        _           => Members.OrderBy(m => m.FieldNumber.Value)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        IsLoading = true;
+        Members = await Repo.GetAllAsync();
+        NotesBuffer = Members.ToDictionary(m => m.Id, m => m.Notes);
+        IsLoading = false;
+    }
+
+    private void SortBy(string column)
+    {
+        SortColumn = column;
+    }
+
+    private string SortIndicator(string column) => SortColumn == column ? "▲" : "";
+
+    private async Task MarkAsPaidAsync(int memberId)
+    {
+        BusyIds.Add(memberId);
+        try
+        {
+            await AdminSvc.MarkAsPaidAsync(memberId);
+            await ReloadAsync();
+            ShowStatus("Zahlung wurde gespeichert.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(ex.Message, true);
+        }
+        finally
+        {
+            BusyIds.Remove(memberId);
+        }
+    }
+
+    private async Task SaveNotesAsync(int memberId)
+    {
+        if (!NotesBuffer.TryGetValue(memberId, out var notes)) return;
+        try
+        {
+            await AdminSvc.UpdateNotesAsync(memberId, notes);
+            ShowStatus("Notiz gespeichert.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(ex.Message, true);
+        }
+    }
+
+    private void ShowStatus(string message, bool isError)
+    {
+        StatusMessage = message;
+        StatusIsError = isError;
+        StateHasChanged();
+    }
+}

@@ -64,18 +64,45 @@ On first boot, Umbraco runs all schema migrations, then `ContentSeeder` seeds 7 
 
 ```json
 {
+  "Umbraco": {
+    "CMS": {
+      "Hosting": { "Debug": true },
+      "Unattended": {
+        "InstallUnattended": true,
+        "UnattendedUserName": "Admin",
+        "UnattendedUserEmail": "admin@localhost.dev",
+        "UnattendedUserPassword": "Admin1234!"
+      }
+    }
+  },
   "ConnectionStrings": {
-    "umbracoDbDSN": "Data Source=umbraco/Data/Umbraco.sqlite.db;Mode=ReadWriteCreate;Cache=Shared;Foreign Keys=True;Pooling=True",
+    "umbracoDbDSN": "Data Source=umbraco/Data/Umbraco.sqlite.db;Foreign Keys=True;Pooling=True",
     "umbracoDbDSN_ProviderName": "Microsoft.Data.Sqlite"
   },
   "uSync": {
     "Settings": {
-      "ImportOnStartup": false,
+      "ImportOnStartup": true,
       "ExportOnSave": true
     }
   }
 }
 ```
+
+Backoffice login (local): `admin@localhost.dev` / `Admin1234!`
+
+### HTTP vs HTTPS (local)
+
+Umbraco's OpenIddict requires HTTPS by default. `Program.cs` disables this in Development:
+
+```csharp
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.PostConfigure<OpenIddictServerAspNetCoreOptions>(
+        options => options.DisableTransportSecurityRequirement = true);
+}
+```
+
+Run with `--urls http://localhost:PORT` to avoid certificate issues.
 
 ## Umbraco 17 API Notes
 
@@ -92,12 +119,34 @@ The `appsettings.Production.json` is injected at deploy time from a GitHub Actio
 
 ## Content Types (seeded by ContentSeeder)
 
-| Alias         | Name         | Template     |
-|---------------|--------------|--------------|
-| `homePage`    | Home Page    | `Home`       |
-| `contentPage` | Content Page | `ContentPage`|
+| Alias                  | Name                  | Template               | Allowed under  |
+|------------------------|-----------------------|------------------------|----------------|
+| `homePage`             | Home Page             | `Home`                 | root           |
+| `contentPage`          | Content Page          | `ContentPage`          | `homePage`     |
+| `passivMitgliedschaft` | Passivmitgliedschaft  | `PassivMitgliedschaft` | `homePage`     |
 
 ## Pages (seeded)
 
 Root: "Sporthalle Sulzerallee" (homePage)
 Children: Unterstützung, Das Projekt, Über uns, Zweck, In den Medien, Kontakt
+
+The "Passivmitgliedschaft" page must be created manually in the backoffice after first boot (Content → right-click root → Create → Passivmitgliedschaft).
+
+## Passivmitgliedschaft Feature
+
+Architecture follows a hexagonal pattern under `src/SporthalleWeb/`:
+
+```
+Domain/PassivMitgliedschaft/        # Entities, ports, value objects
+Application/PassivMitgliedschaft/   # Use cases / queries
+Infrastructure/PassivMitgliedschaft/ # Adapters: Brevo email, Turnstile CAPTCHA, EF Core
+Presentation/PassivMitgliedschaft/  # Controllers, DTOs
+```
+
+Key external integrations:
+- **Brevo**: transactional email (`Brevo:ApiKey` in appsettings)
+- **Cloudflare Turnstile**: CAPTCHA (`Turnstile:SiteKey`, `Turnstile:SecretKey` in appsettings). Dev uses test key `1x00000000000000000000AA` (always passes) as fallback.
+
+Frontend: `wwwroot/js/passivmitglied.js`, `wwwroot/css/passivmitglied.css`, `wwwroot/media/unihockey-boden.svg`
+
+API endpoint: `POST /api/passivmitglieder/register`

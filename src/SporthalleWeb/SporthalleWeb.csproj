@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <CompressionEnabled>false</CompressionEnabled> <!-- Disable compression. E.g. for umbraco backoffice files. These files should be precompressed by node and not let dotnet handle it -->
+    <UserSecretsId>a2f4c8e1-3b7d-4f92-8a5e-6c1d9b0e2f47</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +13,7 @@
     <PackageReference Include="Umbraco.Cms.Persistence.Sqlite" />
     <PackageReference Include="Umbraco.StorageProviders.AzureBlob" />
     <PackageReference Include="uSync" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
 
   <ItemGroup>

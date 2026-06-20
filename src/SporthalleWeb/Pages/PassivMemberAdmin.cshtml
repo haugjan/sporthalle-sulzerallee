@@ -1,0 +1,126 @@
+@page "/passivmitglieder/admin"
+@model SporthalleWeb.Pages.PassivMemberAdminModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Passivmitglieder Admin – Sporthalle Sulzerallee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            font-size: 14px;
+            background: #f5f6fa;
+            color: #1a1a2e;
+        }
+        .admin-panel {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .admin-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1A5FAD;
+        }
+        .admin-toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .admin-btn {
+            display: inline-block;
+            padding: 0.45rem 1rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+        .admin-btn:hover { opacity: 0.85; }
+        .admin-btn--secondary { background: #eaeef6; color: #1A5FAD; }
+        .admin-btn--small { padding: 0.3rem 0.6rem; font-size: 0.78rem; }
+        .admin-btn--pay { background: #1A5FAD; color: #fff; }
+        .admin-btn:disabled { opacity: 0.5; cursor: default; }
+        .admin-count { color: #666; margin: 0 0 1rem; }
+        .admin-loading, .admin-empty { color: #888; padding: 2rem 0; }
+        .admin-table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            font-size: 0.85rem;
+        }
+        .admin-table th {
+            background: #1A5FAD;
+            color: #fff;
+            padding: 0.7rem 0.75rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .admin-table th.sortable { cursor: pointer; user-select: none; }
+        .admin-table th.sortable:hover { background: #1550a0; }
+        .admin-table td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #eef0f5;
+            vertical-align: top;
+        }
+        .admin-table tr:last-child td { border-bottom: none; }
+        .admin-table tr.row-paid td { background: #f0f9f0; }
+        .level-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .level-badge--bronze { background: #cd7f32; color: #fff; }
+        .level-badge--silber { background: #aaa; color: #fff; }
+        .level-badge--gold { background: #d4a017; color: #fff; }
+        .paid-check { color: #2d8a4e; font-weight: 600; font-size: 0.8rem; }
+        .admin-notes {
+            width: 100%;
+            min-width: 160px;
+            border: 1px solid #dde1ec;
+            border-radius: 4px;
+            padding: 0.3rem;
+            font-family: inherit;
+            font-size: 0.82rem;
+            resize: vertical;
+        }
+        .admin-notes:focus { outline: 2px solid #1A5FAD; border-color: transparent; }
+        .admin-status {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 1000;
+        }
+        .admin-status--success { background: #2d8a4e; color: #fff; }
+        .admin-status--error { background: #c0392b; color: #fff; }
+    </style>
+</head>
+<body>
+    <component type="typeof(SporthalleWeb.Presentation.PassivMitgliedschaft.Components.PassivMemberAdminComponent)"
+               render-mode="InteractiveServer" />
+    <script src="/_framework/blazor.server.js"></script>
+</body>
+</html>

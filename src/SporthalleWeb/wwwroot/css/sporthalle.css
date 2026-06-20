@@ -57,6 +57,24 @@ nav ul li a.active {
   color: rgb(235, 80, 75);
 }
 
+/* Admin-Link (Zahnrad-Icon) */
+.admin-link {
+  display: flex;
+  align-items: center;
+  color: #ccc;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.admin-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-link:hover {
+  color: rgb(235, 80, 75);
+}
+
 /* Hamburger Icon */
 .menu-toggle {
   display: none;
@@ -366,6 +384,12 @@ body.page-home footer {
 
   .menu-toggle {
     display: block;
+  }
+
+  .admin-link {
+    order: -1;
+    margin-left: auto;
+    margin-right: 1rem;
   }
 
   .nav-links {
