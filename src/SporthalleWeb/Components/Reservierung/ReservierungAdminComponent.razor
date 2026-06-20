@@ -1,7 +1,6 @@
 @inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
 @inject SporthalleWeb.Application.Reservierung.ConfirmBookingUseCase ConfirmUseCase
 @inject SporthalleWeb.Application.Reservierung.RejectBookingUseCase RejectUseCase
-@inject SporthalleWeb.Application.Reservierung.GetWeekSlotsQuery WeekSlotsQuery
 
 <style>
     .reservierung-admin { height: 100%; display: flex; flex-direction: column; }
@@ -27,14 +26,8 @@
         align-items: center;
         gap: 0.4rem;
     }
-    .subnav-btn:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.1);
-    }
-    .subnav-btn.active {
-        color: #fff;
-        border-bottom-color: #5dade2;
-    }
+    .subnav-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .subnav-btn.active { color: #fff; border-bottom-color: #5dade2; }
 
     .admin-content { padding: 1.5rem; flex: 1; overflow-y: auto; }
 </style>
@@ -74,6 +67,7 @@
 
         @switch (_activeTab)
         {
+            // ── Pendente ──────────────────────────────────────────────────────
             case "Pendente":
                 @if (_loading)
                 {
@@ -129,57 +123,72 @@
                 }
                 break;
 
+            // ── Alle Buchungen ────────────────────────────────────────────────
             case "Alle Buchungen":
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <button class="btn btn-sm btn-outline-secondary"
-                            @onclick="() => ShiftWeekAsync(-7)">&#8249; Vorwoche</button>
-                    <strong>KW @GetIsoWeek(_adminWeek): @_adminWeek.ToString("d. MMM") – @_adminWeek.AddDays(6).ToString("d. MMM yyyy")</strong>
-                    <button class="btn btn-sm btn-outline-secondary"
-                            @onclick="() => ShiftWeekAsync(7)">Nächste Woche &#8250;</button>
+                <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+
+                    @{ var modes = new[] { "Tag", "Woche", "Monat" }; }
+                    <div class="btn-group btn-group-sm" role="group">
+                        @foreach (var m in modes)
+                        {
+                            <button type="button"
+                                    class="btn @(_viewMode == m ? "btn-primary" : "btn-outline-secondary")"
+                                    @onclick="() => SetViewModeAsync(m)">@m</button>
+                        }
+                    </div>
+
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShiftPeriodAsync(-1)">@PrevLabel</button>
+                    <strong>@PeriodTitle</strong>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShiftPeriodAsync(1)">@NextLabel</button>
+                    <button class="btn btn-sm btn-link p-0 ms-1 text-secondary" @onclick="GoToTodayAsync">Heute</button>
+
                 </div>
-                @if (_loadingWeek)
+
+                @if (_loadingPeriod)
                 {
                     <p>Lade…</p>
                 }
-                else if (!_weekSlots.Any())
+                else if (!_periodSlots.Any())
                 {
-                    <p class="text-muted">Keine Buchungen in dieser Woche.</p>
+                    <p class="text-muted">Keine Buchungen in diesem Zeitraum.</p>
                 }
                 else
                 {
                     <div class="table-responsive">
                         <table class="table table-sm">
-                            <thead><tr><th>Zeit</th><th>Dauer</th><th>Bezeichnung</th><th>Typ</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Zeit</th>
+                                    <th>Dauer</th>
+                                    <th>Bezeichnung</th>
+                                    <th>Typ</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                @foreach (var ws in _weekSlots)
+                                @foreach (var s in _periodSlots)
                                 {
                                     <tr>
-                                        <td>@FormatSlot(ws.StartUtc, ws.EndUtc)</td>
-                                        <td>@((int)(ws.EndUtc - ws.StartUtc).TotalMinutes) min</td>
-                                        <td>@(ws.Title ?? "–")</td>
-                                        <td><span class="badge @TypeBadge(ws.Type)">@ws.Type</span></td>
+                                        <td>@FormatSlot(s.Slot.StartUtc, s.Slot.EndUtc)</td>
+                                        <td>@((int)(s.Slot.EndUtc - s.Slot.StartUtc).TotalMinutes) min</td>
+                                        <td>@(s.Title ?? "–")</td>
+                                        <td><span class="badge @TypeBadge(s.Type.ToString())">@s.Type</span></td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
                 }
-                <div class="mt-3">
-                    <strong>CSV-Export:</strong>
-                    <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
-                        <input type="date" class="form-control form-control-sm" style="width:160px"
-                               @bind="_exportFrom" />
-                        <span>bis</span>
-                        <input type="date" class="form-control form-control-sm" style="width:160px"
-                               @bind="_exportTo" />
-                        <a href="@($"/api/admin/reservierungen/export?von={_exportFrom:yyyy-MM-dd}&bis={_exportTo:yyyy-MM-dd}")"
-                           class="btn btn-sm btn-outline-secondary" target="_blank">
-                            CSV herunterladen
-                        </a>
-                    </div>
+
+                <div class="mt-3 d-flex align-items-center gap-2 flex-wrap">
+                    <a href="@($"/api/admin/reservierungen/export?von={PeriodFrom:yyyy-MM-dd}&bis={PeriodTo:yyyy-MM-dd}")"
+                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                        CSV herunterladen
+                    </a>
+                    <small class="text-muted">@PeriodFrom.ToString("d. MMM", DeCh) – @PeriodTo.ToString("d. MMM yyyy", DeCh)</small>
                 </div>
                 break;
 
+            // ── Erfassen ──────────────────────────────────────────────────────
             case "Erfassen":
                 <div class="card border-0 shadow-sm p-4" style="max-width:560px">
                     <h5 class="mb-4">Neuen Slot erfassen</h5>
@@ -281,26 +290,59 @@
 
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+    private static readonly System.Globalization.CultureInfo DeCh =
+        System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
     private static readonly string[] _tabs = ["Pendente", "Alle Buchungen", "Erfassen"];
     private string _activeTab = "Pendente";
 
+    // ── Pendente ────────────────────────────────────────────────────────────
     private IReadOnlyList<(SporthalleWeb.Domain.Reservierung.BookingSlot Slot, SporthalleWeb.Domain.Reservierung.HallMember? Member)> _pending = [];
-    private IReadOnlyList<SporthalleWeb.Application.Reservierung.WeekSlotDto> _weekSlots = [];
-
     private bool _loading = true;
-    private bool _loadingWeek;
-    private string? _message;
-    private string? _error;
 
-    private int? _rejectSlotId;
-    private string? _rejectReason;
+    // ── Alle Buchungen ───────────────────────────────────────────────────────
+    private string _viewMode = "Woche";
+    private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
+    private IReadOnlyList<SporthalleWeb.Domain.Reservierung.BookingSlot> _periodSlots = [];
+    private bool _loadingPeriod;
 
-    private DateTime _adminWeek = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
-    private DateOnly _exportFrom = new(DateTime.Today.Year, DateTime.Today.Month, 1);
-    private DateOnly _exportTo = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly PeriodFrom => _viewMode switch
+    {
+        "Tag"   => _anchor,
+        "Monat" => new DateOnly(_anchor.Year, _anchor.Month, 1),
+        _       => GetMonday(_anchor)
+    };
 
-    // Erfassen
+    private DateOnly PeriodTo => _viewMode switch
+    {
+        "Tag"   => _anchor,
+        "Monat" => new DateOnly(_anchor.Year, _anchor.Month, DateTime.DaysInMonth(_anchor.Year, _anchor.Month)),
+        _       => GetMonday(_anchor).AddDays(6)
+    };
+
+    private string PeriodTitle => _viewMode switch
+    {
+        "Tag"   => _anchor.ToString("dddd, d. MMMM yyyy", DeCh),
+        "Monat" => _anchor.ToString("MMMM yyyy", DeCh),
+        _       => $"KW {GetIsoWeek(PeriodFrom.ToDateTime(TimeOnly.MinValue))}: " +
+                   $"{PeriodFrom.ToString("d. MMM", DeCh)} – {PeriodTo.ToString("d. MMM yyyy", DeCh)}"
+    };
+
+    private string PrevLabel => _viewMode switch
+    {
+        "Tag"   => "‹ Vortag",
+        "Monat" => "‹ Vormonat",
+        _       => "‹ Vorwoche"
+    };
+
+    private string NextLabel => _viewMode switch
+    {
+        "Tag"   => "Nächster Tag ›",
+        "Monat" => "Nächster Monat ›",
+        _       => "Nächste Woche ›"
+    };
+
+    // ── Erfassen ─────────────────────────────────────────────────────────────
     private string _erfassenTyp = "Blocker";
     private DateTime _erfassenStart = DateTime.Today.AddHours(8);
     private DateTime _erfassenEnde = DateTime.Today.AddHours(12);
@@ -311,6 +353,12 @@
     private string? _erfassenNotizen;
     private string? _erfassenError;
     private bool _erfassenSuccess;
+
+    // ── Shared ───────────────────────────────────────────────────────────────
+    private string? _message;
+    private string? _error;
+    private int? _rejectSlotId;
+    private string? _rejectReason;
 
     protected override async Task OnInitializedAsync() => await LoadPendingAsync();
 
@@ -328,23 +376,43 @@
         _activeTab = tab;
         _erfassenSuccess = false;
         _erfassenError = null;
-        if (tab == "Alle Buchungen" && !_weekSlots.Any())
-            await LoadWeekAsync();
+        if (tab == "Alle Buchungen" && !_periodSlots.Any())
+            await LoadPeriodAsync();
     }
 
-    private async Task LoadWeekAsync()
+    // ── Alle Buchungen ───────────────────────────────────────────────────────
+
+    private async Task LoadPeriodAsync()
     {
-        _loadingWeek = true;
-        var monday = DateOnly.FromDateTime(_adminWeek);
-        _weekSlots = await WeekSlotsQuery.ExecuteAsync(monday);
-        _loadingWeek = false;
+        _loadingPeriod = true;
+        _periodSlots = await AdminService.GetSlotsForPeriodAsync(PeriodFrom, PeriodTo);
+        _loadingPeriod = false;
     }
 
-    private async Task ShiftWeekAsync(int days)
+    private async Task SetViewModeAsync(string mode)
     {
-        _adminWeek = _adminWeek.AddDays(days);
-        await LoadWeekAsync();
+        _viewMode = mode;
+        await LoadPeriodAsync();
     }
+
+    private async Task ShiftPeriodAsync(int direction)
+    {
+        _anchor = _viewMode switch
+        {
+            "Tag"   => _anchor.AddDays(direction),
+            "Monat" => _anchor.AddMonths(direction),
+            _       => _anchor.AddDays(direction * 7)
+        };
+        await LoadPeriodAsync();
+    }
+
+    private async Task GoToTodayAsync()
+    {
+        _anchor = DateOnly.FromDateTime(DateTime.Today);
+        await LoadPeriodAsync();
+    }
+
+    // ── Pendente actions ─────────────────────────────────────────────────────
 
     private async Task ConfirmAsync(int slotId)
     {
@@ -354,6 +422,7 @@
             await ConfirmUseCase.ExecuteAsync(slotId, AdminUser);
             _message = $"Buchung #{slotId} wurde bestätigt.";
             await LoadPendingAsync();
+            if (_activeTab == "Alle Buchungen") await LoadPeriodAsync();
         }
         catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { _error = ex.Message; }
     }
@@ -378,40 +447,27 @@
 
     private void ClearMessages() { _message = null; _error = null; }
 
+    // ── Erfassen ─────────────────────────────────────────────────────────────
+
     private async Task ErfassenAsync()
     {
         _erfassenError = null;
         _erfassenSuccess = false;
 
         if (string.IsNullOrWhiteSpace(_erfassenTitel))
-        {
-            _erfassenError = "Bezeichnung ist erforderlich.";
-            return;
-        }
+        { _erfassenError = "Bezeichnung ist erforderlich."; return; }
         if (_erfassenStart >= _erfassenEnde)
-        {
-            _erfassenError = "Ende muss nach dem Start liegen.";
-            return;
-        }
+        { _erfassenError = "Ende muss nach dem Start liegen."; return; }
         if (_erfassenTyp != "Blocker" && _erfassenMitgliedId is null)
-        {
-            _erfassenError = "Mitglied-ID ist für Reserved und Booked erforderlich.";
-            return;
-        }
-
+        { _erfassenError = "Mitglied-ID ist für Reserved und Booked erforderlich."; return; }
         if (!Enum.TryParse<SporthalleWeb.Domain.Reservierung.SlotType>(_erfassenTyp, out var typ))
-        {
-            _erfassenError = "Ungültiger Typ.";
-            return;
-        }
+        { _erfassenError = "Ungültiger Typ."; return; }
 
         var startUtc = DateTime.SpecifyKind(
-            TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(_erfassenStart, DateTimeKind.Unspecified), Zurich),
+            TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(_erfassenStart, DateTimeKind.Unspecified), Zurich),
             DateTimeKind.Utc);
         var endUtc = DateTime.SpecifyKind(
-            TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(_erfassenEnde, DateTimeKind.Unspecified), Zurich),
+            TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(_erfassenEnde, DateTimeKind.Unspecified), Zurich),
             DateTimeKind.Utc);
 
         try
@@ -442,11 +498,13 @@
         _erfassenError = null;
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
     private string FormatSlot(DateTime startUtc, DateTime endUtc)
     {
         var start = TimeZoneInfo.ConvertTimeFromUtc(startUtc, Zurich);
-        var end = TimeZoneInfo.ConvertTimeFromUtc(endUtc, Zurich);
-        return $"{start:ddd d. MMM yyyy HH:mm} – {end:HH:mm}";
+        var end   = TimeZoneInfo.ConvertTimeFromUtc(endUtc, Zurich);
+        return $"{start.ToString("ddd d. MMM yyyy HH:mm", DeCh)} – {end:HH:mm}";
     }
 
     private static string TypeBadge(string type) => type switch
@@ -454,8 +512,11 @@
         "Booked"   => "bg-success",
         "Reserved" => "bg-warning text-dark",
         "Blocker"  => "bg-secondary",
-        _ => "bg-secondary"
+        _          => "bg-secondary"
     };
+
+    private static DateOnly GetMonday(DateOnly date)
+        => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 
     private static int GetIsoWeek(DateTime date)
     {

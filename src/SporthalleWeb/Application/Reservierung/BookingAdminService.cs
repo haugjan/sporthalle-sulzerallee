@@ -43,6 +43,9 @@ public sealed class BookingAdminService(
         return saved;
     }
 
+    public async Task<IReadOnlyList<BookingSlot>> GetSlotsForPeriodAsync(DateOnly from, DateOnly toInclusive)
+        => await slotRepo.GetAllAsync(from, toInclusive, null);
+
     public async Task DeleteSlotAsync(int slotId, string adminUser)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
