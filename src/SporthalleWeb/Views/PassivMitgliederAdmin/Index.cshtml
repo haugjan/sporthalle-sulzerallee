@@ -184,7 +184,8 @@
                             <td>@m.FieldNumber.Value</td>
                             <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
                             <td>
-                                <span class="level-key level-key--@m.Level.Key.ToLowerInvariant()">@m.Level.Key</span><br />
+                                @{ var levelBg = m.Level.Key switch { "Bronze" => "#cd7f32", "Gold" => "#c9a227", _ => "#9e9e9e" }; }
+                                <span style="display:inline-block;background:@levelBg;color:#fff;border-radius:3px;padding:1px 6px;font-size:0.75rem;font-weight:600;">@m.Level.Key</span><br />
                                 <span class="level-name">@m.Level.DisplayName</span>
                             </td>
                             <td>@m.FirstName @m.LastName</td>
