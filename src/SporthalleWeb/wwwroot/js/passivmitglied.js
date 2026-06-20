@@ -60,22 +60,39 @@
   // ── Init ─────────────────────────────────────────────────────────────────────
   loadFieldStatuses().then(buildGrid);
 
+  function isFloorExpanded() {
+    return floorSection && floorSection.classList.contains('is-expanded');
+  }
+
+  function expandFloor() {
+    if (!floorSection || isFloorExpanded()) return;
+    floorSection.classList.add('is-expanded');
+    floorSection.style.width = '100%';
+    floorSection.style.maxWidth = 'none';
+    floorSection.style.marginLeft = '0';
+    floorSection.style.marginRight = '0';
+    if (floorToggle) {
+      floorToggle.setAttribute('aria-label', 'Bodenplan verkleinern');
+      floorToggle.setAttribute('title', 'Verkleinern');
+    }
+  }
+
+  function collapseFloor() {
+    if (!floorSection) return;
+    floorSection.classList.remove('is-expanded');
+    floorSection.style.width = '';
+    floorSection.style.maxWidth = '';
+    floorSection.style.marginLeft = '';
+    floorSection.style.marginRight = '';
+    if (floorToggle) {
+      floorToggle.setAttribute('aria-label', 'Bodenplan vergrössern');
+      floorToggle.setAttribute('title', 'Vergrössern');
+    }
+  }
+
   if (floorToggle && floorSection) {
     floorToggle.addEventListener('click', function () {
-      const expanded = floorSection.classList.toggle('is-expanded');
-      if (expanded) {
-        floorSection.style.width = '100%';
-        floorSection.style.maxWidth = 'none';
-        floorSection.style.marginLeft = '0';
-        floorSection.style.marginRight = '0';
-      } else {
-        floorSection.style.width = '';
-        floorSection.style.maxWidth = '';
-        floorSection.style.marginLeft = '';
-        floorSection.style.marginRight = '';
-      }
-      floorToggle.setAttribute('aria-label', expanded ? 'Bodenplan verkleinern' : 'Bodenplan vergrössern');
-      floorToggle.setAttribute('title', expanded ? 'Verkleinern' : 'Vergrössern');
+      isFloorExpanded() ? collapseFloor() : expandFloor();
     });
   }
 
@@ -213,6 +230,11 @@
   }
 
   function selectField(n, cellEl) {
+    if (!isFloorExpanded()) {
+      expandFloor();
+      return;
+    }
+
     // Deselect previous
     if (selectedField !== null) {
       const prev = document.querySelector(`[data-field="${selectedField}"]`);
