@@ -7,6 +7,7 @@
 
 /* ===== Intro-Section vor den Stufen-Cards ===== */
 .pm-intro-section {
+  padding-top: 2rem;
   padding-bottom: 1rem;
 }
 
