@@ -226,7 +226,7 @@
 
 .legend-dot.confirmed  { background: #444; }
 .legend-dot.provisional {
-  background: #F1C40F;
+  background: #0078D4;
   background-image: repeating-linear-gradient(
     45deg,
     transparent 0px,
