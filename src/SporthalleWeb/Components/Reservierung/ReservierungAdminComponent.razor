@@ -80,13 +80,14 @@
                 else
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle" style="font-size:0.875rem">
                             <thead>
                                 <tr>
-                                    <th>Datum / Zeit</th>
-                                    <th>Dauer</th>
+                                    <th style="white-space:nowrap">Eingegangen</th>
+                                    <th style="white-space:nowrap">Termin</th>
                                     <th>Anlass</th>
                                     <th>Mieter</th>
+                                    <th>Rechnungsadresse</th>
                                     <th>Kontakt</th>
                                     <th>Bemerkungen</th>
                                     <th>Aktionen</th>
@@ -98,20 +99,42 @@
                                     var slot = item.Slot;
                                     var member = item.Member;
                                     <tr>
-                                        <td style="white-space:nowrap">@FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)</td>
-                                        <td>@((int)(slot.Slot.EndUtc - slot.Slot.StartUtc).TotalMinutes) min</td>
+                                        <td style="white-space:nowrap">
+                                            @{ var eingegangen = TimeZoneInfo.ConvertTimeFromUtc(slot.CreatedAt, Zurich); }
+                                            @eingegangen.ToString("d. MMM yyyy", DeCh)<br />
+                                            <small class="text-muted">@eingegangen.ToString("HH:mm", DeCh)</small>
+                                        </td>
+                                        <td style="white-space:nowrap">
+                                            @FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)<br />
+                                            <small class="text-muted">@((int)(slot.Slot.EndUtc - slot.Slot.StartUtc).TotalMinutes) min</small>
+                                        </td>
                                         <td>@(slot.Title ?? "–")</td>
                                         <td>
                                             @if (member is not null)
                                             {
                                                 <strong>@member.ContactPerson</strong>
-                                                @if (member.RenterType.Value != SporthalleWeb.Domain.Reservierung.RenterTypeValue.Privatperson)
-                                                {
-                                                    <br /><small class="text-muted">@member.RenterType.Value</small>
-                                                }
+                                                <br /><small class="text-muted">@member.RenterType.Value</small>
                                                 @if (!string.IsNullOrEmpty(member.BillingName) && member.BillingName != member.ContactPerson)
                                                 {
                                                     <br /><small class="text-muted">@member.BillingName</small>
+                                                }
+                                                @if (member.HasKey)
+                                                {
+                                                    <br /><span class="badge bg-secondary mt-1" style="font-size:0.7rem">Hat Schlüssel</span>
+                                                }
+                                            }
+                                            else { <span class="text-muted">–</span> }
+                                        </td>
+                                        <td>
+                                            @if (member is not null)
+                                            {
+                                                <span>@member.BillingAddress</span><br />
+                                                <span>@member.BillingPostalCode @member.BillingCity</span>
+                                                @if (!string.IsNullOrEmpty(member.BillingCountry) &&
+                                                     member.BillingCountry != "CH" &&
+                                                     member.BillingCountry != "Schweiz")
+                                                {
+                                                    <br /><small class="text-muted">@member.BillingCountry</small>
                                                 }
                                             }
                                             else { <span class="text-muted">–</span> }
@@ -126,7 +149,7 @@
                                                 }
                                             }
                                         </td>
-                                        <td>
+                                        <td style="max-width:200px">
                                             @if (!string.IsNullOrEmpty(slot.Notes))
                                             {
                                                 <span style="white-space:pre-wrap;font-size:0.85rem">@slot.Notes</span>
