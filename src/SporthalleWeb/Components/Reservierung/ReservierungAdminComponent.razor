@@ -290,8 +290,13 @@
     private async Task SetTab(string tab)
     {
         _activeTab = tab;
-        if (tab == "Alle Buchungen" && !_periodSlots.Any())
+        _message = null;
+        _error = null;
+        if (tab == "Pendente")
+            await LoadPendingAsync();
+        else if (tab == "Alle Buchungen")
             await LoadPeriodAsync();
+        // Erfassen: the JS calendar reloads on its own when the component renders
     }
 
     // ── Alle Buchungen ───────────────────────────────────────────────────────
