@@ -671,6 +671,7 @@
     var grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
+    var savedScrollY = window.scrollY;
     clearSelectionOverlay();
     grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Lade Kalender …</div>';
 
@@ -683,9 +684,11 @@
       .then(function (slots) {
         lastSlots = slots;
         renderGrid(slots);
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
       })
       .catch(function () {
         grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Kalender konnte nicht geladen werden.</div>';
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
       });
   }
 
