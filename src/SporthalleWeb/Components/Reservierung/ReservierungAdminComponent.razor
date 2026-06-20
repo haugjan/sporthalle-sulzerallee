@@ -80,12 +80,15 @@
                 else
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover align-middle">
                             <thead>
                                 <tr>
                                     <th>Datum / Zeit</th>
+                                    <th>Dauer</th>
+                                    <th>Anlass</th>
                                     <th>Mieter</th>
-                                    <th>Bezeichnung</th>
+                                    <th>Kontakt</th>
+                                    <th>Bemerkungen</th>
                                     <th>Aktionen</th>
                                 </tr>
                             </thead>
@@ -95,17 +98,42 @@
                                     var slot = item.Slot;
                                     var member = item.Member;
                                     <tr>
-                                        <td>@FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)</td>
+                                        <td style="white-space:nowrap">@FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)</td>
+                                        <td>@((int)(slot.Slot.EndUtc - slot.Slot.StartUtc).TotalMinutes) min</td>
+                                        <td>@(slot.Title ?? "–")</td>
                                         <td>
                                             @if (member is not null)
                                             {
-                                                <span>@member.ContactPerson</span><br />
-                                                <small class="text-muted">@member.Email</small>
+                                                <strong>@member.ContactPerson</strong>
+                                                @if (member.RenterType.Value != SporthalleWeb.Domain.Reservierung.RenterTypeValue.Privatperson)
+                                                {
+                                                    <br /><small class="text-muted">@member.RenterType.Value</small>
+                                                }
+                                                @if (!string.IsNullOrEmpty(member.BillingName) && member.BillingName != member.ContactPerson)
+                                                {
+                                                    <br /><small class="text-muted">@member.BillingName</small>
+                                                }
                                             }
                                             else { <span class="text-muted">–</span> }
                                         </td>
-                                        <td>@(slot.Title ?? "–")</td>
                                         <td>
+                                            @if (member is not null)
+                                            {
+                                                <a href="mailto:@member.Email">@member.Email</a>
+                                                @if (!string.IsNullOrEmpty(member.Phone))
+                                                {
+                                                    <br /><small>@member.Phone</small>
+                                                }
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(slot.Notes))
+                                            {
+                                                <span style="white-space:pre-wrap;font-size:0.85rem">@slot.Notes</span>
+                                            }
+                                            else { <span class="text-muted">–</span> }
+                                        </td>
+                                        <td style="white-space:nowrap">
                                             <button class="btn btn-sm btn-success me-1"
                                                     @onclick="() => ConfirmAsync(slot.Id)">
                                                 Bestätigen
