@@ -210,6 +210,7 @@
 
 .legend-dot.confirmed  { background: #444; }
 .legend-dot.provisional { background: #0078D4; }
+.legend-dot.recurring  { background: #37474f; }
 .legend-dot.free       { background: #fff; border: 1px solid #ccc; }
 
 /* --- Lade-Zustand --- */

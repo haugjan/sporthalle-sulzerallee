@@ -241,7 +241,7 @@ window.SporthalleAdmin = (function () {
       el.style.height = height + 'px';
       el.style.left = left + 'px';
       el.style.width = width + 'px';
-      if (slot.color) el.style.background = slot.color;
+      el.style.background = slot.color || getAdminDefaultColor(slot);
 
       if (height >= 18) {
         var label = document.createElement('div');
@@ -277,6 +277,12 @@ window.SporthalleAdmin = (function () {
     if (slot.type === 'Booked') return 'confirmed';
     if (slot.type === 'Blocker') return 'recurring';
     return 'provisional'; // Reserved
+  }
+
+  function getAdminDefaultColor(slot) {
+    if (slot.type === 'Blocker') return '#37474f';
+    if (slot.type === 'Reserved') return '#0078D4';
+    return '#444';
   }
 
   // ── Drag-to-Select ───────────────────────────────────────────────────────────

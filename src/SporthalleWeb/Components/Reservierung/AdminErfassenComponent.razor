@@ -220,7 +220,7 @@
                 await AdminService.CreateSlotAsync(
                     SporthalleWeb.Domain.Reservierung.SlotType.Blocker,
                     startUtc, endUtc,
-                    payload.Titel.Trim(), null,
+                    payload.Titel.Trim(), "#37474f",
                     string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen.Trim(),
                     null, AdminUser);
 
