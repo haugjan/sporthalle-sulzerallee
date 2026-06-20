@@ -96,6 +96,12 @@
     });
   }
 
+  if (svgContainer) {
+    svgContainer.addEventListener('click', function () {
+      if (!isFloorExpanded()) expandFloor();
+    });
+  }
+
   if (wizardClose) wizardClose.addEventListener('click', closeWizard);
   if (wizardOverlay) wizardOverlay.addEventListener('click', function (e) {
     if (e.target === wizardOverlay) closeWizard();
