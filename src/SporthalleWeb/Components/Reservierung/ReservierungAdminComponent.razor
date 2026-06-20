@@ -212,24 +212,84 @@
                 else
                 {
                     <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                        <table class="table table-hover align-middle" style="font-size:0.875rem">
                             <thead>
                                 <tr>
-                                    <th>Zeit</th>
-                                    <th>Dauer</th>
-                                    <th>Bezeichnung</th>
+                                    <th style="white-space:nowrap">Eingegangen</th>
+                                    <th style="white-space:nowrap">Termin</th>
+                                    <th>Anlass</th>
                                     <th>Typ</th>
+                                    <th>Mieter</th>
+                                    <th>Rechnungsadresse</th>
+                                    <th>Kontakt</th>
+                                    <th>Bemerkungen</th>
                                     <th>Aktionen</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var s in _periodSlots)
+                                @foreach (var item in _periodSlots)
                                 {
+                                    var s = item.Slot;
+                                    var m = item.Member;
                                     <tr class="@(s.Type == SporthalleWeb.Domain.Reservierung.SlotType.Rejected ? "table-light text-muted" : "")">
-                                        <td style="white-space:nowrap">@FormatSlot(s.Slot.StartUtc, s.Slot.EndUtc)</td>
-                                        <td>@((int)(s.Slot.EndUtc - s.Slot.StartUtc).TotalMinutes) min</td>
+                                        <td style="white-space:nowrap">
+                                            @{ var eingegangen = TimeZoneInfo.ConvertTimeFromUtc(s.CreatedAt, Zurich); }
+                                            @eingegangen.ToString("d. MMM yyyy", DeCh)<br />
+                                            <small class="text-muted">@eingegangen.ToString("HH:mm", DeCh)</small>
+                                        </td>
+                                        <td style="white-space:nowrap">
+                                            @FormatSlot(s.Slot.StartUtc, s.Slot.EndUtc)<br />
+                                            <small class="text-muted">@((int)(s.Slot.EndUtc - s.Slot.StartUtc).TotalMinutes) min</small>
+                                        </td>
                                         <td>@(s.Title ?? "–")</td>
                                         <td><span class="badge @TypeBadge(s.Type.ToString())">@TypeLabel(s.Type)</span></td>
+                                        <td>
+                                            @if (m is not null)
+                                            {
+                                                <strong>@m.ContactPerson</strong>
+                                                <br /><small class="text-muted">@m.RenterType.Value</small>
+                                                @if (!string.IsNullOrEmpty(m.BillingName) && m.BillingName != m.ContactPerson)
+                                                {
+                                                    <br /><small class="text-muted">@m.BillingName</small>
+                                                }
+                                                @if (m.HasKey)
+                                                {
+                                                    <br /><span class="badge bg-secondary mt-1" style="font-size:0.7rem">Hat Schlüssel</span>
+                                                }
+                                            }
+                                            else { <span class="text-muted">–</span> }
+                                        </td>
+                                        <td>
+                                            @if (m is not null)
+                                            {
+                                                <span>@m.BillingAddress</span><br />
+                                                <span>@m.BillingPostalCode @m.BillingCity</span>
+                                                @if (!string.IsNullOrEmpty(m.BillingCountry) &&
+                                                     m.BillingCountry != "CH" &&
+                                                     m.BillingCountry != "Schweiz")
+                                                {
+                                                    <br /><small class="text-muted">@m.BillingCountry</small>
+                                                }
+                                            }
+                                            else { <span class="text-muted">–</span> }
+                                        </td>
+                                        <td>
+                                            @if (m is not null)
+                                            {
+                                                <a href="mailto:@m.Email">@m.Email</a>
+                                                @if (!string.IsNullOrEmpty(m.Phone))
+                                                {
+                                                    <br /><small>@m.Phone</small>
+                                                }
+                                            }
+                                        </td>
+                                        <td style="max-width:200px">
+                                            @if (!string.IsNullOrEmpty(s.Notes))
+                                            {
+                                                <span style="white-space:pre-wrap;font-size:0.85rem">@s.Notes</span>
+                                            }
+                                            else { <span class="text-muted">–</span> }
+                                        </td>
                                         <td style="white-space:nowrap">
                                             @if (s.Type != SporthalleWeb.Domain.Reservierung.SlotType.Rejected)
                                             {
@@ -387,7 +447,7 @@
     // ── Alle Buchungen ───────────────────────────────────────────────────────
     private string _viewMode = "Woche";
     private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
-    private IReadOnlyList<SporthalleWeb.Domain.Reservierung.BookingSlot> _periodSlots = [];
+    private IReadOnlyList<(SporthalleWeb.Domain.Reservierung.BookingSlot Slot, SporthalleWeb.Domain.Reservierung.HallMember? Member)> _periodSlots = [];
     private bool _loadingPeriod;
     private bool _showRejected;
 
@@ -474,7 +534,7 @@
     private async Task LoadPeriodAsync()
     {
         _loadingPeriod = true;
-        _periodSlots = await AdminService.GetSlotsForPeriodAsync(PeriodFrom, PeriodTo, _showRejected);
+        _periodSlots = await AdminService.GetSlotsWithMembersForPeriodAsync(PeriodFrom, PeriodTo, _showRejected);
         _loadingPeriod = false;
     }
 
