@@ -11,14 +11,17 @@ public sealed class BookingCsvAdapter(
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    public async Task<byte[]> ExportAsync(DateTime fromUtc, DateTime toUtc, bool confirmedOnly)
+    public async Task<byte[]> ExportAsync(DateTime fromUtc, DateTime toUtc)
     {
-        var slots = await slotRepo.GetForExportAsync(fromUtc, toUtc, confirmedOnly);
+        var from = DateOnly.FromDateTime(fromUtc);
+        var to = DateOnly.FromDateTime(toUtc);
+        var slots = await slotRepo.GetAllAsync(from, to, null);
+        var exportable = slots.Where(s => s.Type != SlotType.Blocker).ToList();
 
         var sb = new StringBuilder();
-        sb.AppendLine("Datum;Wochentag;Start;Ende;Dauer (h);Status;Anlass;Mieter;E-Mail;Preis/Block;Blöcke;Gesamtpreis;Notiz");
+        sb.AppendLine("Datum;Wochentag;Start;Ende;Dauer (h);Typ;Bezeichnung;Mieter;E-Mail;Notiz");
 
-        foreach (var slot in slots)
+        foreach (var slot in exportable)
         {
             HallMember? member = null;
             if (slot.MemberId.HasValue)
@@ -34,14 +37,11 @@ public sealed class BookingCsvAdapter(
                 start.ToString("HH:mm"),
                 end.ToString("HH:mm"),
                 durationH.ToString("0.##"),
-                slot.Status.ToString(),
-                CsvEscape(slot.EventType),
+                slot.Type.ToString(),
+                CsvEscape(slot.Title),
                 CsvEscape(member?.ContactPerson),
                 CsvEscape(member?.Email),
-                slot.PricePerBlock?.ToString("0.00") ?? "",
-                slot.TotalBlocks?.ToString() ?? "",
-                slot.TotalPrice?.ToString("0.00") ?? "",
-                CsvEscape(slot.PriceNote)));
+                CsvEscape(slot.Notes)));
         }
 
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();

@@ -64,8 +64,7 @@ public sealed class BrevoBookingEmailAdapter(
             <ul>
               <li>Mieter: {member.ContactPerson} ({member.Email})</li>
               <li>Zeitslot: {FormatSlot(slot)}</li>
-              <li>Anlass: {slot.EventType ?? "-"}</li>
-              <li>Gesamtpreis: CHF {slot.TotalPrice?.ToString("0.00") ?? "-"}</li>
+              <li>Bezeichnung: {slot.Title}</li>
             </ul>
             <p><a href="https://www.sporthalle-sulzerallee.ch/umbraco">Zur Verwaltung</a></p>
             """);
@@ -76,7 +75,6 @@ public sealed class BrevoBookingEmailAdapter(
             $"""
             <p>Guten Tag {member.ContactPerson}</p>
             <p>Ihre Buchung für <strong>{FormatSlot(slot)}</strong> wurde bestätigt.</p>
-            <p>Gesamtbetrag: CHF {slot.TotalPrice?.ToString("0.00") ?? "-"}</p>
             <p>Bei Fragen wenden Sie sich bitte an uns.</p>
             """);
 
