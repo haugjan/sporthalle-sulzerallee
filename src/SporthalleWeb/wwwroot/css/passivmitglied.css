@@ -345,6 +345,24 @@
 /* SVG grid cells */
 .pm-cell { cursor: pointer; transition: opacity 0.1s; }
 
+/* In collapsed view: cells are not interactive */
+.pm-floor-section:not(.is-expanded) .pm-cell {
+  pointer-events: none;
+  cursor: default;
+}
+.pm-floor-section:not(.is-expanded) .pm-cell--free:hover,
+.pm-floor-section:not(.is-expanded) .pm-cell--free:focus {
+  fill: transparent;
+  stroke: rgba(255,255,255,0.1);
+  outline: none;
+}
+.pm-floor-section:not(.is-expanded) .pm-cell--vip:hover,
+.pm-floor-section:not(.is-expanded) .pm-cell--vip:focus {
+  fill: rgba(201,162,39,0.12);
+  stroke: rgba(201,162,39,0.4);
+  outline: none;
+}
+
 .pm-cell--free {
   fill: transparent;
   stroke: rgba(255,255,255,0.1);
