@@ -11,6 +11,15 @@ public sealed class ReservierungAuthController(
     LoginWithPasswordUseCase loginWithPassword,
     RegisterRenterUseCase registerRenter) : Controller
 {
+    // GET /reservierung — Hauptseite mit Belegungskalender und Buchungsformular
+    [HttpGet("")]
+    public IActionResult Index([FromQuery] string? session, [FromQuery] string? error)
+    {
+        ViewBag.Title = "Halle buchen – Sporthalle Sulzerallee";
+        ViewBag.BodyClass = "";
+        return View();
+    }
+
     // GET /reservierung/auth/validate?token=... — magic link landing page
     [HttpGet("auth/validate")]
     public async Task<IActionResult> ValidateMagicLink([FromQuery] string? token)

@@ -27,8 +27,87 @@ public sealed class ReservierungController(
     BookingAdminService adminService,
     IBookingSlotRepository slotRepo,
     IBookingCsvPort csvExport,
-    IMemberManagerPort memberManager) : ControllerBase
+    IMemberManagerPort memberManager,
+    IHallConfigurationPort hallConfig) : ControllerBase
 {
+    // ── Konfiguration ─────────────────────────────────────────────────────────
+
+    [HttpGet("konfiguration")]
+    public async Task<IActionResult> GetKonfiguration()
+    {
+        var oeffnungVon = await hallConfig.GetOpeningHourStartAsync();
+        var oeffnungBis = await hallConfig.GetOpeningHourEndAsync();
+        var dauern = await hallConfig.GetBuchbareDauernAsync();
+        return Ok(new
+        {
+            oeffnungVon,
+            oeffnungBis,
+            buchbareDauern = dauern
+        });
+    }
+
+    // ── Gast-Buchung (ohne Login) ─────────────────────────────────────────────
+
+    [HttpPost("gast-buchung")]
+    public async Task<IActionResult> GastBuchung([FromBody] GastBuchungRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.GuestEmail) || !req.GuestEmail.Contains('@'))
+            return BadRequest(new { error = "Ungültige E-Mail-Adresse." });
+        if (req.EndUtc <= req.StartUtc || (req.EndUtc - req.StartUtc).TotalMinutes < 60)
+            return BadRequest(new { error = "Mindestdauer ist 60 Minuten." });
+
+        try
+        {
+            var existing = await memberManager.FindByEmailAsync(req.GuestEmail.Trim());
+            int memberId;
+            if (existing is not null)
+            {
+                await memberManager.UpdateProfileAsync(
+                    existing.Id,
+                    req.GuestName.Trim(),
+                    req.BillingName.Trim(),
+                    req.BillingAddress.Trim(),
+                    req.BillingPostalCode.Trim(),
+                    req.BillingCity.Trim(),
+                    string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
+                    existing.HasKey);
+                memberId = existing.Id;
+            }
+            else
+            {
+                var cmd = new RegisterRenterCommand(
+                    Email: req.GuestEmail.Trim(),
+                    ContactPerson: req.GuestName.Trim(),
+                    RenterType: new RenterType(req.RenterType),
+                    BillingName: req.BillingName.Trim(),
+                    BillingAddress: req.BillingAddress.Trim(),
+                    BillingPostalCode: req.BillingPostalCode.Trim(),
+                    BillingCity: req.BillingCity.Trim(),
+                    BillingCountry: "CH",
+                    Phone: string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
+                    HasKey: false,
+                    Password: null);
+                var member = await memberManager.CreateAsync(cmd, null);
+                memberId = member.Id;
+            }
+
+            await memberManager.SignInAsync(memberId);
+
+            var booking = await createBooking.ExecuteAsync(new CreateBookingCommand(
+                memberId, req.StartUtc, req.EndUtc, req.Anlass, req.Notizen));
+
+            return Ok(new { bookingId = booking.Id, memberEmail = req.GuestEmail.Trim() });
+        }
+        catch (SlotConflictException)
+        {
+            return Conflict(new { error = "Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle einen anderen Termin." });
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     // ── Calendar / week view ──────────────────────────────────────────────────
 
     [HttpGet("wochen-slots")]
@@ -384,3 +463,17 @@ public sealed class ReservierungController(
 }
 
 public sealed record SchulferienRequest(string Name, string Von, string Bis);
+
+public sealed record GastBuchungRequest(
+    string GuestName,
+    string GuestEmail,
+    string? GuestPhone,
+    string RenterType,
+    string BillingName,
+    string BillingAddress,
+    string BillingPostalCode,
+    string BillingCity,
+    DateTime StartUtc,
+    DateTime EndUtc,
+    string Anlass,
+    string? Notizen);
