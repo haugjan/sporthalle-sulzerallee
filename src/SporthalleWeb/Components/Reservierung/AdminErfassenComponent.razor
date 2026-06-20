@@ -10,16 +10,16 @@
 <div style="padding: 0.5rem 0 1rem;">
 
   <div class="week-nav" style="padding: 0 1.5rem;">
-    <button id="admin-prev-week" aria-label="Vorwoche">&#8249;</button>
-    <span id="admin-week-label"></span>
-    <button id="admin-next-week" aria-label="Nächste Woche">&#8250;</button>
+    <button id="prev-week" aria-label="Vorwoche">&#8249;</button>
+    <span id="week-label"></span>
+    <button id="next-week" aria-label="Nächste Woche">&#8250;</button>
   </div>
 
   <div class="reservierung-layout" style="padding: 0 1.5rem; gap: 1.5rem;">
 
     <div class="reservierung-cal-col">
       <div class="calendar-scroll-wrapper">
-        <div id="admin-calendar-grid"></div>
+        <div id="calendar-grid"></div>
       </div>
       <div class="calendar-legend" style="margin-top: 0.75rem;">
         <div class="legend-item"><span class="legend-dot confirmed"></span> Bestätigt</div>
@@ -30,17 +30,17 @@
     </div>
 
     <div class="reservierung-panel-col">
-      <div class="slot-panel" id="admin-slot-panel">
+      <div class="slot-panel" id="slot-panel">
 
-        <div id="admin-slot-panel-hint">
+        <div id="slot-panel-hint">
           Zeitraum im Kalender aufziehen, um einen Termin zu erfassen.
         </div>
 
-        <div id="admin-slot-panel-detail" hidden>
+        <div id="slot-panel-detail" hidden>
           <h3>Ausgewählter Termin</h3>
-          <p id="admin-slot-date-label" class="slot-panel__date"></p>
-          <p class="slot-panel__time-display" id="admin-slot-time-display"></p>
-          <p class="slot-panel__meta" id="admin-slot-meta"></p>
+          <p id="slot-date-label" class="slot-panel__date"></p>
+          <p class="slot-panel__time-display" id="slot-time-display"></p>
+          <p class="slot-panel__meta" id="slot-meta"></p>
           <button class="btn-buchen" id="admin-btn-erfassen">Slot erfassen</button>
         </div>
 

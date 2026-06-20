@@ -129,7 +129,7 @@ window.SporthalleAdmin = (function () {
   // ── Grid-Layout ──────────────────────────────────────────────────────────────
 
   function computeGridLayout() {
-    var grid = document.getElementById('admin-calendar-grid');
+    var grid = document.getElementById('calendar-grid');
     if (!grid) return null;
     var headerCells = grid.querySelectorAll('.cal-header-day');
     if (!headerCells.length) return null;
@@ -147,7 +147,7 @@ window.SporthalleAdmin = (function () {
   // ── Grid rendern ─────────────────────────────────────────────────────────────
 
   function renderGrid(slots) {
-    var grid = document.getElementById('admin-calendar-grid');
+    var grid = document.getElementById('calendar-grid');
     if (!grid) return;
     grid.innerHTML = '';
     selectionEl = null;
@@ -312,7 +312,7 @@ window.SporthalleAdmin = (function () {
   }
 
   function renderSelectionOverlay(dayIdx, startBlock, endBlock, layout) {
-    var grid = document.getElementById('admin-calendar-grid');
+    var grid = document.getElementById('calendar-grid');
     if (!grid || !layout) return;
     if (selectionEl) selectionEl.remove();
     selectionEl = null;
@@ -339,8 +339,8 @@ window.SporthalleAdmin = (function () {
   function clearSelectionOverlay() {
     if (selectionEl) { selectionEl.remove(); selectionEl = null; }
     selectedSlot = null;
-    var detail = document.getElementById('admin-slot-panel-detail');
-    var hint = document.getElementById('admin-slot-panel-hint');
+    var detail = document.getElementById('slot-panel-detail');
+    var hint = document.getElementById('slot-panel-hint');
     if (detail) detail.hidden = true;
     if (hint) hint.hidden = false;
   }
@@ -420,11 +420,11 @@ window.SporthalleAdmin = (function () {
   // ── Slot-Panel ───────────────────────────────────────────────────────────────
 
   function showSlotPanel(slot) {
-    var hint = document.getElementById('admin-slot-panel-hint');
-    var detail = document.getElementById('admin-slot-panel-detail');
-    var dateLabel = document.getElementById('admin-slot-date-label');
-    var timeDisplay = document.getElementById('admin-slot-time-display');
-    var metaEl = document.getElementById('admin-slot-meta');
+    var hint = document.getElementById('slot-panel-hint');
+    var detail = document.getElementById('slot-panel-detail');
+    var dateLabel = document.getElementById('slot-date-label');
+    var timeDisplay = document.getElementById('slot-time-display');
+    var metaEl = document.getElementById('slot-meta');
     if (!detail) return;
     if (hint) hint.hidden = true;
     detail.hidden = false;
@@ -432,7 +432,7 @@ window.SporthalleAdmin = (function () {
     if (timeDisplay) timeDisplay.textContent = minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
     var durationMin = slot.endMin - slot.startMin;
     if (metaEl) metaEl.textContent = 'Dauer: ' + (durationMin >= 60 ? (durationMin / 60) + ' h' : durationMin + ' min');
-    var panel = document.getElementById('admin-slot-panel');
+    var panel = document.getElementById('slot-panel');
     if (panel) {
       setTimeout(function () {
         var rect = panel.getBoundingClientRect();
@@ -642,7 +642,7 @@ window.SporthalleAdmin = (function () {
 
   function loadWeek() {
     if (!_dotNet) return;
-    var grid = document.getElementById('admin-calendar-grid');
+    var grid = document.getElementById('calendar-grid');
     if (!grid) return;
     clearSelectionOverlay();
     grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Lade Kalender …</div>';
@@ -664,7 +664,7 @@ window.SporthalleAdmin = (function () {
   }
 
   function updateWeekLabel() {
-    var label = document.getElementById('admin-week-label');
+    var label = document.getElementById('week-label');
     if (label) label.textContent = formatWeekLabel(currentMonday);
   }
 
@@ -707,15 +707,15 @@ window.SporthalleAdmin = (function () {
       selectedSlot = null;
       isDragging = false;
 
-      addHandler(document.getElementById('admin-prev-week'), 'click', function () { navigateWeek(-1); });
-      addHandler(document.getElementById('admin-next-week'), 'click', function () { navigateWeek(+1); });
+      addHandler(document.getElementById('prev-week'), 'click', function () { navigateWeek(-1); });
+      addHandler(document.getElementById('next-week'), 'click', function () { navigateWeek(+1); });
 
       addHandler(document, 'mousemove', onDragMove);
       addHandler(document, 'touchmove', onDragMove, { passive: false });
       addHandler(document, 'mouseup', onDragEnd);
       addHandler(document, 'touchend', onDragEnd);
 
-      var grid = document.getElementById('admin-calendar-grid');
+      var grid = document.getElementById('calendar-grid');
       addHandler(grid, 'mousedown', onDragStart);
       addHandler(grid, 'touchstart', onDragStart, { passive: false });
 
@@ -740,7 +740,7 @@ window.SporthalleAdmin = (function () {
       addHandler(window, 'resize', function () {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () {
-          var g = document.getElementById('admin-calendar-grid');
+          var g = document.getElementById('calendar-grid');
           if (!g || !lastSlots.length) return;
           var days = [];
           for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
