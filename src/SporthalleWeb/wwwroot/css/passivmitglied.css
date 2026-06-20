@@ -762,3 +762,18 @@
 
   .pm-summary__row { grid-template-columns: 100px 1fr; }
 }
+
+/* ===== Hallenboden Hover-Tooltip ===== */
+#pm-name-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(20, 20, 30, 0.92);
+  color: #fff;
+  font-size: 0.78rem;
+  font-family: Manrope, sans-serif;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}

@@ -205,6 +205,8 @@
 
         if (isOccupied && displayNames.has(n)) {
           const name = displayNames.get(n);
+          const truncated = name.length > 9;
+          if (truncated) cell.setAttribute('data-fullname', name);
           const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           txt.setAttribute('x', x + CELL_W / 2);
           txt.setAttribute('y', y + CELL_H / 2 + 2);
@@ -214,13 +216,38 @@
           txt.setAttribute('font-family', 'Manrope, sans-serif');
           txt.setAttribute('fill', 'rgba(255,255,255,0.9)');
           txt.setAttribute('pointer-events', 'none');
-          txt.textContent = name.length > 9 ? name.slice(0, 8) + '…' : name;
+          txt.textContent = truncated ? name.slice(0, 8) + '…' : name;
           svg.appendChild(txt);
         }
       }
     }
 
     svgContainer.appendChild(svg);
+
+    // Hover-Tooltip für abgeschnittene Feldnamen
+    const tooltip = document.createElement('div');
+    tooltip.id = 'pm-name-tooltip';
+    tooltip.hidden = true;
+    document.body.appendChild(tooltip);
+
+    svg.addEventListener('mousemove', e => {
+      const cell = e.target.closest
+        ? e.target.closest('[data-fullname]')
+        : (e.target.getAttribute('data-fullname') ? e.target : null);
+      if (cell) {
+        tooltip.textContent = cell.getAttribute('data-fullname');
+        tooltip.hidden = false;
+        const gap = 12;
+        const tx = e.clientX + gap;
+        const ty = e.clientY - tooltip.offsetHeight / 2;
+        tooltip.style.left = Math.min(tx, window.innerWidth - tooltip.offsetWidth - 8) + 'px';
+        tooltip.style.top  = Math.max(4, ty) + 'px';
+      } else {
+        tooltip.hidden = true;
+      }
+    });
+
+    svg.addEventListener('mouseleave', () => { tooltip.hidden = true; });
   }
 
   function cellClass(occupied, vip, selected) {
