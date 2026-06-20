@@ -252,6 +252,12 @@
       if (height >= 24) {
         var label = document.createElement('div');
         label.className = 'booking-overlay__label';
+        if (slot.type === 'Blocker') {
+          var nbEl = document.createElement('span');
+          nbEl.className = 'bol-title';
+          nbEl.textContent = 'Nicht buchbar';
+          label.appendChild(nbEl);
+        }
         var timeEl = document.createElement('span');
         timeEl.className = 'bol-time';
         timeEl.textContent = fmtTime(startZ.hour, startZ.minute) + '–' + fmtTime(endZ.hour, endZ.minute);
