@@ -336,14 +336,26 @@
 {
     <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
          style="background:rgba(0,0,0,.5);z-index:1050">
-        <div class="card p-4" style="min-width:340px;max-width:480px">
-            <h5>Buchung bestätigen</h5>
-            <p class="text-muted mb-3">
-                Die Buchungsanfrage #@_confirmSlotId wird bestätigt und der Mieter erhält eine Bestätigungs-E-Mail.
-            </p>
-            <div class="d-flex gap-2">
-                <button class="btn btn-success" @onclick="ConfirmConfirmAsync">Bestätigen</button>
+        <div class="card" style="min-width:380px;max-width:540px;max-height:90vh;overflow-y:auto">
+            <div class="card-header"><strong>Buchung bestätigen</strong></div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Buchungsanfrage #@_confirmSlotId wird bestätigt. E-Mail-Text kann unten angepasst werden.
+                </p>
+                @if (_confirmEmailLoading)
+                {
+                    <p class="text-muted small">Lade E-Mail-Vorschau…</p>
+                }
+                else
+                {
+                    <label class="form-label fw-semibold small">E-Mail-Text an Mieter</label>
+                    <textarea class="form-control font-monospace" style="font-size:0.82rem"
+                              @bind="_confirmEmailText" rows="7"></textarea>
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
                 <button class="btn btn-secondary" @onclick="CancelConfirm">Abbrechen</button>
+                <button class="btn btn-success" @onclick="ConfirmConfirmAsync" disabled="@_confirmEmailLoading">Bestätigen &amp; senden</button>
             </div>
         </div>
     </div>
@@ -353,13 +365,28 @@
 {
     <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
          style="background:rgba(0,0,0,.5);z-index:1050">
-        <div class="card p-4" style="min-width:340px;max-width:480px">
-            <h5>Buchung ablehnen</h5>
-            <textarea class="form-control mb-3" @bind="_rejectReason" rows="3"
-                      placeholder="Ablehnungsgrund (optional)"></textarea>
-            <div class="d-flex gap-2">
-                <button class="btn btn-danger" @onclick="ConfirmRejectAsync">Ablehnen</button>
+        <div class="card" style="min-width:380px;max-width:540px;max-height:90vh;overflow-y:auto">
+            <div class="card-header"><strong>Buchung ablehnen</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Interner Ablehnungsgrund (optional)</label>
+                    <textarea class="form-control" @bind="_rejectReason" rows="2"
+                              placeholder="Wird nicht an den Mieter gesendet"></textarea>
+                </div>
+                @if (_rejectEmailLoading)
+                {
+                    <p class="text-muted small">Lade E-Mail-Vorschau…</p>
+                }
+                else
+                {
+                    <label class="form-label fw-semibold small">E-Mail-Text an Mieter</label>
+                    <textarea class="form-control font-monospace" style="font-size:0.82rem"
+                              @bind="_rejectEmailText" rows="6"></textarea>
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
                 <button class="btn btn-secondary" @onclick="CancelReject">Abbrechen</button>
+                <button class="btn btn-danger" @onclick="ConfirmRejectAsync" disabled="@_rejectEmailLoading">Ablehnen &amp; senden</button>
             </div>
         </div>
     </div>
@@ -544,8 +571,12 @@
     private string? _message;
     private string? _error;
     private int? _confirmSlotId;
+    private string _confirmEmailText = "";
+    private bool _confirmEmailLoading;
     private int? _rejectSlotId;
     private string? _rejectReason;
+    private string _rejectEmailText = "";
+    private bool _rejectEmailLoading;
 
     // ── Edit dialog ──────────────────────────────────────────────────────────
     private int? _editSlotId;
@@ -626,7 +657,25 @@
 
     // ── Pendente actions ─────────────────────────────────────────────────────
 
-    private void OpenConfirmDialog(int id) { _confirmSlotId = id; }
+    private async Task OpenConfirmDialog(int id)
+    {
+        _confirmSlotId = id;
+        _confirmEmailLoading = true;
+        _confirmEmailText = "";
+        var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
+        if (slot is not null && member is not null)
+        {
+            var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
+            var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
+            var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
+            _confirmEmailText =
+                $"Ihre Buchung für {slotStr} wurde bestätigt.\n\n" +
+                $"Anlass: {slot.Title}\n\n" +
+                "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch.";
+        }
+        _confirmEmailLoading = false;
+    }
+
     private void CancelConfirm() { _confirmSlotId = null; }
 
     private async Task ConfirmConfirmAsync()
@@ -637,7 +686,8 @@
         ClearMessages();
         try
         {
-            await ConfirmUseCase.ExecuteAsync(id, AdminUser);
+            var body = string.IsNullOrWhiteSpace(_confirmEmailText) ? null : _confirmEmailText;
+            await ConfirmUseCase.ExecuteAsync(id, AdminUser, body);
             _message = $"Buchung #{id} wurde bestätigt.";
             await LoadPendingAsync();
             if (_activeTab == "Alle Buchungen") await LoadPeriodAsync();
@@ -645,7 +695,25 @@
         catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { _error = ex.Message; }
     }
 
-    private void OpenRejectDialog(int id) { _rejectSlotId = id; _rejectReason = null; }
+    private async Task OpenRejectDialog(int id)
+    {
+        _rejectSlotId = id;
+        _rejectReason = null;
+        _rejectEmailLoading = true;
+        _rejectEmailText = "";
+        var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
+        if (slot is not null && member is not null)
+        {
+            var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
+            var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
+            var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
+            _rejectEmailText =
+                $"Leider können wir Ihre Buchungsanfrage für {slotStr} nicht bestätigen.\n\n" +
+                "Bitte kontaktieren Sie uns unter reservierung@sporthalle-sulzerallee.ch " +
+                "für weitere Informationen oder einen alternativen Termin.";
+        }
+        _rejectEmailLoading = false;
+    }
 
     private async Task ConfirmRejectAsync()
     {
@@ -653,7 +721,8 @@
         ClearMessages();
         try
         {
-            await RejectUseCase.ExecuteAsync(_rejectSlotId.Value, _rejectReason ?? "", AdminUser);
+            var body = string.IsNullOrWhiteSpace(_rejectEmailText) ? null : _rejectEmailText;
+            await RejectUseCase.ExecuteAsync(_rejectSlotId.Value, _rejectReason ?? "", AdminUser, body);
             _message = $"Buchung #{_rejectSlotId} wurde abgelehnt.";
             _rejectSlotId = null;
             await LoadPendingAsync();

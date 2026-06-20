@@ -9,7 +9,7 @@ public sealed class RejectBookingUseCase(
     IMemberManagerPort members,
     IBookingEmailPort email)
 {
-    public async Task ExecuteAsync(int slotId, string reason, string adminUser)
+    public async Task ExecuteAsync(int slotId, string reason, string adminUser, string? customEmailBody = null)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
             ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
@@ -20,7 +20,7 @@ public sealed class RejectBookingUseCase(
         {
             var member = await members.FindByIdAsync(slot.MemberId.Value);
             if (member is not null)
-                await email.SendBookingRejectedToRenterAsync(slot, member);
+                await email.SendBookingRejectedToRenterAsync(slot, member, customEmailBody);
         }
 
         slot.Reject();

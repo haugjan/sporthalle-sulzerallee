@@ -68,24 +68,34 @@ public sealed class BrevoBookingEmailAdapter(
                 ctaUrl: "https://www.sporthalle-sulzerallee.ch/umbraco",
                 ctaLabel: "Zur Verwaltung"));
 
-    public Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member) =>
-        SendAsync(member.Email, member.ContactPerson,
+    public Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
+    {
+        var body = customEmailBody is not null
+            ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
+            : $"Ihre Buchung für <strong>{FormatSlot(slot)}</strong> wurde bestätigt.";
+        return SendAsync(member.Email, member.ContactPerson,
             "Buchung bestätigt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchung bestätigt",
                 greeting: $"Guten Tag {member.ContactPerson}",
-                body: $"Ihre Buchung für <strong>{FormatSlot(slot)}</strong> wurde bestätigt.",
-                detail: $"Anlass: {slot.Title}",
-                note: "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch."));
+                body: body,
+                detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
+                note: customEmailBody is null ? "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch." : null));
+    }
 
-    public Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member) =>
-        SendAsync(member.Email, member.ContactPerson,
+    public Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
+    {
+        var body = customEmailBody is not null
+            ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
+            : $"Leider können wir Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> nicht bestätigen.";
+        return SendAsync(member.Email, member.ContactPerson,
             "Buchungsanfrage abgelehnt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage abgelehnt",
                 greeting: $"Guten Tag {member.ContactPerson}",
-                body: $"Leider können wir Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> nicht bestätigen.",
-                note: "Bitte kontaktieren Sie uns unter reservierung@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin."));
+                body: body,
+                note: customEmailBody is null ? "Bitte kontaktieren Sie uns unter reservierung@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin." : null));
+    }
 
     private static string BuildEmail(
         string title, string greeting, string body,
