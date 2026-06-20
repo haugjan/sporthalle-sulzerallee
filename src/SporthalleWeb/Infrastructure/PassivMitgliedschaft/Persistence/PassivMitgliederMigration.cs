@@ -44,7 +44,7 @@ public class FixPassivMitgliederAutoIncrementMigration : MigrationBase
 
     protected override void Migrate()
     {
-        if (IndexExists("PassivMitglieder", "IX_PassivMitglieder_FieldNumber"))
+        if (IndexExists("IX_PassivMitglieder_FieldNumber"))
             Delete.Index("IX_PassivMitglieder_FieldNumber").OnTable("PassivMitglieder").Do();
 
         Delete.Table("PassivMitglieder").Do();
