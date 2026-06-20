@@ -104,4 +104,23 @@ public sealed class BookingAdminService(
         await slotRepo.UpdateAsync(slot);
         await audit.LogAsync("BookingSlot", slotId, "Updated", adminUser, null, new { title, color, notes });
     }
+
+    public async Task<(BookingSlot? Slot, HallMember? Member)> FindSlotWithMemberAsync(int slotId)
+    {
+        var slot = await slotRepo.FindByIdAsync(slotId);
+        if (slot is null) return (null, null);
+        HallMember? member = slot.MemberId.HasValue
+            ? await members.FindByIdAsync(slot.MemberId.Value)
+            : null;
+        return (slot, member);
+    }
+
+    public async Task UpdateMemberContactAsync(int memberId, string contactPerson, string? phone, string adminUser)
+    {
+        var member = await members.FindByIdAsync(memberId)
+            ?? throw new DomainException($"Mieter {memberId} nicht gefunden.");
+        await members.UpdateProfileAsync(memberId, contactPerson, member.BillingName,
+            member.BillingAddress, member.BillingPostalCode, member.BillingCity, phone, member.HasKey);
+        await audit.LogAsync("HallMember", memberId, "ContactUpdated", adminUser, null, new { contactPerson, phone });
+    }
 }

@@ -277,6 +277,70 @@
     </div>
 }
 
+@if (_editSlotId is not null)
+{
+    <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1050">
+        <div class="card" style="min-width:380px;max-width:540px;max-height:90vh;overflow-y:auto">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Buchung bearbeiten</strong>
+                <span class="badge @TypeBadge(_editSlotType.ToString())">@TypeLabel(_editSlotType)</span>
+            </div>
+            <div class="card-body">
+                @if (_editLoading)
+                {
+                    <p>Lade…</p>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Reservierung.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
+                        <input class="form-control" @bind="_editTitle" />
+                    </div>
+
+                    @if (_editSlotType != SporthalleWeb.Domain.Reservierung.SlotType.Blocker)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Farbe</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var c in new[] { "#0078D4","#2e7d32","#c62828","#e65100","#6a1b9a","#00838f","#5d4037","#616161" })
+                                {
+                                    <button type="button"
+                                            style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
+                                            @onclick="() => _editColor = c"
+                                            title="@c"></button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Bemerkungen</label>
+                        <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
+                    </div>
+
+                    @if (_editHasMember)
+                    {
+                        <hr />
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Kontaktperson</label>
+                            <input class="form-control" @bind="_editContactPerson" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Telefon</label>
+                            <input class="form-control" @bind="_editPhone" type="tel" />
+                        </div>
+                    }
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelEdit">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="SaveEditAsync" disabled="@_editLoading">Speichern</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public string AdminUser { get; set; } = "admin";
 
@@ -341,7 +405,18 @@
     private int? _confirmSlotId;
     private int? _rejectSlotId;
     private string? _rejectReason;
+
+    // ── Edit dialog ──────────────────────────────────────────────────────────
     private int? _editSlotId;
+    private SporthalleWeb.Domain.Reservierung.SlotType _editSlotType;
+    private string _editTitle = "";
+    private string? _editColor;
+    private string _editNotes = "";
+    private bool _editHasMember;
+    private int? _editMemberId;
+    private string _editContactPerson = "";
+    private string _editPhone = "";
+    private bool _editLoading;
 
     protected override async Task OnInitializedAsync() => await LoadPendingAsync();
 
@@ -466,7 +541,47 @@
         _ => type.ToString()
     };
 
-    private void OpenEditDialog(int id) { _editSlotId = id; }
+    private async Task OpenEditDialog(int id)
+    {
+        _editSlotId = id;
+        _editLoading = true;
+        var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
+        if (slot is null) { _editSlotId = null; _editLoading = false; return; }
+        _editSlotType        = slot.Type;
+        _editTitle           = slot.Title ?? "";
+        _editColor           = slot.Color ?? "#0078D4";
+        _editNotes           = slot.Notes ?? "";
+        _editHasMember       = member is not null;
+        _editMemberId        = member?.Id;
+        _editContactPerson   = member?.ContactPerson ?? "";
+        _editPhone           = member?.Phone ?? "";
+        _editLoading         = false;
+    }
+
+    private void CancelEdit() { _editSlotId = null; }
+
+    private async Task SaveEditAsync()
+    {
+        if (_editSlotId is null) return;
+        ClearMessages();
+        try
+        {
+            var color = _editSlotType == SporthalleWeb.Domain.Reservierung.SlotType.Blocker
+                ? "#37474f"
+                : (string.IsNullOrWhiteSpace(_editColor) ? null : _editColor.Trim());
+            await AdminService.UpdateSlotAsync(_editSlotId.Value,
+                _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
+                AdminUser);
+            if (_editHasMember && _editMemberId.HasValue)
+                await AdminService.UpdateMemberContactAsync(_editMemberId.Value,
+                    _editContactPerson.Trim(), string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone.Trim(),
+                    AdminUser);
+            _message = "Buchung wurde gespeichert.";
+            _editSlotId = null;
+            await LoadPeriodAsync();
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { _error = ex.Message; }
+    }
 
     private async Task ReactivateAsync(int slotId)
     {
