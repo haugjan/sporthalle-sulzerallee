@@ -126,21 +126,22 @@
 
           <!-- 4. Vorname / Nachname -->
           <div class="bm-field">
-            <label><span id="bm-firstname-label">Vorname</span> *
+            <label><span class="bm-label-row"><span id="bm-firstname-label">Vorname</span> *</span>
               <input type="text" id="bm-firstname" autocomplete="given-name" placeholder="Vorname" />
             </label>
           </div>
           <div class="bm-field">
-            <label><span id="bm-lastname-label">Nachname</span> *
+            <label><span class="bm-label-row"><span id="bm-lastname-label">Nachname</span> *</span>
               <input type="text" id="bm-lastname" autocomplete="family-name" placeholder="Nachname" />
             </label>
           </div>
 
-          <!-- 5. Handynummer / E-Mail -->
+          <!-- 5. Mobilnummer / E-Mail -->
           <div class="bm-field">
-            <label>Mobilnummer * <small>(erreichbar während des Events)</small>
+            <label>Mobilnummer *
               <input type="tel" id="bm-phone" autocomplete="tel" placeholder="+41 79 000 00 00" />
             </label>
+            <small class="bm-field-hint">erreichbar während des Events</small>
           </div>
           <div class="bm-field">
             <label>E-Mail *
