@@ -13,7 +13,7 @@ public sealed class ConfirmBookingUseCase(
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
             ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
-        var oldStatus = slot.Status.ToString();
+        var oldType = slot.Type.ToString();
         slot.Confirm();
         await slotRepo.UpdateAsync(slot);
 
@@ -25,6 +25,6 @@ public sealed class ConfirmBookingUseCase(
         }
 
         await audit.LogAsync("BookingSlot", slotId, "Confirmed", adminUser,
-            new { Status = oldStatus }, new { Status = slot.Status.ToString() });
+            new { Type = oldType }, new { Type = slot.Type.ToString() });
     }
 }

@@ -1,4 +1,3 @@
-using SporthalleWeb.Domain.Reservierung;
 using SporthalleWeb.Domain.Reservierung.Ports;
 
 namespace SporthalleWeb.Application.Reservierung;
@@ -19,7 +18,6 @@ public sealed class GetAvailableTimeSlotsQuery(
         var openStart = await config.GetOpeningHourStartAsync();
         var openEnd = await config.GetOpeningHourEndAsync();
         var blockMin = await config.GetBlockDurationMinutesAsync();
-        var pricePerBlock = await config.GetPricePerBlockAsync();
         var blocksNeeded = dauernMinuten / blockMin;
         var totalBlocks = (openEnd - openStart) * (60 / blockMin);
 
@@ -57,8 +55,7 @@ public sealed class GetAvailableTimeSlotsQuery(
                 EndUtc: endUtc,
                 StartLocal: startLocal.ToString("HH:mm"),
                 EndLocal: endLocal.ToString("HH:mm"),
-                IsAvailable: !hasConflict,
-                PriceTotal: pricePerBlock * blocksNeeded));
+                IsAvailable: !hasConflict));
         }
         return result;
     }

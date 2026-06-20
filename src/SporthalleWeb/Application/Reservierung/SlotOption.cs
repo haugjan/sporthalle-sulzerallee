@@ -5,6 +5,5 @@ public sealed record SlotOption(
     DateTime EndUtc,
     string StartLocal,
     string EndLocal,
-    bool IsAvailable,
-    decimal PriceTotal
+    bool IsAvailable
 );

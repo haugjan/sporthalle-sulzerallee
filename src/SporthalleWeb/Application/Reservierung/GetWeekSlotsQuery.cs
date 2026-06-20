@@ -12,15 +12,14 @@ public sealed class GetWeekSlotsQuery(IBookingSlotRepository slotRepo)
         var slots = await slotRepo.GetForWeekAsync(fromUtc, toUtc);
 
         return slots
-            .Where(s => s.Status != BookingStatus.Cancelled)
+            .Where(s => s.Type != SlotType.Blocker)
             .Select(s => new WeekSlotDto(
                 Id: s.Id,
                 StartUtc: s.Slot.StartUtc,
                 EndUtc: s.Slot.EndUtc,
-                Status: s.Status.ToString(),
-                Color: s.Color ?? (s.IsRecurringSlot ? "#666666" : null),
-                IsRecurringSlot: s.IsRecurringSlot,
-                EventType: s.EventType))
+                Type: s.Type.ToString(),
+                Color: s.Color,
+                Title: s.Title))
             .ToList();
     }
 }

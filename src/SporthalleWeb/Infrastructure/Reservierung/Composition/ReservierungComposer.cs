@@ -24,10 +24,8 @@ public class ReservierungComposer : IComposer
 
         // Repositories
         builder.Services.AddScoped<IBookingSlotRepository, BookingSlotRepository>();
-        builder.Services.AddScoped<IRecurringRuleRepository, RecurringRuleRepository>();
         builder.Services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
         builder.Services.AddScoped<IBookingAuditRepository, BookingAuditRepository>();
-        builder.Services.AddScoped<SchoolHolidayRepository>();
 
         // Infrastructure adapters
         builder.Services.AddScoped<IMemberManagerPort, UmbracoMemberAdapter>();
@@ -52,7 +50,6 @@ public class ReservierungComposer : IComposer
         builder.Services.AddScoped<CreateBookingUseCase>();
         builder.Services.AddScoped<ConfirmBookingUseCase>();
         builder.Services.AddScoped<RejectBookingUseCase>();
-        builder.Services.AddScoped<CreateRecurringRuleUseCase>();
         builder.Services.AddScoped<BookingAdminService>();
     }
 }

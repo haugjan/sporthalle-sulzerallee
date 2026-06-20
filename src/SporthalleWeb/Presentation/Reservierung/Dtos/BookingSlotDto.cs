@@ -5,17 +5,15 @@ namespace SporthalleWeb.Presentation.Reservierung.Dtos;
 public sealed record BookingSlotDto(
     int Id,
     int? MemberId,
-    string Status,
+    string Type,
     DateTime StartUtc,
     DateTime EndUtc,
-    string? EventType,
-    string? Notes,
-    decimal? TotalPrice,
+    string Title,
     string? Color,
-    bool IsRecurringSlot)
+    string? Notes)
 {
     public static BookingSlotDto From(BookingSlot s) => new(
-        s.Id, s.MemberId, s.Status.ToString(),
+        s.Id, s.MemberId, s.Type.ToString(),
         s.Slot.StartUtc, s.Slot.EndUtc,
-        s.EventType, s.Notes, s.TotalPrice, s.Color, s.IsRecurringSlot);
+        s.Title, s.Color, s.Notes);
 }

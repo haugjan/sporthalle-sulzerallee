@@ -4,7 +4,6 @@ public sealed record WeekSlotDto(
     int Id,
     DateTime StartUtc,
     DateTime EndUtc,
-    string Status,
+    string Type,
     string? Color,
-    bool IsRecurringSlot,
-    string? EventType);
+    string Title);

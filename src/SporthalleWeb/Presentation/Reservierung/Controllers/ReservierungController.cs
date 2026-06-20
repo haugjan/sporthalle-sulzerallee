@@ -23,7 +23,6 @@ public sealed class ReservierungController(
     CreateBookingUseCase createBooking,
     ConfirmBookingUseCase confirmBooking,
     RejectBookingUseCase rejectBooking,
-    CreateRecurringRuleUseCase createRecurringRule,
     BookingAdminService adminService,
     IBookingSlotRepository slotRepo,
     IBookingCsvPort csvExport,
@@ -38,12 +37,7 @@ public sealed class ReservierungController(
         var oeffnungVon = await hallConfig.GetOpeningHourStartAsync();
         var oeffnungBis = await hallConfig.GetOpeningHourEndAsync();
         var dauern = await hallConfig.GetBuchbareDauernAsync();
-        return Ok(new
-        {
-            oeffnungVon,
-            oeffnungBis,
-            buchbareDauern = dauern
-        });
+        return Ok(new { oeffnungVon, oeffnungBis, buchbareDauern = dauern });
     }
 
     // ── Gast-Buchung (ohne Login) ─────────────────────────────────────────────
@@ -94,7 +88,7 @@ public sealed class ReservierungController(
             await memberManager.SignInAsync(memberId);
 
             var booking = await createBooking.ExecuteAsync(new CreateBookingCommand(
-                memberId, req.StartUtc, req.EndUtc, req.Anlass, req.Notizen));
+                memberId, req.StartUtc, req.EndUtc, req.Title, req.Notizen));
 
             return Ok(new { bookingId = booking.Id, memberEmail = req.GuestEmail.Trim() });
         }
@@ -125,16 +119,12 @@ public sealed class ReservierungController(
     [HttpGet("verfuegbare-tage")]
     public async Task<IActionResult> GetVerfuegbareTage(
         [FromQuery] string monat, [FromQuery] int dauern = 60)
-    {
-        return Ok(await availableDaysQuery.GetAsync(monat, dauern));
-    }
+        => Ok(await availableDaysQuery.GetAsync(monat, dauern));
 
     [HttpGet("verfuegbare-slots")]
     public async Task<IActionResult> GetVerfuegbareSlots(
         [FromQuery] string datum, [FromQuery] int dauern = 60)
-    {
-        return Ok(await availableTimeSlotsQuery.GetAsync(datum, dauern));
-    }
+        => Ok(await availableTimeSlotsQuery.GetAsync(datum, dauern));
 
     // ── Auth ─────────────────────────────────────────────────────────────────
 
@@ -146,10 +136,7 @@ public sealed class ReservierungController(
             await sendMagicLink.ExecuteAsync(req.Email, HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(new { message = "Falls die E-Mail-Adresse bekannt ist, erhalten Sie einen Anmelde-Link." });
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpPost("auth/validate")]
@@ -160,10 +147,7 @@ public sealed class ReservierungController(
             var member = await validateMagicLink.ExecuteAsync(req.Token);
             return Ok(HallMemberDto.From(member));
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpPost("auth/register")]
@@ -189,10 +173,7 @@ public sealed class ReservierungController(
 
             return Ok(new { message = "Registrierung erfolgreich. Sie erhalten eine Bestätigungs-E-Mail mit Anmelde-Link." });
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpPost("auth/login")]
@@ -203,10 +184,7 @@ public sealed class ReservierungController(
             var member = await loginWithPassword.ExecuteAsync(req.Email, req.Password);
             return Ok(HallMemberDto.From(member));
         }
-        catch (DomainException ex)
-        {
-            return Unauthorized(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return Unauthorized(new { error = ex.Message }); }
     }
 
     [HttpPost("auth/logout")]
@@ -224,10 +202,7 @@ public sealed class ReservierungController(
             await setPassword.ExecuteAsync(memberId.Value, req.NewPassword);
             return Ok();
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpPost("auth/request-password-reset")]
@@ -245,10 +220,7 @@ public sealed class ReservierungController(
             await resetPassword.ExecuteAsync(req.MemberId, req.Token, req.NewPassword);
             return Ok();
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     // ── Current member ────────────────────────────────────────────────────────
@@ -285,7 +257,7 @@ public sealed class ReservierungController(
         try
         {
             var slot = await createBooking.ExecuteAsync(new CreateBookingCommand(
-                memberId.Value, req.StartUtc, req.EndUtc, req.EventType, req.Notes));
+                memberId.Value, req.StartUtc, req.EndUtc, req.Title, req.Notes));
             return Ok(BookingSlotDto.From(slot));
         }
         catch (SlotConflictException ex)
@@ -319,10 +291,7 @@ public sealed class ReservierungController(
             await confirmBooking.ExecuteAsync(id, User.Identity?.Name ?? "admin");
             return Ok();
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpPost("admin/buchungen/{id:int}/reject")]
@@ -334,110 +303,24 @@ public sealed class ReservierungController(
             await rejectBooking.ExecuteAsync(id, reason, User.Identity?.Name ?? "admin");
             return Ok();
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    [HttpPost("admin/buchungen/{id:int}/cancel")]
+    [HttpDelete("admin/buchungen/{id:int}")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> Cancel(int id)
+    public async Task<IActionResult> Delete(int id)
     {
         try
         {
-            await adminService.CancelSlotAsync(id, User.Identity?.Name ?? "admin");
-            return Ok();
+            await adminService.DeleteSlotAsync(id, User.Identity?.Name ?? "admin");
+            return NoContent();
         }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
-    [HttpPut("admin/buchungen/{id:int}/preis")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> AdjustPreis(int id, [FromBody] AdjustPriceRequest req)
-    {
-        try
-        {
-            await adminService.AdjustPriceAsync(id, req.NewPricePerBlock, req.Note, User.Identity?.Name ?? "admin");
-            return Ok();
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
-    [HttpPost("admin/recurring-rules")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> CreateRecurringRule([FromBody] CreateRecurringRuleRequest req)
-    {
-        try
-        {
-            if (!DateOnly.TryParseExact(req.ValidFrom, "yyyy-MM-dd", null,
-                    System.Globalization.DateTimeStyles.None, out var validFrom) ||
-                !DateOnly.TryParseExact(req.ValidUntil, "yyyy-MM-dd", null,
-                    System.Globalization.DateTimeStyles.None, out var validUntil))
-                return BadRequest(new { error = "ValidFrom und ValidUntil müssen im Format YYYY-MM-DD angegeben werden." });
-
-            var cmd = new CreateRecurringRuleCommand
-            {
-                MemberId = req.MemberId,
-                Description = req.Description,
-                DayOfWeek = req.DayOfWeek,
-                StartTime = req.StartTime,
-                EndTime = req.EndTime,
-                ValidFrom = validFrom,
-                ValidUntil = validUntil,
-                IntervalWeeks = req.IntervalWeeks,
-                ExcludeSchoolHolidays = req.ExcludeSchoolHolidays,
-                Color = req.Color,
-                Notes = req.Notes
-            };
-
-            var rule = await createRecurringRule.ExecuteAsync(cmd, User.Identity?.Name ?? "admin");
-            return Ok(new { rule.Id, rule.Description });
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
-    [HttpGet("admin/schulferien")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> GetSchulferien() =>
-        Ok(await adminService.GetSchoolHolidaysAsync());
-
-    [HttpPost("admin/schulferien")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> AddSchulferien([FromBody] SchulferienRequest req)
-    {
-        if (!DateOnly.TryParseExact(req.Von, "yyyy-MM-dd", null,
-                System.Globalization.DateTimeStyles.None, out var von) ||
-            !DateOnly.TryParseExact(req.Bis, "yyyy-MM-dd", null,
-                System.Globalization.DateTimeStyles.None, out var bis))
-            return BadRequest(new { error = "Von und Bis müssen im Format YYYY-MM-DD angegeben werden." });
-
-        var holiday = await adminService.AddHolidayAsync(req.Name, von, bis);
-        return Ok(holiday);
-    }
-
-    [HttpDelete("admin/schulferien/{id:int}")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> DeleteSchulferien(int id)
-    {
-        await adminService.DeleteHolidayAsync(id);
-        return NoContent();
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpGet("admin/export")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> ExportCsv(
-        [FromQuery] string von, [FromQuery] string bis,
-        [FromQuery] bool nurBestaetigt = false)
+    public async Task<IActionResult> ExportCsv([FromQuery] string von, [FromQuery] string bis)
     {
         if (!DateOnly.TryParseExact(von, "yyyy-MM-dd", null,
                 System.Globalization.DateTimeStyles.None, out var fromDate) ||
@@ -447,10 +330,9 @@ public sealed class ReservierungController(
 
         var fromUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
         var toUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local).ToUniversalTime();
-        var csv = await csvExport.ExportAsync(fromUtc, toUtc, nurBestaetigt);
+        var csv = await csvExport.ExportAsync(fromUtc, toUtc);
 
-        return File(csv, "text/csv; charset=utf-8",
-            $"buchungen_{von}_{bis}.csv");
+        return File(csv, "text/csv; charset=utf-8", $"buchungen_{von}_{bis}.csv");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -461,8 +343,6 @@ public sealed class ReservierungController(
         return int.TryParse(claim, out var id) ? id : null;
     }
 }
-
-public sealed record SchulferienRequest(string Name, string Von, string Bis);
 
 public sealed record GastBuchungRequest(
     string GuestName,
@@ -475,5 +355,5 @@ public sealed record GastBuchungRequest(
     string BillingCity,
     DateTime StartUtc,
     DateTime EndUtc,
-    string Anlass,
+    string Title,
     string? Notizen);

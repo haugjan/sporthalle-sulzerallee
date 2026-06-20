@@ -4,6 +4,6 @@ public sealed record CreateBookingCommand(
     int MemberId,
     DateTime StartUtc,
     DateTime EndUtc,
-    string EventType,
+    string Title,
     string? Notes
 );

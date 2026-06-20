@@ -16,10 +16,10 @@
         <div class="kalender-grid">
             @foreach (var slot in _slots)
             {
-                <div class="kalender-slot kalender-slot--@slot.Status.ToLowerInvariant()"
+                <div class="kalender-slot kalender-slot--@slot.Type.ToLowerInvariant()"
                      style="@(slot.Color is not null ? $"border-left-color:{slot.Color}" : "")">
                     <span class="slot-time">@FormatTime(slot.StartUtc) – @FormatTime(slot.EndUtc)</span>
-                    <span class="slot-label">@(slot.EventType ?? slot.Status)</span>
+                    <span class="slot-label">@(string.IsNullOrEmpty(slot.Title) ? slot.Type : slot.Title)</span>
                 </div>
             }
             @if (!_slots.Any())

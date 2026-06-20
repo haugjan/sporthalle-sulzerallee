@@ -7,21 +7,6 @@ using Umbraco.Cms.Core;
 
 namespace SporthalleWeb.Presentation.Reservierung.Controllers;
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// REST-API für die Reservierungsverwaltung im Umbraco-Backoffice
-//
-// Verantwortlich: Admin-Session (feature-reservierungsverwaltung)
-// Kontraktversion: 1.0 — Stand 2026-06-20
-//
-// Alle Endpunkte sind mit dem Umbraco-Backoffice-Auth gesichert.
-// Admin-User für Audit-Log: User.Identity?.Name ?? "admin"
-//
-// TODO (Admin-Session):
-//   - Umbraco Backoffice Section + Tree für Reservationen (IPackageManifestReader)
-//   - Razor-View oder Angular-Komponente für Buchungsliste + Detailansicht
-//   - IBookingSlotRepository um GetAllAsync(from, to, status?) erweitern
-// ═══════════════════════════════════════════════════════════════════════════════
-
 [ApiController]
 [Route("api/admin/reservierungen")]
 [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
@@ -32,10 +17,8 @@ public sealed class ReservierungAdminApiController(
     IBookingSlotRepository slotRepo,
     IBookingCsvPort csvExport) : ControllerBase
 {
-    // ── Pendente Buchungen ────────────────────────────────────────────────────
+    // ── Reservierte Buchungen (ausstehend) ────────────────────────────────────
 
-    // GET /api/admin/reservierungen/pending
-    // Liefert alle Buchungen mit Status "PendingAdminApproval"
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
     {
@@ -45,16 +28,16 @@ public sealed class ReservierungAdminApiController(
 
     // ── Alle Buchungen (gefiltert) ────────────────────────────────────────────
 
-    // GET /api/admin/reservierungen?von=2026-01-01&bis=2026-12-31&status=Provisorisch
+    // GET /api/admin/reservierungen?von=2026-01-01&bis=2026-12-31&type=Booked
     [HttpGet("")]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? von,
         [FromQuery] string? bis,
-        [FromQuery] string? status)
+        [FromQuery] string? type)
     {
         DateOnly? from = null;
         DateOnly? to = null;
-        BookingStatus? bookingStatus = null;
+        SlotType? slotType = null;
 
         if (von is not null)
         {
@@ -68,19 +51,19 @@ public sealed class ReservierungAdminApiController(
                 return BadRequest(new { error = "'bis' muss im Format YYYY-MM-DD angegeben werden." });
             to = parsedTo;
         }
-        if (status is not null)
+        if (type is not null)
         {
-            try { bookingStatus = BookingStatus.FromString(status); }
-            catch { return BadRequest(new { error = $"Unbekannter Status '{status}'. Erlaubt: Provisorisch, Bestätigt, Storniert." }); }
+            if (!Enum.TryParse<SlotType>(type, ignoreCase: true, out var parsed))
+                return BadRequest(new { error = $"Unbekannter Typ '{type}'. Erlaubt: Blocker, Reserved, Booked." });
+            slotType = parsed;
         }
 
-        var slots = await slotRepo.GetAllAsync(from, to, bookingStatus);
+        var slots = await slotRepo.GetAllAsync(from, to, slotType);
         return Ok(slots.Select(s => MapToDto(s, null)));
     }
 
     // ── Einzel-Buchung ────────────────────────────────────────────────────────
 
-    // GET /api/admin/reservierungen/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -90,26 +73,44 @@ public sealed class ReservierungAdminApiController(
         return Ok(MapToDto(slot, null));
     }
 
-    // ── Bestätigen ────────────────────────────────────────────────────────────
+    // ── Erfassen (neuer Slot durch Admin) ────────────────────────────────────
 
-    // POST /api/admin/reservierungen/{id}/bestaetigen
-    // Bestätigt die Buchung und sendet Bestätigungs-E-Mail an den Mieter
+    [HttpPost("")]
+    public async Task<IActionResult> Create([FromBody] AdminCreateSlotRequest req)
+    {
+        if (!Enum.TryParse<SlotType>(req.Type, ignoreCase: true, out var slotType))
+            return BadRequest(new { error = $"Unbekannter Typ '{req.Type}'. Erlaubt: Blocker, Reserved, Booked." });
+        if (string.IsNullOrWhiteSpace(req.Title))
+            return BadRequest(new { error = "Bezeichnung ist erforderlich." });
+        if (slotType != SlotType.Blocker && req.MemberId is null)
+            return BadRequest(new { error = "MitgliedId ist für Reserved und Booked erforderlich." });
+
+        try
+        {
+            var slot = await adminService.CreateSlotAsync(
+                slotType, req.StartUtc, req.EndUtc,
+                req.Title, req.Color, req.Notes,
+                req.MemberId, User.Identity?.Name ?? "admin");
+            return Ok(MapToDto(slot, null));
+        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    // ── Bestätigen (Reserved → Booked) ───────────────────────────────────────
+
     [HttpPost("{id:int}/bestaetigen")]
     public async Task<IActionResult> Bestaetigen(int id)
     {
         try
         {
             await confirmBooking.ExecuteAsync(id, User.Identity?.Name ?? "admin");
-            return Ok(new { bookingId = id, status = "Confirmed" });
+            return Ok(new { bookingId = id, type = "Booked" });
         }
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Ablehnen ──────────────────────────────────────────────────────────────
+    // ── Ablehnen (löscht Reserved-Slot) ──────────────────────────────────────
 
-    // POST /api/admin/reservierungen/{id}/ablehnen
-    // Body: { "grund": "Halle belegt durch Schulanlass" }
-    // Lehnt die Buchung ab und sendet Absage-E-Mail an den Mieter
     [HttpPost("{id:int}/ablehnen")]
     public async Task<IActionResult> Ablehnen(int id, [FromBody] AdminAblehnenRequest req)
     {
@@ -118,59 +119,37 @@ public sealed class ReservierungAdminApiController(
         try
         {
             await rejectBooking.ExecuteAsync(id, req.Grund, User.Identity?.Name ?? "admin");
-            return Ok(new { bookingId = id, status = "Rejected" });
+            return Ok(new { bookingId = id, deleted = true });
         }
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Abbrechen ─────────────────────────────────────────────────────────────
+    // ── Löschen (Booked oder Blocker entfernen) ───────────────────────────────
 
-    // POST /api/admin/reservierungen/{id}/abbrechen
-    // Bricht eine bestätigte Buchung ab (z. B. Stornierung durch Mieter)
-    [HttpPost("{id:int}/abbrechen")]
-    public async Task<IActionResult> Abbrechen(int id)
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Loeschen(int id)
     {
         try
         {
-            await adminService.CancelSlotAsync(id, User.Identity?.Name ?? "admin");
-            return Ok(new { bookingId = id, status = "Cancelled" });
-        }
-        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
-    }
-
-    // ── Preis anpassen ────────────────────────────────────────────────────────
-
-    // POST /api/admin/reservierungen/{id}/preis
-    // Body: { "preisProBlock": 45.00, "notiz": "Vereinsrabatt 10%" }
-    [HttpPost("{id:int}/preis")]
-    public async Task<IActionResult> PreisAnpassen(int id, [FromBody] AdminPreisRequest req)
-    {
-        if (req.PreisProBlock <= 0)
-            return BadRequest(new { error = "Preis muss grösser als 0 sein." });
-        try
-        {
-            await adminService.AdjustPriceAsync(id, req.PreisProBlock, req.Notiz, User.Identity?.Name ?? "admin");
-            return Ok(new { bookingId = id, preisProBlock = req.PreisProBlock });
+            await adminService.DeleteSlotAsync(id, User.Identity?.Name ?? "admin");
+            return Ok(new { bookingId = id, deleted = true });
         }
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     // ── CSV-Export ────────────────────────────────────────────────────────────
 
-    // GET /api/admin/reservierungen/export?von=2026-01-01&bis=2026-12-31&nurBestaetigt=true
     [HttpGet("export")]
     public async Task<IActionResult> Export(
         [FromQuery] string von,
-        [FromQuery] string bis,
-        [FromQuery] bool nurBestaetigt = true)
+        [FromQuery] string bis)
     {
         if (!DateOnly.TryParse(von, out var from) || !DateOnly.TryParse(bis, out var to))
             return BadRequest(new { error = "'von' und 'bis' müssen im Format YYYY-MM-DD angegeben werden." });
 
         var csv = await csvExport.ExportAsync(
             from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc),
-            nurBestaetigt);
+            to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc));
         return File(csv, "text/csv", $"reservierungen-{von}-{bis}.csv");
     }
 
@@ -178,14 +157,14 @@ public sealed class ReservierungAdminApiController(
 
     private static object MapToDto(BookingSlot slot, HallMember? member) => new
     {
-        id            = slot.Id,
-        status        = slot.Status.ToString(),
-        startUtc      = slot.Slot.StartUtc,
-        endUtc        = slot.Slot.EndUtc,
-        anlass        = slot.EventType,
-        notizen       = slot.Notes,
-        preisProBlock = slot.PricePerBlock,
-        mitglied      = member is null ? null : new
+        id       = slot.Id,
+        type     = slot.Type.ToString(),
+        startUtc = slot.Slot.StartUtc,
+        endUtc   = slot.Slot.EndUtc,
+        title    = slot.Title,
+        color    = slot.Color,
+        notizen  = slot.Notes,
+        mitglied = member is null ? null : new
         {
             id            = member.Id,
             email         = member.Email,
@@ -200,4 +179,6 @@ public sealed class ReservierungAdminApiController(
 }
 
 public sealed record AdminAblehnenRequest(string Grund);
-public sealed record AdminPreisRequest(decimal PreisProBlock, string? Notiz);
+public sealed record AdminCreateSlotRequest(
+    string Type, DateTime StartUtc, DateTime EndUtc,
+    string Title, string? Color, string? Notes, int? MemberId);

@@ -10,9 +10,6 @@ public sealed class UmbracoHallConfigurationAdapter(IContentService contentServi
     private Umbraco.Cms.Core.Models.IContent? GetConfigNode() =>
         contentService.GetRootContent().FirstOrDefault(c => c.ContentType.Alias == ConfigAlias);
 
-    public Task<decimal> GetPricePerBlockAsync() =>
-        Task.FromResult(GetConfigNode()?.GetValue<decimal>("pricePerBlock") ?? 50m);
-
     public Task<int> GetBlockDurationMinutesAsync() =>
         Task.FromResult(GetConfigNode()?.GetValue<int>("blockDurationMinutes") is int v && v > 0 ? v : 60);
 

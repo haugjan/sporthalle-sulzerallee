@@ -7,8 +7,7 @@ public sealed class CreateBookingUseCase(
     IBookingSlotRepository slotRepo,
     IMemberManagerPort members,
     IBookingAuditRepository audit,
-    IBookingEmailPort email,
-    IHallConfigurationPort config)
+    IBookingEmailPort email)
 {
     public async Task<BookingSlot> ExecuteAsync(CreateBookingCommand cmd)
     {
@@ -21,15 +20,14 @@ public sealed class CreateBookingUseCase(
         if (overlaps.Count > 0)
             throw new SlotConflictException(slot, overlaps);
 
-        var pricePerBlock = await config.GetPricePerBlockAsync();
-        var booking = BookingSlot.CreateUserBooking(
-            cmd.MemberId, slot, pricePerBlock, cmd.EventType, cmd.Notes, member.Email);
+        var booking = BookingSlot.CreateReserved(
+            cmd.MemberId, slot, cmd.Title, null, cmd.Notes, member.Email);
 
         booking = await slotRepo.SaveAsync(booking);
 
         await audit.LogAsync("BookingSlot", booking.Id, "Created",
             member.Email, null,
-            new { Status = booking.Status.ToString(), slot.StartUtc, slot.EndUtc });
+            new { Type = booking.Type.ToString(), slot.StartUtc, slot.EndUtc });
 
         await email.SendProvisionConfirmationToRenterAsync(booking, member);
         await email.SendAdminNewBookingNotificationAsync(booking, member);

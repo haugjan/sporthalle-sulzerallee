@@ -15,7 +15,8 @@ public class ReservierungMigrationPlan : MigrationPlan
     {
         From(string.Empty)
             .To<CreateBookingSlotsV1>("v1.0.0")
-            .To<AddAllReservierungTablesV2>("v1.1.0");
+            .To<AddAllReservierungTablesV2>("v1.1.0")
+            .To<SimplifyDataModelV3>("v1.2.0");
     }
 }
 
@@ -37,16 +38,11 @@ public class AddAllReservierungTablesV2 : AsyncMigrationBase
 
     protected override Task MigrateAsync()
     {
-        // Handle schema migration: BookingSlots.RenterId → MemberId
-        // No production data exists yet, so drop and recreate is safe.
         if (TableExists("BookingSlots") && ColumnExists("BookingSlots", "RenterId"))
         {
             Delete.Table("BookingSlots").Do();
             Create.Table<BookingSlotRecord>().Do();
         }
-
-        if (!TableExists("RecurringRules"))
-            Create.Table<RecurringRuleRecord>().Do();
 
         if (!TableExists("MagicLinkTokens"))
             Create.Table<MagicLinkTokenRecord>().Do();
@@ -54,8 +50,30 @@ public class AddAllReservierungTablesV2 : AsyncMigrationBase
         if (!TableExists("BookingAuditLog"))
             Create.Table<BookingAuditLogRecord>().Do();
 
-        if (!TableExists("SchoolHolidays"))
-            Create.Table<SchoolHolidayRecord>().Do();
+        return Task.CompletedTask;
+    }
+}
+
+// v1.2.0 — simplified slot model: SlotType replaces BookingStatus, Title replaces EventType,
+// pricing and recurring fields removed, RecurringRules and SchoolHolidays tables dropped.
+// No production data exists, so drop/recreate is safe.
+public class SimplifyDataModelV3 : AsyncMigrationBase
+{
+    public SimplifyDataModelV3(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (TableExists("BookingSlots") && !ColumnExists("BookingSlots", "Type"))
+        {
+            Delete.Table("BookingSlots").Do();
+            Create.Table<BookingSlotRecord>().Do();
+        }
+
+        if (TableExists("RecurringRules"))
+            Delete.Table("RecurringRules").Do();
+
+        if (TableExists("SchoolHolidays"))
+            Delete.Table("SchoolHolidays").Do();
 
         return Task.CompletedTask;
     }

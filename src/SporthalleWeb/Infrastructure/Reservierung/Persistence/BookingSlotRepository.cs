@@ -12,8 +12,8 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE Status <> @0 AND StartUtc >= @1 AND StartUtc < @2",
-            BookingStatus.Cancelled.ToString(), fromUtc, toUtc);
+            "SELECT * FROM BookingSlots WHERE StartUtc >= @0 AND StartUtc < @1",
+            fromUtc, toUtc);
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
         return records.Select(MapToDomain).ToList();
@@ -23,8 +23,8 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE Status <> @0 AND StartUtc < @1 AND EndUtc > @2",
-            BookingStatus.Cancelled.ToString(), slot.EndUtc, slot.StartUtc);
+            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1",
+            slot.EndUtc, slot.StartUtc);
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
         return records.Select(MapToDomain).ToList();
@@ -57,48 +57,36 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         scope.Complete();
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        using var scope = scopeProvider.CreateScope();
+        await scope.Database.ExecuteAsync(new Sql("DELETE FROM BookingSlots WHERE Id = @0", id));
+        scope.Complete();
+    }
+
     public async Task<IReadOnlyList<BookingSlot>> GetForMemberAsync(int memberId)
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE MemberId = @0 AND Status <> @1 ORDER BY StartUtc DESC",
-            memberId, BookingStatus.Cancelled.ToString());
+            "SELECT * FROM BookingSlots WHERE MemberId = @0 ORDER BY StartUtc DESC",
+            memberId);
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
         return records.Select(MapToDomain).ToList();
     }
 
-    public async Task<IReadOnlyList<BookingSlot>> GetForExportAsync(
-        DateTime fromUtc, DateTime toUtc, bool confirmedOnly)
-    {
-        using var scope = scopeProvider.CreateScope();
-        var status = confirmedOnly ? BookingStatus.Confirmed.ToString() : "";
-        Sql sql;
-        if (confirmedOnly)
-            sql = new Sql(
-                "SELECT * FROM BookingSlots WHERE Status = @0 AND StartUtc >= @1 AND StartUtc < @2 ORDER BY StartUtc",
-                status, fromUtc, toUtc);
-        else
-            sql = new Sql(
-                "SELECT * FROM BookingSlots WHERE Status <> @0 AND StartUtc >= @1 AND StartUtc < @2 ORDER BY StartUtc",
-                BookingStatus.Cancelled.ToString(), fromUtc, toUtc);
-        var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
-        scope.Complete();
-        return records.Select(MapToDomain).ToList();
-    }
-
-    public async Task<IReadOnlyList<BookingSlot>> GetPendingAdminApprovalAsync()
+    public async Task<IReadOnlyList<BookingSlot>> GetReservedSlotsAsync()
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE Status = @0 AND IsRecurringSlot = 0 ORDER BY StartUtc",
-            BookingStatus.Provisional.ToString());
+            "SELECT * FROM BookingSlots WHERE Type = @0 ORDER BY StartUtc",
+            SlotType.Reserved.ToString());
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
         return records.Select(MapToDomain).ToList();
     }
 
-    public async Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, BookingStatus? status)
+    public async Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, SlotType? type)
     {
         using var scope = scopeProvider.CreateScope();
         var conditions = new List<string>();
@@ -115,10 +103,10 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
             conditions.Add($"StartUtc < @{idx++}");
             args.Add(to.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
         }
-        if (status is not null)
+        if (type is not null)
         {
-            conditions.Add($"Status = @{idx}");
-            args.Add(status.ToString());
+            conditions.Add($"Type = @{idx}");
+            args.Add(type.ToString()!);
         }
 
         var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
@@ -128,29 +116,15 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         return records.Select(MapToDomain).ToList();
     }
 
-    public async Task SaveBatchAsync(IReadOnlyList<BookingSlot> slots)
-    {
-        using var scope = scopeProvider.CreateScope();
-        foreach (var slot in slots)
-            await scope.Database.InsertAsync(MapToRecord(slot));
-        scope.Complete();
-    }
-
     private static BookingSlot MapToDomain(BookingSlotRecord r) =>
         BookingSlot.FromPersistence(
             id: r.Id,
             memberId: r.MemberId,
-            recurringRuleId: r.RecurringRuleId,
-            status: r.Status,
+            type: r.Type,
             startUtc: DateTime.SpecifyKind(r.StartUtc, DateTimeKind.Utc),
             endUtc: DateTime.SpecifyKind(r.EndUtc, DateTimeKind.Utc),
-            pricePerBlock: r.PricePerBlock,
-            totalBlocks: r.TotalBlocks,
-            totalPrice: r.TotalPrice,
-            priceNote: r.PriceNote,
-            isRecurringSlot: r.IsRecurringSlot,
+            title: r.Title,
             color: r.Color,
-            eventType: r.EventType,
             notes: r.Notes,
             createdAt: DateTime.SpecifyKind(r.CreatedAt, DateTimeKind.Utc),
             updatedAt: DateTime.SpecifyKind(r.UpdatedAt, DateTimeKind.Utc),
@@ -160,17 +134,11 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         new()
         {
             MemberId = s.MemberId,
-            RecurringRuleId = s.RecurringRuleId,
-            Status = s.Status.ToString(),
+            Type = s.Type.ToString(),
             StartUtc = s.Slot.StartUtc,
             EndUtc = s.Slot.EndUtc,
-            PricePerBlock = s.PricePerBlock,
-            TotalBlocks = s.TotalBlocks,
-            TotalPrice = s.TotalPrice,
-            PriceNote = s.PriceNote,
-            IsRecurringSlot = s.IsRecurringSlot,
+            Title = s.Title,
             Color = s.Color,
-            EventType = s.EventType,
             Notes = s.Notes,
             CreatedAt = s.CreatedAt,
             UpdatedAt = s.UpdatedAt,

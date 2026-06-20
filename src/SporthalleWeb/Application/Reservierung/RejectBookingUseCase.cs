@@ -13,9 +13,8 @@ public sealed class RejectBookingUseCase(
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
             ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
-        var oldStatus = slot.Status.ToString();
-        slot.Reject();
-        await slotRepo.UpdateAsync(slot);
+        if (slot.Type != SlotType.Reserved)
+            throw new DomainException("Nur reservierte Buchungen können abgelehnt werden.");
 
         if (slot.MemberId.HasValue)
         {
@@ -24,7 +23,8 @@ public sealed class RejectBookingUseCase(
                 await email.SendBookingRejectedToRenterAsync(slot, member);
         }
 
+        await slotRepo.DeleteAsync(slotId);
         await audit.LogAsync("BookingSlot", slotId, "Rejected", adminUser,
-            new { Status = oldStatus, Reason = reason }, new { Status = slot.Status.ToString() });
+            new { Type = slot.Type.ToString(), Reason = reason }, null);
     }
 }

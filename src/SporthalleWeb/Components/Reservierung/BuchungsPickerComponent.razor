@@ -82,10 +82,6 @@
                                 disabled="@(!slot.IsAvailable)"
                                 @onclick="() => SelectSlot(slot)">
                             @slot.StartLocal – @slot.EndLocal
-                            @if (slot.IsAvailable)
-                            {
-                                <small class="ms-1">CHF @slot.PriceTotal.ToString("0.–")</small>
-                            }
                         </button>
                     }
                 </div>
@@ -97,7 +93,7 @@
             <h3 class="h5 mt-3">Deine Kontaktdaten</h3>
             <p class="text-muted small mb-3">
                 @_selectedDate, @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr &middot;
-                @_selectedDauer min &middot; CHF @_selectedSlot.PriceTotal.ToString("0.–")
+                @_selectedDauer min
             </p>
 
             @if (_isLoggedIn)
@@ -159,8 +155,6 @@
                 <dd class="col-sm-8">@_selectedDate, @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr</dd>
                 <dt class="col-sm-4">Dauer</dt>
                 <dd class="col-sm-8">@_selectedDauer min</dd>
-                <dt class="col-sm-4">Preis</dt>
-                <dd class="col-sm-8">CHF @_selectedSlot.PriceTotal.ToString("0.–")</dd>
                 <dt class="col-sm-4">Kontakt</dt>
                 <dd class="col-sm-8">@(_isLoggedIn ? _email : $"{_guestName} ({_guestEmail})")</dd>
             </dl>
