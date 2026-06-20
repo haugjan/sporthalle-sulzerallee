@@ -455,9 +455,9 @@
 
     private static string StatusBadge(string status) => status switch
     {
-        "Confirmed" => "bg-success",
-        "Provisional" => "bg-warning text-dark",
-        "Rejected" => "bg-danger",
+        "Bestätigt"   => "bg-success",
+        "Provisorisch" => "bg-warning text-dark",
+        "Storniert"   => "bg-danger",
         _ => "bg-secondary"
     };
 

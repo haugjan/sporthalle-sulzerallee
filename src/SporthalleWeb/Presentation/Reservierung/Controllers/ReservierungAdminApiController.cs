@@ -45,15 +45,37 @@ public sealed class ReservierungAdminApiController(
 
     // ── Alle Buchungen (gefiltert) ────────────────────────────────────────────
 
-    // GET /api/admin/reservierungen?von=2026-01-01&bis=2026-12-31&status=Confirmed
-    // TODO (Admin-Session): IBookingSlotRepository.GetAllAsync(from?, to?, status?) implementieren
+    // GET /api/admin/reservierungen?von=2026-01-01&bis=2026-12-31&status=Provisorisch
     [HttpGet("")]
-    public IActionResult GetAll(
+    public async Task<IActionResult> GetAll(
         [FromQuery] string? von,
         [FromQuery] string? bis,
         [FromQuery] string? status)
     {
-        return StatusCode(501, new { error = "Noch nicht implementiert — Admin-Session." });
+        DateOnly? from = null;
+        DateOnly? to = null;
+        BookingStatus? bookingStatus = null;
+
+        if (von is not null)
+        {
+            if (!DateOnly.TryParse(von, out var parsedFrom))
+                return BadRequest(new { error = "'von' muss im Format YYYY-MM-DD angegeben werden." });
+            from = parsedFrom;
+        }
+        if (bis is not null)
+        {
+            if (!DateOnly.TryParse(bis, out var parsedTo))
+                return BadRequest(new { error = "'bis' muss im Format YYYY-MM-DD angegeben werden." });
+            to = parsedTo;
+        }
+        if (status is not null)
+        {
+            try { bookingStatus = BookingStatus.FromString(status); }
+            catch { return BadRequest(new { error = $"Unbekannter Status '{status}'. Erlaubt: Provisorisch, Bestätigt, Storniert." }); }
+        }
+
+        var slots = await slotRepo.GetAllAsync(from, to, bookingStatus);
+        return Ok(slots.Select(s => MapToDto(s, null)));
     }
 
     // ── Einzel-Buchung ────────────────────────────────────────────────────────

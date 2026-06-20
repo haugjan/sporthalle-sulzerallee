@@ -98,6 +98,36 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         return records.Select(MapToDomain).ToList();
     }
 
+    public async Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, BookingStatus? status)
+    {
+        using var scope = scopeProvider.CreateScope();
+        var conditions = new List<string>();
+        var args = new List<object>();
+        int idx = 0;
+
+        if (from is not null)
+        {
+            conditions.Add($"StartUtc >= @{idx++}");
+            args.Add(from.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+        }
+        if (to is not null)
+        {
+            conditions.Add($"StartUtc < @{idx++}");
+            args.Add(to.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+        }
+        if (status is not null)
+        {
+            conditions.Add($"Status = @{idx}");
+            args.Add(status.ToString());
+        }
+
+        var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+        var sql = new Sql($"SELECT * FROM BookingSlots {where} ORDER BY StartUtc DESC", args.ToArray());
+        var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
+        scope.Complete();
+        return records.Select(MapToDomain).ToList();
+    }
+
     public async Task SaveBatchAsync(IReadOnlyList<BookingSlot> slots)
     {
         using var scope = scopeProvider.CreateScope();

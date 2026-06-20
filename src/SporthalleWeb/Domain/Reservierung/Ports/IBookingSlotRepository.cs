@@ -10,5 +10,6 @@ public interface IBookingSlotRepository
     Task<IReadOnlyList<BookingSlot>> GetForMemberAsync(int memberId);
     Task<IReadOnlyList<BookingSlot>> GetForExportAsync(DateTime fromUtc, DateTime toUtc, bool confirmedOnly);
     Task<IReadOnlyList<BookingSlot>> GetPendingAdminApprovalAsync();
+    Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, BookingStatus? status);
     Task SaveBatchAsync(IReadOnlyList<BookingSlot> slots);
 }
