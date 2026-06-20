@@ -73,6 +73,29 @@ public sealed class ReservierungAdminApiController(
         return Ok(MapToDto(slot, null));
     }
 
+    // ── Erfassen (neuer Slot durch Admin) ────────────────────────────────────
+
+    [HttpPost("")]
+    public async Task<IActionResult> Create([FromBody] AdminCreateSlotRequest req)
+    {
+        if (!Enum.TryParse<SlotType>(req.Type, ignoreCase: true, out var slotType))
+            return BadRequest(new { error = $"Unbekannter Typ '{req.Type}'. Erlaubt: Blocker, Reserved, Booked." });
+        if (string.IsNullOrWhiteSpace(req.Title))
+            return BadRequest(new { error = "Bezeichnung ist erforderlich." });
+        if (slotType != SlotType.Blocker && req.MemberId is null)
+            return BadRequest(new { error = "MitgliedId ist für Reserved und Booked erforderlich." });
+
+        try
+        {
+            var slot = await adminService.CreateSlotAsync(
+                slotType, req.StartUtc, req.EndUtc,
+                req.Title, req.Color, req.Notes,
+                req.MemberId, User.Identity?.Name ?? "admin");
+            return Ok(MapToDto(slot, null));
+        }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
     // ── Bestätigen (Reserved → Booked) ───────────────────────────────────────
 
     [HttpPost("{id:int}/bestaetigen")]
@@ -156,3 +179,6 @@ public sealed class ReservierungAdminApiController(
 }
 
 public sealed record AdminAblehnenRequest(string Grund);
+public sealed record AdminCreateSlotRequest(
+    string Type, DateTime StartUtc, DateTime EndUtc,
+    string Title, string? Color, string? Notes, int? MemberId);

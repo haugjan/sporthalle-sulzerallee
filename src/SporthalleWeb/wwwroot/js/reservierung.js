@@ -240,9 +240,8 @@
       el.style.left = left + 'px';
       el.style.width = width + 'px';
 
-      if (slot.isRecurringSlot && slot.color) {
+      if (slot.color) {
         el.style.background = slot.color;
-        el.style.opacity = '0.9';
       }
 
       if (height >= 16) {
@@ -250,7 +249,7 @@
         label.className = 'booking-overlay__label';
         var titleEl = document.createElement('span');
         titleEl.className = 'bol-title';
-        titleEl.textContent = slot.eventType || '';
+        titleEl.textContent = slot.title || '';
         label.appendChild(titleEl);
         if (height >= 40) {
           var timeEl = document.createElement('span');
@@ -266,9 +265,8 @@
   }
 
   function getOverlayMod(slot) {
-    if (slot.isRecurringSlot) return 'recurring';
-    if (slot.status === 'Provisorisch' || slot.status === 'Provisional') return 'provisional';
-    return 'confirmed';
+    if (slot.type === 'Booked') return 'confirmed';
+    return 'provisional'; // Reserved
   }
 
   // ── Drag-to-Select ────────────────────────────────────────────────────────
@@ -482,10 +480,16 @@
 
     updateSlotMeta(slot);
 
-    // Auf Mobile nach unten scrollen
+    // Panel ins Sichtfeld scrollen (auf Mobilgeräten scrollt es nach unten,
+    // auf Desktop wird es sichtbar gemacht falls es ausserhalb des Viewports ist)
     var panel = document.getElementById('slot-panel');
-    if (panel && window.innerWidth < 900) {
-      setTimeout(function () { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+    if (panel) {
+      setTimeout(function () {
+        var rect = panel.getBoundingClientRect();
+        if (rect.top < 60 || rect.bottom > window.innerHeight) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
     }
   }
 
@@ -649,7 +653,7 @@
         billingCity: billingCity,
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
-        anlass: anlass,
+        title: anlass,
         notizen: notizen || null
       })
     })

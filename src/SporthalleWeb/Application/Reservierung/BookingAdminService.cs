@@ -22,6 +22,27 @@ public sealed class BookingAdminService(
         return result;
     }
 
+    public async Task<BookingSlot> CreateSlotAsync(
+        SlotType type, DateTime startUtc, DateTime endUtc,
+        string title, string? color, string? notes,
+        int? memberId, string adminUser)
+    {
+        var timeSlot = new TimeSlot(startUtc, endUtc);
+
+        BookingSlot slot = type switch
+        {
+            SlotType.Blocker  => BookingSlot.CreateBlocker(timeSlot, title, color, notes, adminUser),
+            SlotType.Reserved => BookingSlot.CreateReserved(memberId!.Value, timeSlot, title, color, notes, adminUser),
+            SlotType.Booked   => BookingSlot.CreateBooked(memberId!.Value, timeSlot, title, color, notes, adminUser),
+            _                 => throw new DomainException($"Unbekannter Slot-Typ: {type}")
+        };
+
+        var saved = await slotRepo.SaveAsync(slot);
+        await audit.LogAsync("BookingSlot", saved.Id, "Created", adminUser,
+            null, new { Type = saved.Type.ToString(), Title = saved.Title });
+        return saved;
+    }
+
     public async Task DeleteSlotAsync(int slotId, string adminUser)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
