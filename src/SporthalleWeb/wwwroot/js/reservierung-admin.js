@@ -358,6 +358,7 @@ window.SporthalleAdmin = (function () {
   }
 
   function onDragStart(e) {
+    e.preventDefault(); // prevent text selection anywhere inside the calendar grid
     var target = e.target;
     if (!target.classList.contains('cal-cell')) return;
     if (target.classList.contains('is-past')) return;
@@ -375,7 +376,6 @@ window.SporthalleAdmin = (function () {
     if (isPastDay(days[dayIdx])) return;
     var startBlock = blockFromY(relY, layout.contentTop);
     if (isBlockOccupied(dayIdx, startBlock, days)) return;
-    e.preventDefault();
     isDragging = true;
     dragState = { dayIdx: dayIdx, startBlock: startBlock, currentEndBlock: startBlock + 2, days: days, layout: layout };
     renderSelectionOverlay(dayIdx, startBlock, startBlock + 2, layout);
