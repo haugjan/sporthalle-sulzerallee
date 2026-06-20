@@ -1,100 +1,145 @@
-@using System.Linq
-@using SporthalleWeb.Application.PassivMitgliedschaft
-@using SporthalleWeb.Domain.PassivMitgliedschaft
-@using SporthalleWeb.Domain.PassivMitgliedschaft.Ports
 @inject AdminService AdminSvc
 @inject IPassivMitgliederRepository Repo
 
-<div class="admin-panel">
-    <div class="admin-header">
-        <h1>Passivmitglieder-Verwaltung</h1>
-        <div class="admin-toolbar">
-            <a href="/api/passivmitglieder/admin/export/excel" class="admin-btn admin-btn--secondary" target="_blank">
-                Excel-Export
-            </a>
-            <a href="/api/passivmitglieder/admin/export/abaninja" class="admin-btn admin-btn--secondary" target="_blank">
-                AbaNinja-CSV
-            </a>
-        </div>
+<style>
+    .pm-admin { height: 100%; display: flex; flex-direction: column; }
+
+    .admin-subnav {
+        background: #1A5FAD;
+        display: flex;
+        align-items: stretch;
+        padding: 0 0.5rem;
+        flex-shrink: 0;
+    }
+    .subnav-btn {
+        color: rgba(255,255,255,0.75);
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.7rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: color 0.15s, background 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .subnav-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .subnav-btn.active { color: #fff; border-bottom-color: #fff; }
+    .admin-content { padding: 1.5rem; flex: 1; overflow-y: auto; }
+</style>
+
+<div class="pm-admin">
+
+    <nav class="admin-subnav">
+        @foreach (var tab in _tabs)
+        {
+            <button class="subnav-btn @(_activeTab == tab ? "active" : "")"
+                    @onclick="() => SetTab(tab)">@tab</button>
+        }
+    </nav>
+
+    <div class="admin-content">
+
+        @if (StatusMessage is not null)
+        {
+            <div class="admin-status @(StatusIsError ? "admin-status--error" : "admin-status--success")">
+                @StatusMessage
+            </div>
+        }
+
+        @switch (_activeTab)
+        {
+            case "Mitglieder":
+                @if (IsLoading)
+                {
+                    <p class="admin-loading">Lade Mitglieder…</p>
+                }
+                else if (Members.Count == 0)
+                {
+                    <p class="admin-empty">Noch keine Passivmitglieder registriert.</p>
+                }
+                else
+                {
+                    <p class="admin-count">@Members.Count Mitglied@(Members.Count == 1 ? "" : "er")</p>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" @onclick='() => SortBy("FieldNumber")'>Feld @SortIndicator("FieldNumber")</th>
+                                    <th>VIP</th>
+                                    <th class="sortable" @onclick='() => SortBy("Level")'>Stufe @SortIndicator("Level")</th>
+                                    <th class="sortable" @onclick='() => SortBy("LastName")'>Name @SortIndicator("LastName")</th>
+                                    <th>E-Mail</th>
+                                    <th>Adresse</th>
+                                    <th class="sortable" @onclick='() => SortBy("CreatedAt")'>Angemeldet @SortIndicator("CreatedAt")</th>
+                                    <th>Bezahlt</th>
+                                    <th>Notizen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in SortedMembers)
+                                {
+                                    <tr class="@(m.PaidAt.HasValue ? "row-paid" : "")">
+                                        <td>@m.FieldNumber.Value</td>
+                                        <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
+                                        <td>
+                                            <span class="level-badge level-badge--@m.Level.Key.ToLowerInvariant()">@m.Level.Key</span>
+                                            <br /><small>@m.Level.DisplayName</small>
+                                        </td>
+                                        <td>@m.FirstName @m.LastName</td>
+                                        <td><a href="mailto:@m.Email.Value">@m.Email.Value</a></td>
+                                        <td>@m.AddressLine, @m.PostalCode @m.City</td>
+                                        <td>@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                        <td>
+                                            @if (m.PaidAt.HasValue)
+                                            {
+                                                <span class="paid-check">✓ @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                            }
+                                            else
+                                            {
+                                                <button class="admin-btn admin-btn--small admin-btn--pay"
+                                                        @onclick="() => MarkAsPaidAsync(m.Id)"
+                                                        disabled="@BusyIds.Contains(m.Id)">
+                                                    Als bezahlt markieren
+                                                </button>
+                                            }
+                                        </td>
+                                        <td>
+                                            <textarea class="admin-notes" rows="2"
+                                                      @bind="NotesBuffer[m.Id]"
+                                                      @onblur="() => SaveNotesAsync(m.Id)"></textarea>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                break;
+
+            case "Exporte":
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;padding-top:0.5rem;">
+                    <a href="/api/passivmitglieder/admin/export/excel"
+                       class="admin-btn admin-btn--secondary" target="_blank">
+                        Excel-Export
+                    </a>
+                    <a href="/api/passivmitglieder/admin/export/abaninja"
+                       class="admin-btn admin-btn--secondary" target="_blank">
+                        AbaNinja-CSV
+                    </a>
+                </div>
+                break;
+        }
+
     </div>
-
-    @if (IsLoading)
-    {
-        <p class="admin-loading">Lade Mitglieder…</p>
-    }
-    else if (Members.Count == 0)
-    {
-        <p class="admin-empty">Noch keine Passivmitglieder registriert.</p>
-    }
-    else
-    {
-        <p class="admin-count">@Members.Count Mitglied@(Members.Count == 1 ? "" : "er")</p>
-
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th class="sortable" @onclick='() => SortBy("FieldNumber")'>Feld @SortIndicator("FieldNumber")</th>
-                        <th>VIP</th>
-                        <th class="sortable" @onclick='() => SortBy("Level")'>Stufe @SortIndicator("Level")</th>
-                        <th class="sortable" @onclick='() => SortBy("LastName")'>Name @SortIndicator("LastName")</th>
-                        <th>E-Mail</th>
-                        <th>Adresse</th>
-                        <th class="sortable" @onclick='() => SortBy("CreatedAt")'>Angemeldet @SortIndicator("CreatedAt")</th>
-                        <th>Bezahlt</th>
-                        <th>Notizen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var m in SortedMembers)
-                    {
-                        <tr class="@(m.PaidAt.HasValue ? "row-paid" : "")">
-                            <td>@m.FieldNumber.Value</td>
-                            <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
-                            <td>
-                                <span class="level-badge level-badge--@m.Level.Key.ToLowerInvariant()">@m.Level.Key</span>
-                                <br /><small>@m.Level.DisplayName</small>
-                            </td>
-                            <td>@m.FirstName @m.LastName</td>
-                            <td><a href="mailto:@m.Email.Value">@m.Email.Value</a></td>
-                            <td>@m.AddressLine, @m.PostalCode @m.City</td>
-                            <td>@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
-                            <td>
-                                @if (m.PaidAt.HasValue)
-                                {
-                                    <span class="paid-check" title="Bezahlt am @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")">✓ @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
-                                }
-                                else
-                                {
-                                    <button class="admin-btn admin-btn--small admin-btn--pay"
-                                            @onclick="() => MarkAsPaidAsync(m.Id)"
-                                            disabled="@BusyIds.Contains(m.Id)">
-                                        Als bezahlt markieren
-                                    </button>
-                                }
-                            </td>
-                            <td>
-                                <textarea class="admin-notes"
-                                          rows="2"
-                                          @bind="NotesBuffer[m.Id]"
-                                          @onblur="() => SaveNotesAsync(m.Id)"></textarea>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-
-    @if (StatusMessage is not null)
-    {
-        <div class="admin-status @(StatusIsError ? "admin-status--error" : "admin-status--success")">
-            @StatusMessage
-        </div>
-    }
 </div>
 
 @code {
+    private static readonly string[] _tabs = ["Mitglieder", "Exporte"];
+    private string _activeTab = "Mitglieder";
+
     private bool IsLoading = true;
     private IReadOnlyList<PassivMitglied> Members = [];
     private string SortColumn = "FieldNumber";
@@ -111,9 +156,12 @@
         _           => Members.OrderBy(m => m.FieldNumber.Value)
     };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task SetTab(string tab)
     {
-        await ReloadAsync();
+        _activeTab = tab;
+        if (tab == "Mitglieder" && Members.Count == 0) await ReloadAsync();
     }
 
     private async Task ReloadAsync()
@@ -124,10 +172,7 @@
         IsLoading = false;
     }
 
-    private void SortBy(string column)
-    {
-        SortColumn = column;
-    }
+    private void SortBy(string column) => SortColumn = column;
 
     private string SortIndicator(string column) => SortColumn == column ? "▲" : "";
 
@@ -140,14 +185,8 @@
             await ReloadAsync();
             ShowStatus("Zahlung wurde gespeichert.", false);
         }
-        catch (Exception ex)
-        {
-            ShowStatus(ex.Message, true);
-        }
-        finally
-        {
-            BusyIds.Remove(memberId);
-        }
+        catch (Exception ex) { ShowStatus(ex.Message, true); }
+        finally { BusyIds.Remove(memberId); }
     }
 
     private async Task SaveNotesAsync(int memberId)
@@ -158,10 +197,7 @@
             await AdminSvc.UpdateNotesAsync(memberId, notes);
             ShowStatus("Notiz gespeichert.", false);
         }
-        catch (Exception ex)
-        {
-            ShowStatus(ex.Message, true);
-        }
+        catch (Exception ex) { ShowStatus(ex.Message, true); }
     }
 
     private void ShowStatus(string message, bool isError)
