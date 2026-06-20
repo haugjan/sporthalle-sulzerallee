@@ -1,0 +1,275 @@
+@model IReadOnlyList<SporthalleWeb.Domain.PassivMitgliedschaft.PassivMitglied>
+@using SporthalleWeb.Domain.PassivMitgliedschaft
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Passivmitglieder</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 0.875rem;
+            color: #1a1a2e;
+            background: #f5f7fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .subnav {
+            background: #1A5FAD;
+            display: flex;
+            align-items: stretch;
+            padding: 0 0.5rem;
+            flex-shrink: 0;
+        }
+        .subnav-btn {
+            color: rgba(255,255,255,0.75);
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 0.7rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .subnav-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .subnav-btn.active { color: #fff; border-bottom-color: #fff; }
+
+        .tab { display: none; padding: 1.5rem; flex: 1; overflow-y: auto; }
+        .tab.active { display: block; }
+
+        .count { color: #555; margin-bottom: 1rem; }
+
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        th {
+            background: #1A5FAD;
+            color: #fff;
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.55rem 0.75rem;
+            border-bottom: 1px solid #eef0f4;
+            vertical-align: top;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr.paid td { background: #f0fdf4; }
+        tr:hover td { background: #f8faff; }
+        tr.paid:hover td { background: #e8faf0; }
+
+        .level-key {
+            display: inline-block;
+            background: #1A5FAD;
+            color: #fff;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .level-name { color: #666; font-size: 0.78rem; }
+
+        .paid-mark { color: #16a34a; font-weight: 500; }
+
+        .btn-pay {
+            background: #1A5FAD;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.78rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-pay:hover { background: #154f96; }
+        .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .notes-field {
+            width: 100%;
+            min-width: 120px;
+            border: 1px solid #dde1ea;
+            border-radius: 4px;
+            padding: 0.3rem 0.4rem;
+            font-size: 0.8rem;
+            font-family: inherit;
+            resize: vertical;
+            background: #fafbfc;
+        }
+        .notes-field:focus { outline: none; border-color: #1A5FAD; background: #fff; }
+        .notes-saved { color: #16a34a; font-size: 0.75rem; display: none; }
+
+        .export-actions { display: flex; gap: 1rem; flex-wrap: wrap; padding-top: 0.5rem; }
+        .btn-export {
+            display: inline-block;
+            background: #1A5FAD;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .btn-export:hover { background: #154f96; }
+
+        .status-bar {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: #1e293b;
+            color: #fff;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .status-bar.show { opacity: 1; }
+        .status-bar.error { background: #dc2626; }
+    </style>
+</head>
+<body>
+
+<nav class="subnav">
+    <button class="subnav-btn active" onclick="showTab('mitglieder', this)">Mitglieder (@Model.Count)</button>
+    <button class="subnav-btn" onclick="showTab('exporte', this)">Exporte</button>
+</nav>
+
+<div id="tab-mitglieder" class="tab active">
+    @if (Model.Count == 0)
+    {
+        <p class="count">Noch keine Passivmitglieder registriert.</p>
+    }
+    else
+    {
+        <p class="count">@Model.Count Mitglied@(Model.Count == 1 ? "" : "er")</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feld</th>
+                        <th>VIP</th>
+                        <th>Stufe</th>
+                        <th>Name</th>
+                        <th>E-Mail</th>
+                        <th>Adresse</th>
+                        <th>Angemeldet</th>
+                        <th>Bezahlt</th>
+                        <th>Notizen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model.OrderBy(x => x.FieldNumber.Value))
+                    {
+                        <tr class="@(m.PaidAt.HasValue ? "paid" : "")" data-id="@m.Id">
+                            <td>@m.FieldNumber.Value</td>
+                            <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
+                            <td>
+                                <span class="level-key">@m.Level.Key</span><br />
+                                <span class="level-name">@m.Level.DisplayName</span>
+                            </td>
+                            <td>@m.FirstName @m.LastName</td>
+                            <td><a href="mailto:@m.Email.Value">@m.Email.Value</a></td>
+                            <td>@m.AddressLine<br />@m.PostalCode @m.City</td>
+                            <td>@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            <td class="paid-cell">
+                                @if (m.PaidAt.HasValue)
+                                {
+                                    <span class="paid-mark">✓ @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                }
+                                else
+                                {
+                                    <button class="btn-pay" onclick="markPaid(@m.Id, this)">Als bezahlt markieren</button>
+                                }
+                            </td>
+                            <td>
+                                <textarea class="notes-field" rows="2"
+                                          onblur="saveNotes(@m.Id, this)">@m.Notes</textarea>
+                                <span class="notes-saved" id="notes-saved-@m.Id">Gespeichert</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<div id="tab-exporte" class="tab">
+    <div class="export-actions">
+        <a href="/api/passivmitglieder/admin/export/excel" class="btn-export" target="_blank">Excel-Export</a>
+        <a href="/api/passivmitglieder/admin/export/abaninja" class="btn-export" target="_blank">AbaNinja-CSV</a>
+    </div>
+</div>
+
+<div class="status-bar" id="status-bar"></div>
+
+<script>
+    function showTab(name, btn) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.subnav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function showStatus(msg, isError) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.classList.toggle('error', isError);
+        bar.classList.add('show');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => bar.classList.remove('show'), 3000);
+    }
+
+    async function markPaid(id, btn) {
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/passivmitglieder/' + id + '/paid', { method: 'POST' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const today = new Date().toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const cell = btn.closest('.paid-cell');
+            cell.innerHTML = '<span class="paid-mark">✓ ' + today + '</span>';
+            btn.closest('tr').classList.add('paid');
+            showStatus('Zahlung gespeichert.', false);
+        } catch (e) {
+            btn.disabled = false;
+            showStatus('Fehler: ' + e.message, true);
+        }
+    }
+
+    async function saveNotes(id, textarea) {
+        try {
+            const res = await fetch('/api/passivmitglieder/' + id + '/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Notes: textarea.value })
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const saved = document.getElementById('notes-saved-' + id);
+            saved.style.display = 'block';
+            setTimeout(() => { saved.style.display = 'none'; }, 2000);
+        } catch (e) {
+            showStatus('Notiz konnte nicht gespeichert werden: ' + e.message, true);
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ using SporthalleWeb.Application.PassivMitgliedschaft;
 using SporthalleWeb.Domain.PassivMitgliedschaft;
 using SporthalleWeb.Domain.PassivMitgliedschaft.Ports;
 using SporthalleWeb.Presentation.PassivMitgliedschaft.Dtos;
+using Umbraco.Cms.Core;
 
 namespace SporthalleWeb.Presentation.PassivMitgliedschaft.Controllers;
 
@@ -77,7 +78,7 @@ public class PassivMitgliederController : ControllerBase
         }
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
     [HttpPost("{id:int}/paid")]
     public async Task<IActionResult> MarkAsPaid(int id)
     {
@@ -92,7 +93,7 @@ public class PassivMitgliederController : ControllerBase
         }
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
     [HttpPost("{id:int}/notes")]
     public async Task<IActionResult> UpdateNotes(int id, [FromBody] UpdateNotesRequest req)
     {
@@ -107,7 +108,7 @@ public class PassivMitgliederController : ControllerBase
         }
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
     [HttpGet("admin/members")]
     public async Task<IActionResult> GetAllMembers()
     {
@@ -132,7 +133,7 @@ public class PassivMitgliederController : ControllerBase
         }));
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
     [HttpGet("admin/export/excel")]
     public async Task<IActionResult> ExportExcel()
     {
@@ -142,7 +143,7 @@ public class PassivMitgliederController : ControllerBase
             "passivmitglieder.xlsx");
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
     [HttpGet("admin/export/abaninja")]
     public async Task<IActionResult> ExportAbaninja()
     {
