@@ -343,7 +343,7 @@
 }
 
 /* SVG grid cells */
-.pm-cell { cursor: pointer; transition: opacity 0.1s; }
+.pm-cell { cursor: crosshair; transition: opacity 0.1s; }
 
 /* In collapsed view: cells pass through pointer events; SVG shows hand cursor */
 .pm-floor-section:not(.is-expanded) .pm-cell {
