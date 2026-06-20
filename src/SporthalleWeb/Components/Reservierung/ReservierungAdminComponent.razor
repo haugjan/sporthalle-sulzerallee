@@ -391,7 +391,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Farbe</label>
                             <div class="d-flex flex-wrap gap-2">
-                                @foreach (var c in new[] { "#0078D4","#2e7d32","#c62828","#e65100","#6a1b9a","#00838f","#5d4037","#616161" })
+                                @foreach (var c in new[] { "#F1C40F","#C0392B","#1F4E79","#2B4C7E","#1E5E4A","#4A5568","#8C3A5C","#A8522A","#4A3762","#1A5A66","#3A563C","#5C4033" })
                                 {
                                     <button type="button"
                                             style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
@@ -637,7 +637,7 @@
         if (slot is null) { _editSlotId = null; _editLoading = false; return; }
         _editSlotType        = slot.Type;
         _editTitle           = slot.Title ?? "";
-        _editColor           = slot.Color ?? "#0078D4";
+        _editColor           = slot.Color ?? "#C0392B";
         _editNotes           = slot.Notes ?? "";
         _editHasMember       = member is not null;
         _editMemberId        = member?.Id;

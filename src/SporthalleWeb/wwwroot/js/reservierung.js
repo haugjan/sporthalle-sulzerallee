@@ -275,7 +275,7 @@
   }
 
   function getDefaultColor(slot) {
-    if (slot.type === 'Reserved') return '#0078D4';
+    if (slot.type === 'Reserved') return '#F1C40F';
     return '#444';
   }
 

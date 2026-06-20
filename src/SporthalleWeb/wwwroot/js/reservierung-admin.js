@@ -281,7 +281,7 @@ window.SporthalleAdmin = (function () {
 
   function getAdminDefaultColor(slot) {
     if (slot.type === 'Blocker') return '#37474f';
-    if (slot.type === 'Reserved') return '#0078D4';
+    if (slot.type === 'Reserved') return '#F1C40F';
     return '#444';
   }
 
@@ -453,7 +453,7 @@ window.SporthalleAdmin = (function () {
 
   var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
   var _isBlocker = true;
-  var _selectedColor = '#0078D4';
+  var _selectedColor = '#F1C40F';
 
   function openAdminModal() {
     if (!selectedSlot) return;
@@ -507,7 +507,7 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-email', '');
     setEl('admin-bm-phone', '');
     setEl('admin-bm-notizen', '');
-    selectColor('#0078D4');
+    selectColor('#F1C40F');
     hideError('admin-bm-error-blocker');
     hideError('admin-bm-error');
     var success = document.getElementById('admin-bm-success');
