@@ -1,13 +1,9 @@
 class PmAdminElement extends HTMLElement {
   connectedCallback() {
-    const style = document.createElement('style');
-    style.textContent = `
-      pm-admin { display: block; position: absolute; inset: 0; }
-      pm-admin iframe { width: 100%; height: 100%; border: none; display: block; }
-    `;
-    document.head.appendChild(style);
+    this.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
     const iframe = document.createElement('iframe');
     iframe.src = '/passivmitglieder/admin';
+    iframe.style.cssText = 'position:absolute;inset:0;border:none;';
     this.appendChild(iframe);
   }
 }
@@ -31,6 +27,12 @@ export const onInit = (_host, extensionRegistry) => {
       name: 'Passivmitglieder',
       elementName: 'pm-admin',
       weight: 100,
+      conditions: [
+        {
+          alias: 'Umb.Condition.SectionAlias',
+          match: 'pm.Section'
+        }
+      ],
       meta: {
         label: 'Passivmitglieder',
         pathname: 'passivmitglieder'
