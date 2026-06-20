@@ -11,6 +11,7 @@
   var CELL_STEP = CELL_HEIGHT + CELL_GAP;
 
   var DAYS_TO_SHOW = 7;
+  var BUCHUNGEN_BIS_DATUM = null; // DateOnly string "YYYY-MM-DD" or null
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -79,6 +80,12 @@
     today.setHours(0, 0, 0, 0);
     var diff = Math.round((date - today) / 86400000);
     return diff === 1 || diff === 2;
+  }
+
+  function isBeyondHorizon(date) {
+    if (!BUCHUNGEN_BIS_DATUM) return false;
+    var horizon = new Date(BUCHUNGEN_BIS_DATUM + 'T00:00:00');
+    return date > horizon;
   }
 
   function blockToTimeLabel(blockIdx) {
@@ -176,7 +183,7 @@
     days.forEach(function (day) {
       var cell = document.createElement('div');
       cell.className = 'cal-header-day';
-      if (isPastDay(day)) cell.classList.add('is-past');
+      if (isPastDay(day) || isBeyondHorizon(day)) cell.classList.add('is-past');
       else if (isToday(day)) cell.classList.add('is-today');
       cell.textContent = formatDayHeader(day);
       grid.appendChild(cell);
@@ -193,7 +200,7 @@
       days.forEach(function (day) {
         var cell = document.createElement('div');
         cell.className = 'cal-cell' + (isHourStart ? ' hour-start' : '');
-        if (isPastDay(day)) cell.classList.add('is-past');
+        if (isPastDay(day) || isBeyondHorizon(day)) cell.classList.add('is-past');
         else if (isToday(day)) cell.classList.add('is-today');
         grid.appendChild(cell);
       });
@@ -396,7 +403,7 @@
     for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
 
     if (dayIdx < 0 || dayIdx >= days.length) return;
-    if (isPastDay(days[dayIdx]) || isToday(days[dayIdx])) return;
+    if (isPastDay(days[dayIdx]) || isToday(days[dayIdx]) || isBeyondHorizon(days[dayIdx])) return;
 
     var startBlock = blockFromY(relY, layout.contentTop);
     if (isBlockOccupied(dayIdx, startBlock, days)) return;
@@ -724,6 +731,7 @@
           if (cfg.oeffnungVon !== undefined) OPENING_HOUR_START = cfg.oeffnungVon;
           if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
+          BUCHUNGEN_BIS_DATUM = cfg.buchungenBisDatum || null;
           if (cfg.preisText) {
             var panel = document.getElementById('preis-panel');
             var text = document.getElementById('preis-panel-text');

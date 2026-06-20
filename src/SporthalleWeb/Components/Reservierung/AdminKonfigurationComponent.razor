@@ -38,9 +38,9 @@ else
                         <div class="form-text">Mindestvorlauf in Tagen. Kürzere Anfragen verweisen auf E-Mail.</div>
                     </div>
                     <div class="col-sm-4">
-                        <label class="form-label fw-semibold">Maximaler Vorauszeitraum (Wochen)</label>
-                        <input type="number" class="form-control" @bind="_maxWochenVoraus" min="1" max="104" />
-                        <div class="form-text">Wie weit im Voraus können Online-Buchungen gemacht werden?</div>
+                        <label class="form-label fw-semibold">Buchungen möglich bis</label>
+                        <input type="date" class="form-control" @bind="_buchungenBisDatum" />
+                        <div class="form-text">Online-Buchungen bis einschliesslich dieses Datums. Leer lassen für unbegrenzt.</div>
                     </div>
                 </div>
             </div>
@@ -111,6 +111,7 @@ else
     private string _kalenderBeginnTime = "07:00";
     private string _kalenderEndeTime = "23:00";
     private int _vorlaufzeitTage = 3;
+    private DateOnly? _buchungenBisDatum;
     private string _mailReservationAdresse = "";
     private string _mailReservationText = "";
     private string _mailBestaetigungAdresse = "";
@@ -122,6 +123,8 @@ else
         _kalenderBeginnTime      = IntToTime(Parse(cfg, "kalender_beginn", 7));
         _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
         _vorlaufzeitTage         = Parse(cfg, "vorlaufzeit_tage", 3);
+        var bisDatumRaw          = cfg.GetValueOrDefault("buchungen_bis_datum");
+        _buchungenBisDatum       = DateOnly.TryParse(bisDatumRaw, out var d) ? d : null;
         _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
         _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
@@ -140,6 +143,7 @@ else
                 ["kalender_beginn"]           = TimeToInt(_kalenderBeginnTime).ToString(),
                 ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _vorlaufzeitTage.ToString(),
+                ["buchungen_bis_datum"]       = _buchungenBisDatum?.ToString("yyyy-MM-dd"),
                 ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
                 ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),

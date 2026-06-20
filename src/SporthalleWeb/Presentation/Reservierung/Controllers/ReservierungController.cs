@@ -38,7 +38,15 @@ public sealed class ReservierungController(
         var oeffnungBis = await hallConfig.GetOpeningHourEndAsync();
         var dauern = await hallConfig.GetBuchbareDauernAsync();
         var preisText = await hallConfig.GetPreisTextAsync();
-        return Ok(new { oeffnungVon, oeffnungBis, buchbareDauern = dauern, preisText });
+        var bisDatum = await hallConfig.GetBuchungenBisDatumAsync();
+        return Ok(new
+        {
+            oeffnungVon,
+            oeffnungBis,
+            buchbareDauern = dauern,
+            preisText,
+            buchungenBisDatum = bisDatum?.ToString("yyyy-MM-dd")
+        });
     }
 
     // ── Gast-Buchung (ohne Login) ─────────────────────────────────────────────
@@ -60,6 +68,10 @@ public sealed class ReservierungController(
             return BadRequest(new { error = $"Buchungsende darf nicht nach {closingHour}:00 Uhr liegen." });
         if (startLocal.Hour < openingHour)
             return BadRequest(new { error = $"Buchungsstart darf nicht vor {openingHour}:00 Uhr liegen." });
+
+        var buchungenBisDatum = await hallConfig.GetBuchungenBisDatumAsync();
+        if (buchungenBisDatum.HasValue && DateOnly.FromDateTime(startLocal) > buchungenBisDatum.Value)
+            return BadRequest(new { error = $"Online-Buchungen sind nur bis {buchungenBisDatum.Value:d. MMMM yyyy} möglich." });
 
         try
         {
