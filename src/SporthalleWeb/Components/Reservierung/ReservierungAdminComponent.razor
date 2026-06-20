@@ -135,7 +135,7 @@
                                         </td>
                                         <td style="white-space:nowrap">
                                             <button class="btn btn-sm btn-success me-1"
-                                                    @onclick="() => ConfirmAsync(slot.Id)">
+                                                    @onclick="() => OpenConfirmDialog(slot.Id)">
                                                 Bestätigen
                                             </button>
                                             <button class="btn btn-sm btn-danger"
@@ -225,6 +225,23 @@
     </div>
 </div>
 
+@if (_confirmSlotId is not null)
+{
+    <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1050">
+        <div class="card p-4" style="min-width:340px;max-width:480px">
+            <h5>Buchung bestätigen</h5>
+            <p class="text-muted mb-3">
+                Die Buchungsanfrage #@_confirmSlotId wird bestätigt und der Mieter erhält eine Bestätigungs-E-Mail.
+            </p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="ConfirmConfirmAsync">Bestätigen</button>
+                <button class="btn btn-secondary" @onclick="CancelConfirm">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (_rejectSlotId is not null)
 {
     <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
@@ -301,6 +318,7 @@
     // ── Shared ───────────────────────────────────────────────────────────────
     private string? _message;
     private string? _error;
+    private int? _confirmSlotId;
     private int? _rejectSlotId;
     private string? _rejectReason;
 
@@ -361,13 +379,19 @@
 
     // ── Pendente actions ─────────────────────────────────────────────────────
 
-    private async Task ConfirmAsync(int slotId)
+    private void OpenConfirmDialog(int id) { _confirmSlotId = id; }
+    private void CancelConfirm() { _confirmSlotId = null; }
+
+    private async Task ConfirmConfirmAsync()
     {
+        if (_confirmSlotId is null) return;
+        var id = _confirmSlotId.Value;
+        _confirmSlotId = null;
         ClearMessages();
         try
         {
-            await ConfirmUseCase.ExecuteAsync(slotId, AdminUser);
-            _message = $"Buchung #{slotId} wurde bestätigt.";
+            await ConfirmUseCase.ExecuteAsync(id, AdminUser);
+            _message = $"Buchung #{id} wurde bestätigt.";
             await LoadPendingAsync();
             if (_activeTab == "Alle Buchungen") await LoadPeriodAsync();
         }
