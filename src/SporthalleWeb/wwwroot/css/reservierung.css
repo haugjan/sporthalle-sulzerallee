@@ -614,6 +614,19 @@
 .bm-btn-primary:hover { background: #c03030; }
 .bm-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.bm-color-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.1s, transform 0.1s;
+}
+.bm-color-swatch:hover { transform: scale(1.15); }
+.bm-color-swatch--active { border-color: #fff; box-shadow: 0 0 0 2px #333; }
+
 .bm-success {
   padding: 2rem 1.5rem;
   text-align: center;

@@ -17,7 +17,7 @@ public sealed class CreateBookingUseCase(
         var slot = new TimeSlot(cmd.StartUtc, cmd.EndUtc);
 
         var booking = BookingSlot.CreateReserved(
-            cmd.MemberId, slot, cmd.Title, "#0078D4", cmd.Notes, member.Email);
+            cmd.MemberId, slot, cmd.Title, cmd.Color ?? "#0078D4", cmd.Notes, member.Email);
 
         booking = await slotRepo.CheckConflictAndSaveAsync(booking, slot);
 

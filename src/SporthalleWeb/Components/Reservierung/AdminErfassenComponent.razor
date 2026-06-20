@@ -77,6 +77,14 @@
             </label>
           </div>
           <div class="bm-field bm-field--2col">
+            <label>Farbe
+              <span style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem">
+                <span style="width:22px;height:22px;border-radius:4px;background:#37474f;display:inline-block;border:2px solid #333"></span>
+                <span style="font-size:0.85rem;color:#555;font-weight:400;text-transform:none;letter-spacing:0">Immer Anthrazit</span>
+              </span>
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
             <label>Bemerkungen (optional)
               <textarea id="admin-bm-notizen-blocker" rows="2" placeholder="Interne Notiz"></textarea>
             </label>
@@ -137,6 +145,21 @@
           <div class="bm-field">
             <label>Handynummer
               <input type="tel" id="admin-bm-phone" autocomplete="tel" placeholder="+41 79 000 00 00" />
+            </label>
+          </div>
+
+          <div class="bm-field bm-field--2col">
+            <label>Farbe
+              <div id="admin-bm-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
+                <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#0078D4" style="background:#0078D4" title="Blau"></button>
+                <button type="button" class="bm-color-swatch" data-color="#2e7d32" style="background:#2e7d32" title="Grün"></button>
+                <button type="button" class="bm-color-swatch" data-color="#c62828" style="background:#c62828" title="Rot"></button>
+                <button type="button" class="bm-color-swatch" data-color="#e65100" style="background:#e65100" title="Orange"></button>
+                <button type="button" class="bm-color-swatch" data-color="#6a1b9a" style="background:#6a1b9a" title="Violett"></button>
+                <button type="button" class="bm-color-swatch" data-color="#00838f" style="background:#00838f" title="Türkis"></button>
+                <button type="button" class="bm-color-swatch" data-color="#5d4037" style="background:#5d4037" title="Braun"></button>
+                <button type="button" class="bm-color-swatch" data-color="#616161" style="background:#616161" title="Grau"></button>
+              </div>
             </label>
           </div>
 
@@ -257,7 +280,8 @@
             var bookCmd = new SporthalleWeb.Application.Reservierung.CreateBookingCommand(
                 memberId, startUtc, endUtc,
                 payload.Anlass ?? "Buchung",
-                string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen!.Trim());
+                string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen!.Trim(),
+                string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim());
             await CreateBooking.ExecuteAsync(bookCmd);
 
             return Ok(false);
@@ -298,6 +322,7 @@
         public string? EndUtc { get; set; }
         public string? Titel { get; set; }
         public string? Anlass { get; set; }
+        public string? Color { get; set; }
         public string? Notizen { get; set; }
         public string? RenterType { get; set; }
         public string? OrgName { get; set; }

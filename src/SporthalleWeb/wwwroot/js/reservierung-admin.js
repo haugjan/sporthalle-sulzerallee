@@ -453,6 +453,7 @@ window.SporthalleAdmin = (function () {
 
   var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
   var _isBlocker = true;
+  var _selectedColor = '#0078D4';
 
   function openAdminModal() {
     if (!selectedSlot) return;
@@ -481,6 +482,20 @@ window.SporthalleAdmin = (function () {
     document.body.style.overflow = '';
   }
 
+  function selectColor(color) {
+    _selectedColor = color;
+    var picker = document.getElementById('admin-bm-color-picker');
+    if (!picker) return;
+    var swatches = picker.querySelectorAll('.bm-color-swatch');
+    for (var i = 0; i < swatches.length; i++) {
+      if (swatches[i].dataset.color === color) {
+        swatches[i].classList.add('bm-color-swatch--active');
+      } else {
+        swatches[i].classList.remove('bm-color-swatch--active');
+      }
+    }
+  }
+
   function resetAdminModal() {
     setEl('admin-bm-titel', '');
     setEl('admin-bm-notizen-blocker', '');
@@ -492,6 +507,7 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-email', '');
     setEl('admin-bm-phone', '');
     setEl('admin-bm-notizen', '');
+    selectColor('#0078D4');
     hideError('admin-bm-error-blocker');
     hideError('admin-bm-error');
     var success = document.getElementById('admin-bm-success');
@@ -559,6 +575,7 @@ window.SporthalleAdmin = (function () {
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
         anlass: anlass,
+        color: _selectedColor,
         renterType: renterType,
         orgName: orgName || null,
         firstname: firstname,
@@ -738,6 +755,16 @@ window.SporthalleAdmin = (function () {
       addHandler(document.getElementById('admin-typ-blocker'), 'click', function () { setModalTyp(true); });
       addHandler(document.getElementById('admin-typ-event'), 'click', function () { setModalTyp(false); });
       addHandler(document.getElementById('admin-bm-renter-type'), 'change', updateOrgField);
+
+      var colorPicker = document.getElementById('admin-bm-color-picker');
+      if (colorPicker) {
+        var swatches = colorPicker.querySelectorAll('.bm-color-swatch');
+        for (var ci = 0; ci < swatches.length; ci++) {
+          (function (swatch) {
+            addHandler(swatch, 'click', function () { selectColor(swatch.dataset.color); });
+          })(swatches[ci]);
+        }
+      }
 
       var modal = document.getElementById('admin-booking-modal');
       addHandler(modal, 'click', function (e) { if (e.target === modal) closeAdminModal(); });
