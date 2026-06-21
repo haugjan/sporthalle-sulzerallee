@@ -10,6 +10,8 @@
   var CELL_GAP = 1;
   var CELL_STEP = CELL_HEIGHT + CELL_GAP;
 
+  var DAYS_TO_SHOW = 7;
+  var BUCHUNGEN_BIS_DATUM = null; // DateOnly string "YYYY-MM-DD" or null
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -43,10 +45,14 @@
     return y + '-' + m + '-' + day;
   }
 
-  function formatWeekLabel(monday) {
-    var sunday = addDays(monday, 6);
+  function checkMobile() {
+    DAYS_TO_SHOW = window.innerWidth < 768 ? 3 : 7;
+  }
+
+  function formatWeekLabel(start) {
+    var end = addDays(start, DAYS_TO_SHOW - 1);
     var opts = { day: '2-digit', month: '2-digit', year: 'numeric' };
-    return monday.toLocaleDateString('de-CH', opts) + ' – ' + sunday.toLocaleDateString('de-CH', opts);
+    return start.toLocaleDateString('de-CH', opts) + ' – ' + end.toLocaleDateString('de-CH', opts);
   }
 
   function formatDayHeader(date) {
@@ -67,6 +73,19 @@
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     return date < today;
+  }
+
+  function isShortNotice(date) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var diff = Math.round((date - today) / 86400000);
+    return diff === 1 || diff === 2;
+  }
+
+  function isBeyondHorizon(date) {
+    if (!BUCHUNGEN_BIS_DATUM) return false;
+    var horizon = new Date(BUCHUNGEN_BIS_DATUM + 'T00:00:00');
+    return date > horizon;
   }
 
   function blockToTimeLabel(blockIdx) {
@@ -100,7 +119,7 @@
   // ── UTC → Zürich ──────────────────────────────────────────────────────────
 
   function getZurichParts(utcDate) {
-    var parts = new Intl.DateTimeFormat('en-US', {
+    var parts = new Intl.DateTimeFormat('de-CH', {
       timeZone: 'Europe/Zurich',
       year: 'numeric', month: 'numeric', day: 'numeric',
       hour: 'numeric', minute: 'numeric',
@@ -149,10 +168,12 @@
     var grid = document.getElementById('calendar-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    grid.style.gridTemplateColumns = '48px repeat(' + DAYS_TO_SHOW + ', 1fr)';
+    grid.style.minWidth = DAYS_TO_SHOW === 3 ? '280px' : '560px';
     selectionEl = null;
 
     var days = [];
-    for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+    for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
 
     // Kopfzeile
     var timeCorner = document.createElement('div');
@@ -162,8 +183,8 @@
     days.forEach(function (day) {
       var cell = document.createElement('div');
       cell.className = 'cal-header-day';
-      if (isToday(day)) cell.classList.add('is-today');
-      else if (isPastDay(day)) cell.classList.add('is-past');
+      if (isPastDay(day) || isBeyondHorizon(day)) cell.classList.add('is-past');
+      else if (isToday(day)) cell.classList.add('is-today');
       cell.textContent = formatDayHeader(day);
       grid.appendChild(cell);
     });
@@ -179,7 +200,8 @@
       days.forEach(function (day) {
         var cell = document.createElement('div');
         cell.className = 'cal-cell' + (isHourStart ? ' hour-start' : '');
-        if (isPastDay(day)) cell.classList.add('is-past');
+        if (isPastDay(day) || isBeyondHorizon(day)) cell.classList.add('is-past');
+        else if (isToday(day)) cell.classList.add('is-today');
         grid.appendChild(cell);
       });
     }
@@ -239,24 +261,21 @@
       el.style.height = height + 'px';
       el.style.left = left + 'px';
       el.style.width = width + 'px';
+      el.style.background = slot.type === 'Reserved' ? '#0078D4' : (slot.color || getDefaultColor(slot));
 
-      if (slot.color) {
-        el.style.background = slot.color;
-      }
-
-      if (height >= 16) {
+      if (height >= 24) {
         var label = document.createElement('div');
         label.className = 'booking-overlay__label';
-        var titleEl = document.createElement('span');
-        titleEl.className = 'bol-title';
-        titleEl.textContent = slot.title || '';
-        label.appendChild(titleEl);
-        if (height >= 40) {
-          var timeEl = document.createElement('span');
-          timeEl.className = 'bol-time';
-          timeEl.textContent = fmtTime(startZ.hour, startZ.minute) + '–' + fmtTime(endZ.hour, endZ.minute);
-          label.appendChild(timeEl);
+        if (slot.type === 'Blocker') {
+          var nbEl = document.createElement('span');
+          nbEl.className = 'bol-title';
+          nbEl.textContent = 'Nicht buchbar';
+          label.appendChild(nbEl);
         }
+        var timeEl = document.createElement('span');
+        timeEl.className = 'bol-time';
+        timeEl.textContent = fmtTime(startZ.hour, startZ.minute) + '–' + fmtTime(endZ.hour, endZ.minute);
+        label.appendChild(timeEl);
         el.appendChild(label);
       }
 
@@ -265,8 +284,13 @@
   }
 
   function getOverlayMod(slot) {
-    if (slot.type === 'Booked') return 'confirmed';
+    if (slot.type === 'Booked' || slot.type === 'Blocker') return 'confirmed';
     return 'provisional'; // Reserved
+  }
+
+  function getDefaultColor(slot) {
+    if (slot.type === 'Reserved') return '#0078D4';
+    return '#444';
   }
 
   // ── Drag-to-Select ────────────────────────────────────────────────────────
@@ -365,6 +389,7 @@
     var target = e.target;
     if (!target.classList.contains('cal-cell')) return;
     if (target.classList.contains('is-past')) return;
+    if (target.classList.contains('is-today')) return;
 
     var layout = computeGridLayout();
     if (!layout) return;
@@ -375,10 +400,10 @@
 
     var dayIdx = dayIdxFromX(relX, layout.cols);
     var days = [];
-    for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+    for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
 
     if (dayIdx < 0 || dayIdx >= days.length) return;
-    if (isPastDay(days[dayIdx])) return;
+    if (isPastDay(days[dayIdx]) || isToday(days[dayIdx]) || isBeyondHorizon(days[dayIdx])) return;
 
     var startBlock = blockFromY(relY, layout.contentTop);
     if (isBlockOccupied(dayIdx, startBlock, days)) return;
@@ -406,7 +431,7 @@
     var xy = getClientXY(e);
     var relY = xy.y - layout.gridRect.top;
     var rawBlock = blockFromY(relY, layout.contentTop) + 1;
-    var endBlock = Math.max(dragState.startBlock + 2, Math.min(TOTAL_BLOCKS, rawBlock));
+    var endBlock = Math.min(TOTAL_BLOCKS, Math.max(dragState.startBlock + 2, Math.min(TOTAL_BLOCKS, rawBlock)));
 
     dragState.currentEndBlock = endBlock;
     dragState.layout = layout;
@@ -426,6 +451,9 @@
     // Mindestdauer 60 min
     if (endBlock - startBlock < 2) endBlock = startBlock + 2;
 
+    // Abschneiden an Schliesszeit
+    endBlock = Math.min(TOTAL_BLOCKS, endBlock);
+
     // Abschneiden an belegten Blöcken
     for (var b = startBlock; b < endBlock; b++) {
       if (isBlockOccupied(dayIdx, b, dragState.days)) {
@@ -436,6 +464,7 @@
 
     dragState = null;
 
+    // Mindestdauer nach Clamp erneut prüfen
     if (endBlock - startBlock < 2) {
       clearSelectionOverlay();
       return;
@@ -466,8 +495,9 @@
     var hint = document.getElementById('slot-panel-hint');
     var detail = document.getElementById('slot-panel-detail');
     var dateLabel = document.getElementById('slot-date-label');
-    var startInput = document.getElementById('slot-start');
-    var endInput = document.getElementById('slot-end');
+    var timeDisplay = document.getElementById('slot-time-display');
+    var buchBtn = document.getElementById('btn-jetzt-buchen');
+    var notice = document.getElementById('slot-short-notice');
 
     if (!detail) return;
 
@@ -475,10 +505,12 @@
     detail.hidden = false;
 
     if (dateLabel) dateLabel.textContent = formatDateLong(slot.day);
-    if (startInput) startInput.value = minutesToTimeStr(slot.startMin);
-    if (endInput) endInput.value = minutesToTimeStr(slot.endMin);
+    if (timeDisplay) timeDisplay.textContent =
+      minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
 
-    updateSlotMeta(slot);
+    var shortNotice = isShortNotice(slot.day);
+    if (buchBtn) buchBtn.hidden = shortNotice;
+    if (notice) notice.hidden = !shortNotice;
 
     // Panel ins Sichtfeld scrollen (auf Mobilgeräten scrollt es nach unten,
     // auf Desktop wird es sichtbar gemacht falls es ausserhalb des Viewports ist)
@@ -493,74 +525,23 @@
     }
   }
 
-  function updateSlotMeta(slot) {
-    var metaEl = document.getElementById('slot-meta');
-    if (!metaEl) return;
-
-    var durationMin = slot.endMin - slot.startMin;
-    if (durationMin < 60) {
-      metaEl.textContent = 'Mindestdauer: 60 Minuten';
-      return;
-    }
-
-    var durationText = durationMin % 60 === 0
-      ? (durationMin / 60) + ' Stunde' + (durationMin / 60 !== 1 ? 'n' : '')
-      : Math.floor(durationMin / 60) + ' h ' + (durationMin % 60) + ' min';
-
-    metaEl.textContent = 'Dauer: ' + durationText + ' · Preis wird berechnet…';
-
-    var datum = toLocalDateStr(slot.day);
-    fetch('/api/reservierung/verfuegbare-slots?datum=' + datum + '&dauern=' + durationMin)
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (slots) {
-        if (!slots) return;
-        var startStr = minutesToTimeStr(slot.startMin);
-        var match = null;
-        for (var i = 0; i < slots.length; i++) {
-          if (slots[i].startLocal === startStr && slots[i].isAvailable) { match = slots[i]; break; }
-        }
-        if (match) {
-          var price = parseFloat(match.priceTotal);
-          var priceStr = price % 1 === 0 ? price.toFixed(0) + '.–' : price.toFixed(2);
-          metaEl.textContent = 'Dauer: ' + durationText + ' · CHF ' + priceStr;
-        } else {
-          metaEl.textContent = 'Dauer: ' + durationText + ' · Preis auf Anfrage';
-        }
-      })
-      .catch(function () {
-        metaEl.textContent = 'Dauer: ' + durationText;
-      });
-  }
-
-  function onSlotTimeChange() {
-    var startInput = document.getElementById('slot-start');
-    var endInput = document.getElementById('slot-end');
-    if (!startInput || !endInput || !selectedSlot) return;
-
-    var startParts = startInput.value.split(':');
-    var endParts = endInput.value.split(':');
-    if (startParts.length < 2 || endParts.length < 2) return;
-
-    var startMin = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-    var endMin = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-    var openStart = OPENING_HOUR_START * 60;
-    var openEnd = OPENING_HOUR_END * 60;
-
-    if (endMin - startMin < 60 || startMin < openStart || endMin > openEnd) return;
-
-    selectedSlot.startMin = startMin;
-    selectedSlot.endMin = endMin;
-    selectedSlot.startBlock = Math.round((startMin - openStart) / BLOCK_MINUTES);
-    selectedSlot.endBlock = Math.round((endMin - openStart) / BLOCK_MINUTES);
-    selectedSlot.startUtcIso = localDateToUtcIso(selectedSlot.day, startMin);
-    selectedSlot.endUtcIso = localDateToUtcIso(selectedSlot.day, endMin);
-
-    var layout = computeGridLayout();
-    if (layout) renderSelectionOverlay(selectedSlot.dayIdx, selectedSlot.startBlock, selectedSlot.endBlock, layout);
-    updateSlotMeta(selectedSlot);
-  }
 
   // ── Buchungs-Modal ────────────────────────────────────────────────────────
+
+  var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
+
+  function updateOrgField() {
+    var type = getVal('bm-renter-type');
+    var orgRow = document.getElementById('bm-org-row');
+    var orgLabel = document.getElementById('bm-org-label');
+    var firstLabel = document.getElementById('bm-firstname-label');
+    var lastLabel = document.getElementById('bm-lastname-label');
+    var isOrg = type !== 'Privatperson';
+    if (orgRow) orgRow.hidden = !isOrg;
+    if (isOrg && orgLabel) orgLabel.textContent = ORG_LABELS[type] || 'Organisationsname';
+    if (firstLabel) firstLabel.textContent = isOrg ? 'Vorname Kontaktperson' : 'Vorname';
+    if (lastLabel) lastLabel.textContent = isOrg ? 'Nachname Kontaktperson' : 'Nachname';
+  }
 
   function openBookingModal() {
     if (!selectedSlot) return;
@@ -586,11 +567,12 @@
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
 
+    updateOrgField();
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
 
     setTimeout(function () {
-      var f = document.getElementById('bm-name');
+      var f = document.getElementById('bm-anlass');
       if (f) f.focus();
     }, 60);
   }
@@ -614,27 +596,39 @@
   function submitGuestBooking() {
     if (!selectedSlot) return;
 
-    var name = getVal('bm-name');
-    var email = getVal('bm-email');
+    var renterType = getVal('bm-renter-type') || 'Privatperson';
+    var isOrg = renterType !== 'Privatperson';
+    var orgName = isOrg ? getVal('bm-org-name') : '';
+    var firstname = getVal('bm-firstname');
+    var lastname = getVal('bm-lastname');
     var phone = getVal('bm-phone');
-    var billingName = getVal('bm-billing-name');
+    var email = getVal('bm-email');
     var billingStreet = getVal('bm-billing-street');
+    var billingExtra = getVal('bm-billing-extra');
     var billingPlz = getVal('bm-billing-plz');
     var billingCity = getVal('bm-billing-city');
-    var renterType = getVal('bm-renter-type') || 'Privatperson';
     var anlass = getVal('bm-anlass');
     var notizen = getVal('bm-notizen');
 
     var errEl = document.getElementById('bm-error');
     if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
 
-    if (!name) { showModalError('Bitte gib deinen Namen ein.'); return; }
+    if (isOrg && !orgName) {
+      showModalError('Bitte gib den ' + (ORG_LABELS[renterType] || 'Organisationsnamen') + ' ein.');
+      return;
+    }
+    if (!firstname) { showModalError('Bitte gib den Vornamen ein.'); return; }
+    if (!lastname) { showModalError('Bitte gib den Nachnamen ein.'); return; }
+    if (!phone) { showModalError('Bitte gib die Handynummer ein (erreichbar während des Events).'); return; }
     if (!email || !email.includes('@')) { showModalError('Bitte gib eine gültige E-Mail-Adresse ein.'); return; }
-    if (!billingName) { showModalError('Bitte gib den Rechnungsnamen ein.'); return; }
-    if (!billingStreet) { showModalError('Bitte gib die Rechnungsstrasse ein.'); return; }
+    if (!billingStreet) { showModalError('Bitte gib die Strasse ein.'); return; }
     if (!billingPlz) { showModalError('Bitte gib die PLZ ein.'); return; }
     if (!billingCity) { showModalError('Bitte gib den Ort ein.'); return; }
-    if (!anlass) { showModalError('Bitte gib den Anlass ein.'); return; }
+    if (!anlass) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
+
+    var guestName = firstname + ' ' + lastname;
+    var billingName = isOrg ? orgName : guestName;
+    var billingAddress = billingStreet + (billingExtra ? ', ' + billingExtra : '');
 
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Wird gesendet…'; }
@@ -643,12 +637,14 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
-        guestName: name,
+        firstName: firstname,
+        lastName: lastname,
+        contactPerson: guestName,
         guestEmail: email,
-        guestPhone: phone || null,
+        guestPhone: phone,
         renterType: renterType,
         billingName: billingName,
-        billingAddress: billingStreet,
+        billingAddress: billingAddress,
         billingPostalCode: billingPlz,
         billingCity: billingCity,
         startUtc: selectedSlot.startUtcIso,
@@ -658,7 +654,11 @@
       })
     })
     .then(function (res) {
-      return res.json().then(function (data) { return { ok: res.ok, status: res.status, data: data }; });
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = JSON.parse(text); } catch (_) { data = { error: text.substring(0, 300) }; }
+        return { ok: res.ok, status: res.status, data: data };
+      });
     })
     .then(function (result) {
       if (result.ok) {
@@ -676,12 +676,12 @@
         showModalError('Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle einen anderen Termin.');
       } else {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
-        showModalError((result.data && result.data.error) ? result.data.error : 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+        showModalError((result.data && result.data.error) ? result.data.error : 'Fehler ' + result.status + '. Bitte versuche es erneut.');
       }
     })
-    .catch(function () {
+    .catch(function (err) {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
-      showModalError('Verbindungsfehler. Bitte prüfe deine Internetverbindung.');
+      showModalError('Verbindungsfehler: ' + (err && err.message ? err.message : 'Bitte prüfe deine Internetverbindung.'));
     });
   }
 
@@ -691,6 +691,7 @@
     var grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
+    var savedScrollY = window.scrollY;
     clearSelectionOverlay();
     grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Lade Kalender …</div>';
 
@@ -703,14 +704,16 @@
       .then(function (slots) {
         lastSlots = slots;
         renderGrid(slots);
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
       })
       .catch(function () {
         grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Kalender konnte nicht geladen werden.</div>';
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
       });
   }
 
   function navigateWeek(delta) {
-    currentMonday = addDays(currentMonday, delta * 7);
+    currentMonday = addDays(currentMonday, delta * DAYS_TO_SHOW);
     updateWeekLabel();
     loadWeek();
   }
@@ -728,6 +731,15 @@
           if (cfg.oeffnungVon !== undefined) OPENING_HOUR_START = cfg.oeffnungVon;
           if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
+          BUCHUNGEN_BIS_DATUM = cfg.buchungenBisDatum || null;
+          if (cfg.preisText) {
+            var panel = document.getElementById('preis-panel');
+            var text = document.getElementById('preis-panel-text');
+            if (panel && text) {
+              text.textContent = cfg.preisText;
+              panel.hidden = false;
+            }
+          }
         }
         callback();
       })
@@ -737,6 +749,12 @@
   // ── Init ──────────────────────────────────────────────────────────────────
 
   function init() {
+    checkMobile();
+    if (DAYS_TO_SHOW === 3) {
+      currentMonday = new Date();
+      currentMonday.setHours(0, 0, 0, 0);
+    }
+
     var prevBtn = document.getElementById('prev-week');
     var nextBtn = document.getElementById('next-week');
     if (prevBtn) prevBtn.addEventListener('click', function () { navigateWeek(-1); });
@@ -745,10 +763,19 @@
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
+        var prevDays = DAYS_TO_SHOW;
+        checkMobile();
         var grid = document.getElementById('calendar-grid');
-        if (!grid || !lastSlots.length) return;
+        if (!grid) return;
+        if (prevDays !== DAYS_TO_SHOW) {
+          if (DAYS_TO_SHOW === 7) currentMonday = getMonday(currentMonday);
+          updateWeekLabel();
+          renderGrid(lastSlots);
+          return;
+        }
+        if (!lastSlots.length) return;
         var days = [];
-        for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
+        for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
         renderBookingOverlays(lastSlots, days, grid);
         if (selectedSlot) {
           var layout = computeGridLayout();
@@ -768,15 +795,13 @@
     document.addEventListener('mouseup', onDragEnd);
     document.addEventListener('touchend', onDragEnd);
 
-    // Zeit-Inputs
-    var startInput = document.getElementById('slot-start');
-    var endInput = document.getElementById('slot-end');
-    if (startInput) startInput.addEventListener('change', onSlotTimeChange);
-    if (endInput) endInput.addEventListener('change', onSlotTimeChange);
-
     // Slot-Panel-Button
     var buchBtn = document.getElementById('btn-jetzt-buchen');
     if (buchBtn) buchBtn.addEventListener('click', openBookingModal);
+
+    // Mietertyp-Auswahl → Organisationsfeld ein-/ausblenden
+    var renterTypeSelect = document.getElementById('bm-renter-type');
+    if (renterTypeSelect) renterTypeSelect.addEventListener('change', updateOrgField);
 
     // Modal-Buttons
     var closeBtn = document.getElementById('bm-close');
@@ -788,10 +813,6 @@
     if (submitBtn) submitBtn.addEventListener('click', submitGuestBooking);
     if (doneBtn) doneBtn.addEventListener('click', function () { closeBookingModal(); });
 
-    var modal = document.getElementById('booking-modal');
-    if (modal) {
-      modal.addEventListener('click', function (e) { if (e.target === modal) closeBookingModal(); });
-    }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBookingModal(); });
 
     updateWeekLabel();

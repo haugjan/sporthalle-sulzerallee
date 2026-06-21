@@ -16,14 +16,10 @@ public sealed class CreateBookingUseCase(
 
         var slot = new TimeSlot(cmd.StartUtc, cmd.EndUtc);
 
-        var overlaps = await slotRepo.GetActiveOverlapsAsync(slot);
-        if (overlaps.Count > 0)
-            throw new SlotConflictException(slot, overlaps);
-
         var booking = BookingSlot.CreateReserved(
-            cmd.MemberId, slot, cmd.Title, null, cmd.Notes, member.Email);
+            cmd.MemberId, slot, cmd.Title, cmd.Color ?? "#0078D4", cmd.Notes, member.Email);
 
-        booking = await slotRepo.SaveAsync(booking);
+        booking = await slotRepo.CheckConflictAndSaveAsync(booking, slot);
 
         await audit.LogAsync("BookingSlot", booking.Id, "Created",
             member.Email, null,

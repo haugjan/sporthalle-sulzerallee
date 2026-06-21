@@ -1,4 +1,13 @@
 
+using System.Globalization;
+
+// Swiss German as the default culture for all threads.
+// This makes Blazor @bind, implicit ToString() calls, and number/date parsing
+// use Swiss format (dd.MM.yyyy dates, HH:mm times, apostrophe thousands separator).
+var swissCulture = new CultureInfo("de-CH");
+CultureInfo.DefaultThreadCurrentCulture   = swissCulture;
+CultureInfo.DefaultThreadCurrentUICulture = swissCulture;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Resolve SQLite Data Source to an absolute path using content root.

@@ -9,7 +9,7 @@ public sealed class ConfirmBookingUseCase(
     IMemberManagerPort members,
     IBookingEmailPort email)
 {
-    public async Task ExecuteAsync(int slotId, string adminUser)
+    public async Task ExecuteAsync(int slotId, string adminUser, string? customEmailBody = null)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
             ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
@@ -21,7 +21,7 @@ public sealed class ConfirmBookingUseCase(
         {
             var member = await members.FindByIdAsync(slot.MemberId.Value);
             if (member is not null)
-                await email.SendBookingConfirmedToRenterAsync(slot, member);
+                await email.SendBookingConfirmedToRenterAsync(slot, member, customEmailBody);
         }
 
         await audit.LogAsync("BookingSlot", slotId, "Confirmed", adminUser,

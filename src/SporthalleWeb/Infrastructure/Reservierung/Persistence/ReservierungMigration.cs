@@ -16,7 +16,8 @@ public class ReservierungMigrationPlan : MigrationPlan
         From(string.Empty)
             .To<CreateBookingSlotsV1>("v1.0.0")
             .To<AddAllReservierungTablesV2>("v1.1.0")
-            .To<SimplifyDataModelV3>("v1.2.0");
+            .To<SimplifyDataModelV3>("v1.2.0")
+            .To<AddHallConfigTableV4>("v1.3.0");
     }
 }
 
@@ -75,6 +76,18 @@ public class SimplifyDataModelV3 : AsyncMigrationBase
         if (TableExists("SchoolHolidays"))
             Delete.Table("SchoolHolidays").Do();
 
+        return Task.CompletedTask;
+    }
+}
+
+public class AddHallConfigTableV4 : AsyncMigrationBase
+{
+    public AddHallConfigTableV4(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (!TableExists("HallConfig"))
+            Create.Table<HallConfigRecord>().Do();
         return Task.CompletedTask;
     }
 }

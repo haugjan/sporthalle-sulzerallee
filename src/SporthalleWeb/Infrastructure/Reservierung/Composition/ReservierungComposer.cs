@@ -39,6 +39,9 @@ public class ReservierungComposer : IComposer
         builder.Services.AddScoped<GetAvailableDaysQuery>();
         builder.Services.AddScoped<GetAvailableTimeSlotsQuery>();
 
+        // Config service
+        builder.Services.AddScoped<HallConfigService>();
+
         // Application use cases
         builder.Services.AddScoped<SendMagicLinkUseCase>();
         builder.Services.AddScoped<ValidateMagicLinkUseCase>();
