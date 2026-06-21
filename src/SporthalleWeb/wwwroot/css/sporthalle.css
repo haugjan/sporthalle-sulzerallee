@@ -351,6 +351,11 @@ body.page-home footer {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .page-header {
+    height: 160px;
+    padding: 0 1.25rem 1rem;
+  }
+
   .hero-announcement {
     padding: 1.5rem 1.5rem;
     transform: translate(-50%, -50%) rotate(0deg);
