@@ -83,11 +83,11 @@ else
                         <td>
                             @if (m is not null)
                             {
-                                <strong>@m.ContactPerson</strong>
+                                <strong>@($"{m.ContactFirstName} {m.ContactLastName}".Trim())</strong>
                                 <br /><small class="text-muted">@m.RenterType.Value</small>
-                                @if (!string.IsNullOrEmpty(m.BillingName) && m.BillingName != m.ContactPerson)
+                                @if (m.Name is not null)
                                 {
-                                    <br /><small class="text-muted">@m.BillingName</small>
+                                    <br /><small class="text-muted">@m.Name</small>
                                 }
                                 @if (m.HasKey)
                                 {

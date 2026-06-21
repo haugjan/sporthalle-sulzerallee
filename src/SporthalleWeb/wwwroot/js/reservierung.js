@@ -626,10 +626,6 @@
     if (!billingCity) { showModalError('Bitte gib den Ort ein.'); return; }
     if (!anlass) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
 
-    var guestName = firstname + ' ' + lastname;
-    var billingName = isOrg ? orgName : guestName;
-    var billingAddress = billingStreet + (billingExtra ? ', ' + billingExtra : '');
-
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Wird gesendet…'; }
 
@@ -637,14 +633,14 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
-        firstName: firstname,
-        lastName: lastname,
-        contactPerson: guestName,
+        contactFirstName: firstname,
+        contactLastName: lastname,
+        name: isOrg ? orgName : null,
         guestEmail: email,
         guestPhone: phone,
         renterType: renterType,
-        billingName: billingName,
-        billingAddress: billingAddress,
+        billingAddress: billingStreet,
+        addressLine2: billingExtra || null,
         billingPostalCode: billingPlz,
         billingCity: billingCity,
         startUtc: selectedSlot.startUtcIso,

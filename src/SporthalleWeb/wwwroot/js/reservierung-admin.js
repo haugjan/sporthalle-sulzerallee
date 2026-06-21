@@ -454,11 +454,11 @@ window.SporthalleAdmin = (function () {
 
   // ── Admin-Modal ───────────────────────────────────────────────────────────────
 
-  var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
   var _modalMode = 'blocker'; // 'blocker' | 'event' | 'serie'
   var _selectedColor = '#F1C40F';
   var _selectedSerieColor = '#F1C40F';
   var _seriePayload = null;
+  var _memberSearchTimer = null;
 
   function openAdminModal() {
     if (!selectedSlot) return;
@@ -505,13 +505,8 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-titel', '');
     setEl('admin-bm-notizen-blocker', '');
     setEl('admin-bm-anlass', '');
-    setEl('admin-bm-renter-type', 'Privatperson');
-    setEl('admin-bm-org-name', '');
-    setEl('admin-bm-firstname', '');
-    setEl('admin-bm-lastname', '');
-    setEl('admin-bm-email', '');
-    setEl('admin-bm-phone', '');
     setEl('admin-bm-notizen', '');
+    clearSelectedMember();
     selectColor('#F1C40F');
     hideError('admin-bm-error-blocker');
     hideError('admin-bm-error');
@@ -552,7 +547,6 @@ window.SporthalleAdmin = (function () {
     if (bodyBlocker) bodyBlocker.hidden = (mode !== 'blocker');
     if (bodyEvent)   bodyEvent.hidden   = (mode !== 'event');
     if (bodySerie)   bodySerie.hidden   = (mode !== 'serie');
-    if (mode === 'event') updateOrgField();
     if (mode === 'serie') prefillSerieForm();
   }
 
@@ -580,13 +574,89 @@ window.SporthalleAdmin = (function () {
     }
   }
 
-  function updateOrgField() {
-    var type = getVal('admin-bm-renter-type');
-    var orgRow = document.getElementById('admin-bm-org-row');
-    var orgLabel = document.getElementById('admin-bm-org-label');
-    var isOrg = type !== 'Privatperson';
-    if (orgRow) orgRow.hidden = !isOrg;
-    if (isOrg && orgLabel) orgLabel.textContent = ORG_LABELS[type] || 'Organisationsname';
+  function clearSelectedMember() {
+    setEl('admin-bm-member-id', '');
+    setEl('admin-bm-member-search', '');
+    hideMemberResults();
+    var selected = document.getElementById('admin-bm-member-selected');
+    if (selected) selected.hidden = true;
+  }
+
+  function hideMemberResults() {
+    var results = document.getElementById('admin-bm-member-results');
+    if (results) results.hidden = true;
+  }
+
+  function selectMember(m) {
+    var name = m.name
+      ? m.name + ' (' + (m.contactFirstName + ' ' + m.contactLastName).trim() + ')'
+      : (m.contactFirstName + ' ' + m.contactLastName).trim();
+    setEl('admin-bm-member-id', String(m.id));
+    setEl('admin-bm-member-search', '');
+    hideMemberResults();
+    var badgeName = document.getElementById('admin-bm-member-badge-name');
+    if (badgeName) badgeName.textContent = name;
+    var badgeEmail = document.getElementById('admin-bm-member-badge-email');
+    if (badgeEmail) badgeEmail.textContent = m.email;
+    var selected = document.getElementById('admin-bm-member-selected');
+    if (selected) selected.hidden = false;
+  }
+
+  function showMemberResults(members) {
+    var results = document.getElementById('admin-bm-member-results');
+    if (!results) return;
+    results.innerHTML = '';
+    if (!members || members.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'bm-search-result bm-search-result--empty';
+      empty.textContent = 'Keine Mitglieder gefunden';
+      results.appendChild(empty);
+      results.hidden = false;
+      return;
+    }
+    members.forEach(function (m) {
+      var el = document.createElement('div');
+      el.className = 'bm-search-result';
+      var name = m.name
+        ? m.name + ' (' + escHtml(m.contactFirstName + ' ' + m.contactLastName) + ')'
+        : escHtml((m.contactFirstName + ' ' + m.contactLastName).trim());
+      el.innerHTML = '<strong>' + name + '</strong><br><small class="text-muted">' + escHtml(m.email) + '</small>';
+      el.addEventListener('click', function () { selectMember(m); });
+      results.appendChild(el);
+    });
+    results.hidden = false;
+  }
+
+  function escHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function initMemberSearch() {
+    var searchInput = document.getElementById('admin-bm-member-search');
+    if (!searchInput) return;
+
+    addHandler(searchInput, 'input', function () {
+      clearTimeout(_memberSearchTimer);
+      var q = searchInput.value.trim();
+      if (q.length < 2) { hideMemberResults(); return; }
+      _memberSearchTimer = setTimeout(function () {
+        if (!_dotNet) return;
+        _dotNet.invokeMethodAsync('SearchMembersAsync', q)
+          .then(function (json) { showMemberResults(JSON.parse(json)); })
+          .catch(function () { hideMemberResults(); });
+      }, 300);
+    });
+
+    addHandler(searchInput, 'blur', function () {
+      setTimeout(hideMemberResults, 200);
+    });
+
+    var clearBtn = document.getElementById('admin-bm-member-clear');
+    addHandler(clearBtn, 'click', clearSelectedMember);
   }
 
   function submitAdminBooking() {
@@ -605,17 +675,9 @@ window.SporthalleAdmin = (function () {
       };
       disableSubmit('admin-bm-submit-blocker', 'Speichern…');
     } else {
-      var renterType = getVal('admin-bm-renter-type') || 'Privatperson';
-      var isOrg = renterType !== 'Privatperson';
-      var orgName = isOrg ? getVal('admin-bm-org-name') : '';
-      var firstname = getVal('admin-bm-firstname');
-      var lastname = getVal('admin-bm-lastname');
-      var email = getVal('admin-bm-email');
+      var memberId = getVal('admin-bm-member-id');
       var anlass = getVal('admin-bm-anlass');
-      if (isOrg && !orgName) { showError('admin-bm-error', 'Bitte ' + (ORG_LABELS[renterType] || 'Organisationsname') + ' eingeben.'); return; }
-      if (!firstname) { showError('admin-bm-error', 'Vorname ist erforderlich.'); return; }
-      if (!lastname) { showError('admin-bm-error', 'Nachname ist erforderlich.'); return; }
-      if (!email || !email.includes('@')) { showError('admin-bm-error', 'Gültige E-Mail-Adresse erforderlich.'); return; }
+      if (!memberId) { showError('admin-bm-error', 'Bitte wähle einen Mieter aus.'); return; }
       if (!anlass) { showError('admin-bm-error', 'Anlass ist erforderlich.'); return; }
       payload = {
         isBlocker: false,
@@ -623,12 +685,7 @@ window.SporthalleAdmin = (function () {
         endUtc: selectedSlot.endUtcIso,
         anlass: anlass,
         color: _selectedColor,
-        renterType: renterType,
-        orgName: orgName || null,
-        firstname: firstname,
-        lastname: lastname,
-        email: email,
-        phone: getVal('admin-bm-phone') || null,
+        memberId: parseInt(memberId, 10),
         notizen: getVal('admin-bm-notizen') || null
       };
       disableSubmit('admin-bm-submit', 'Wird gespeichert…');
@@ -904,7 +961,7 @@ window.SporthalleAdmin = (function () {
       addHandler(document.getElementById('admin-typ-blocker'), 'click', function () { setModalTyp('blocker'); });
       addHandler(document.getElementById('admin-typ-event'), 'click', function () { setModalTyp('event'); });
       addHandler(document.getElementById('admin-typ-serie'), 'click', function () { setModalTyp('serie'); });
-      addHandler(document.getElementById('admin-bm-renter-type'), 'change', updateOrgField);
+      initMemberSearch();
 
       var colorPicker = document.getElementById('admin-bm-color-picker');
       if (colorPicker) {

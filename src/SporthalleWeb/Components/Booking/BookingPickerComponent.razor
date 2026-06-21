@@ -355,12 +355,18 @@
             }
             else
             {
+                var guestFullName = _guestName.Trim();
+                var guestSpaceIdx = guestFullName.IndexOf(' ');
+                var guestFirstName = guestSpaceIdx >= 0 ? guestFullName[..guestSpaceIdx].Trim() : guestFullName;
+                var guestLastName  = guestSpaceIdx >= 0 ? guestFullName[(guestSpaceIdx + 1)..].Trim() : "";
                 var regCmd = new SporthalleWeb.Application.Booking.RegisterRenterCommand(
                     Email: _guestEmail.Trim(),
-                    ContactPerson: _guestName.Trim(),
                     RenterType: new SporthalleWeb.Domain.Booking.RenterType(_guestRenterTypeStr),
-                    BillingName: _guestName.Trim(),
+                    Name: null,
+                    ContactFirstName: guestFirstName,
+                    ContactLastName: guestLastName,
                     BillingAddress: "",
+                    AddressLine2: null,
                     BillingPostalCode: "",
                     BillingCity: "",
                     BillingCountry: "CH",

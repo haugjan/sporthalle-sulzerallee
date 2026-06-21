@@ -687,6 +687,82 @@
   margin: 0 0 1.5rem;
 }
 
+/* ── Admin member search ───────────────────────────────────────────────── */
+
+.bm-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.bm-search-results[hidden] { display: none; }
+
+.bm-search-result {
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.1s;
+}
+
+.bm-search-result:last-child { border-bottom: none; }
+
+.bm-search-result:hover,
+.bm-search-result:focus {
+  background: #f5f5f5;
+  outline: none;
+}
+
+.bm-search-result--empty {
+  padding: 0.55rem 0.8rem;
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
+.bm-member-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f0f7ff;
+  border: 1.5px solid #bedaf7;
+  border-radius: 5px;
+  font-size: 0.88rem;
+}
+
+.bm-member-badge__name {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.bm-member-badge__email {
+  color: #555;
+}
+
+.bm-member-badge__clear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #888;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  line-height: 1;
+}
+
+.bm-member-badge__clear:hover { color: #333; }
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {

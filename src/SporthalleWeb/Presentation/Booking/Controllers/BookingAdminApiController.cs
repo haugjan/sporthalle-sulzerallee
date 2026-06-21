@@ -15,7 +15,8 @@ public sealed class BookingAdminApiController(
     ConfirmBookingUseCase confirmBooking,
     RejectBookingUseCase rejectBooking,
     IBookingSlotRepository slotRepo,
-    IBookingCsvPort csvExport) : ControllerBase
+    IBookingCsvPort csvExport,
+    IMemberManagerPort memberManager) : ControllerBase
 {
     // ── Reservierte Buchungen (ausstehend) ────────────────────────────────────
 
@@ -137,6 +138,24 @@ public sealed class BookingAdminApiController(
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
+    // ── Mitglieder-Suche ─────────────────────────────────────────────────────
+
+    [HttpGet("members/search")]
+    public async Task<IActionResult> SearchMembers([FromQuery] string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            return Ok(Array.Empty<object>());
+        var members = await memberManager.SearchAsync(q);
+        return Ok(members.Select(m => new
+        {
+            id = m.Id,
+            email = m.Email,
+            name = m.Name,
+            contactFirstName = m.ContactFirstName,
+            contactLastName = m.ContactLastName,
+        }));
+    }
+
     // ── CSV-Export ────────────────────────────────────────────────────────────
 
     [HttpGet("export")]
@@ -166,14 +185,16 @@ public sealed class BookingAdminApiController(
         notizen  = slot.Notes,
         mitglied = member is null ? null : new
         {
-            id            = member.Id,
-            email         = member.Email,
-            name          = member.ContactPerson,
-            rechnungsName = member.BillingName,
-            strasse       = member.BillingAddress,
-            plz           = member.BillingPostalCode,
-            ort           = member.BillingCity,
-            telefon       = member.Phone,
+            id               = member.Id,
+            email            = member.Email,
+            contactFirstName = member.ContactFirstName,
+            contactLastName  = member.ContactLastName,
+            name             = member.Name,
+            strasse          = member.BillingAddress,
+            adresszusatz     = member.AddressLine2,
+            plz              = member.BillingPostalCode,
+            ort              = member.BillingCity,
+            telefon          = member.Phone,
         }
     };
 }

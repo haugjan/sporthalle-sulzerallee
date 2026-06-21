@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
@@ -35,11 +35,13 @@ public sealed class UmbracoMemberAdapter(
 
     public async Task<HallMember> CreateAsync(RegisterRenterCommand cmd, string? password)
     {
+        var displayName = $"{cmd.ContactFirstName} {cmd.ContactLastName}".Trim();
+
         var user = new MemberIdentityUser
         {
             UserName = cmd.Email,
             Email = cmd.Email,
-            Name = cmd.ContactPerson,
+            Name = displayName,
             MemberTypeAlias = MemberTypeAlias,
             IsApproved = true
         };
@@ -51,13 +53,15 @@ public sealed class UmbracoMemberAdapter(
         if (!result.Succeeded)
             throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
 
-        // Set custom properties via IMemberService
         var member = memberService.GetByEmail(cmd.Email)
             ?? throw new DomainException("Member konnte nach der Erstellung nicht gefunden werden.");
 
         member.SetValue("renterType", cmd.RenterType.Value.ToString());
-        member.SetValue("billingName", cmd.BillingName);
+        member.SetValue("name", cmd.Name ?? "");
+        member.SetValue("contactFirstName", cmd.ContactFirstName);
+        member.SetValue("contactLastName", cmd.ContactLastName);
         member.SetValue("billingAddress", cmd.BillingAddress);
+        member.SetValue("addressLine2", cmd.AddressLine2 ?? "");
         member.SetValue("billingPostalCode", cmd.BillingPostalCode);
         member.SetValue("billingCity", cmd.BillingCity);
         member.SetValue("billingCountry", cmd.BillingCountry);
@@ -65,29 +69,77 @@ public sealed class UmbracoMemberAdapter(
         member.SetValue("hasKey", cmd.HasKey);
         memberService.Save(member);
 
-        // Reload to get fresh state
         var freshUser = await memberManager.FindByEmailAsync(cmd.Email)
             ?? throw new DomainException("Member konnte nach dem Speichern nicht geladen werden.");
         return Map(freshUser, member);
     }
 
     public Task UpdateProfileAsync(
-        int memberId, string contactPerson, string billingName,
-        string billingAddress, string billingPostalCode, string billingCity,
-        string? phone, bool hasKey)
+        int memberId, string? name,
+        string contactFirstName, string contactLastName,
+        string billingAddress, string? addressLine2,
+        string billingPostalCode, string billingCity, string? phone)
     {
         var member = memberService.GetById(memberId)
             ?? throw new DomainException($"Member {memberId} nicht gefunden.");
 
-        member.Name = contactPerson;
-        member.SetValue("billingName", billingName);
+        member.Name = $"{contactFirstName} {contactLastName}".Trim();
+        member.SetValue("name", name ?? "");
+        member.SetValue("contactFirstName", contactFirstName);
+        member.SetValue("contactLastName", contactLastName);
         member.SetValue("billingAddress", billingAddress);
+        member.SetValue("addressLine2", addressLine2 ?? "");
         member.SetValue("billingPostalCode", billingPostalCode);
         member.SetValue("billingCity", billingCity);
         member.SetValue("phone", phone ?? "");
-        member.SetValue("hasKey", hasKey);
         memberService.Save(member);
         return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<HallMember>> SearchAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            return Task.FromResult<IReadOnlyList<HallMember>>([]);
+
+        var members = memberService.GetMembersByMemberType(MemberTypeAlias);
+        var results = new List<HallMember>();
+
+        foreach (var member in members)
+        {
+            var firstName = member.GetValue<string>("contactFirstName") ?? "";
+            var lastName  = member.GetValue<string>("contactLastName") ?? "";
+            var orgName   = member.GetValue<string>("name") ?? "";
+            var email     = member.Email ?? "";
+            var fullName  = $"{firstName} {lastName}".Trim();
+
+            if (firstName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                lastName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                orgName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                email.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                fullName.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(new HallMember(
+                    Id: member.Id,
+                    Email: email,
+                    RenterType: new RenterType(member.GetValue<string>("renterType") ?? "Privatperson"),
+                    Name: orgName.NullIfEmpty(),
+                    ContactFirstName: firstName,
+                    ContactLastName: lastName,
+                    BillingAddress: member.GetValue<string>("billingAddress") ?? "",
+                    AddressLine2: member.GetValue<string>("addressLine2").NullIfEmpty(),
+                    BillingPostalCode: member.GetValue<string>("billingPostalCode") ?? "",
+                    BillingCity: member.GetValue<string>("billingCity") ?? "",
+                    BillingCountry: member.GetValue<string>("billingCountry") ?? "Schweiz",
+                    Phone: member.GetValue<string>("phone").NullIfEmpty(),
+                    Notes: member.GetValue<string>("notes").NullIfEmpty(),
+                    HasKey: member.GetValue<bool>("hasKey"),
+                    HasPassword: false,
+                    MagicLinkSentAt: null,
+                    PasswordResetSentAt: null));
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<HallMember>>(results.Take(10).ToList());
     }
 
     public async Task<bool> CheckPasswordAsync(string email, string password)
@@ -173,23 +225,25 @@ public sealed class UmbracoMemberAdapter(
         return Task.CompletedTask;
     }
 
-    private static HallMember Map(MemberIdentityUser user, IMember member) =>
-        new(
-            Id: int.Parse(user.Id),
-            Email: user.Email ?? "",
-            ContactPerson: user.Name ?? "",
-            RenterType: new RenterType(member.GetValue<string>("renterType") ?? "Privatperson"),
-            BillingName: member.GetValue<string>("billingName") ?? "",
-            BillingAddress: member.GetValue<string>("billingAddress") ?? "",
-            BillingPostalCode: member.GetValue<string>("billingPostalCode") ?? "",
-            BillingCity: member.GetValue<string>("billingCity") ?? "",
-            BillingCountry: member.GetValue<string>("billingCountry") ?? "Schweiz",
-            Phone: member.GetValue<string>("phone").NullIfEmpty(),
-            HasKey: member.GetValue<bool>("hasKey"),
-            HasPassword: user.PasswordHash is not null,
-            MagicLinkSentAt: member.GetValue<DateTime?>("magicLinkSentAt"),
-            PasswordResetSentAt: member.GetValue<DateTime?>("passwordResetSentAt")
-        );
+    private static HallMember Map(MemberIdentityUser user, IMember member) => new(
+        Id: int.Parse(user.Id),
+        Email: user.Email ?? "",
+        RenterType: new RenterType(member.GetValue<string>("renterType") ?? "Privatperson"),
+        Name: member.GetValue<string>("name").NullIfEmpty(),
+        ContactFirstName: member.GetValue<string>("contactFirstName") ?? "",
+        ContactLastName: member.GetValue<string>("contactLastName") ?? "",
+        BillingAddress: member.GetValue<string>("billingAddress") ?? "",
+        AddressLine2: member.GetValue<string>("addressLine2").NullIfEmpty(),
+        BillingPostalCode: member.GetValue<string>("billingPostalCode") ?? "",
+        BillingCity: member.GetValue<string>("billingCity") ?? "",
+        BillingCountry: member.GetValue<string>("billingCountry") ?? "Schweiz",
+        Phone: member.GetValue<string>("phone").NullIfEmpty(),
+        Notes: member.GetValue<string>("notes").NullIfEmpty(),
+        HasKey: member.GetValue<bool>("hasKey"),
+        HasPassword: user.PasswordHash is not null,
+        MagicLinkSentAt: member.GetValue<DateTime?>("magicLinkSentAt"),
+        PasswordResetSentAt: member.GetValue<DateTime?>("passwordResetSentAt")
+    );
 }
 
 file static class StringExtensions

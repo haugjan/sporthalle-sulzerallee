@@ -152,8 +152,13 @@ public sealed class BookingAdminService(
     {
         var member = await members.FindByIdAsync(memberId)
             ?? throw new DomainException($"Mieter {memberId} nicht gefunden.");
-        await members.UpdateProfileAsync(memberId, contactPerson, billingName,
-            billingAddress, billingPostalCode, billingCity, phone, member.HasKey);
+        var spaceIdx = contactPerson.IndexOf(' ');
+        var firstName = spaceIdx >= 0 ? contactPerson[..spaceIdx].Trim() : contactPerson;
+        var lastName  = spaceIdx >= 0 ? contactPerson[(spaceIdx + 1)..].Trim() : "";
+        await members.UpdateProfileAsync(memberId, billingName,
+            firstName, lastName,
+            billingAddress, null,
+            billingPostalCode, billingCity, phone);
         await audit.LogAsync("HallMember", memberId, "Updated", adminUser, null,
             new { contactPerson, phone, renterType, billingName, billingAddress, billingPostalCode, billingCity });
     }

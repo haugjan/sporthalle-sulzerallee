@@ -231,10 +231,10 @@
         _editHasMember         = member is not null;
         _editMemberId          = member?.Id;
         _editEmail             = member?.Email ?? "";
-        _editContactPerson     = member?.ContactPerson ?? "";
+        _editContactPerson     = member is null ? "" : $"{member.ContactFirstName} {member.ContactLastName}".Trim();
         _editPhone             = member?.Phone ?? "";
         _editRenterType        = member?.RenterType.Value.ToString() ?? "Privatperson";
-        _editBillingName       = member?.BillingName ?? "";
+        _editBillingName       = member?.Name ?? "";
         _editBillingAddress    = member?.BillingAddress ?? "";
         _editBillingPostalCode = member?.BillingPostalCode ?? "";
         _editBillingCity       = member?.BillingCity ?? "";

@@ -81,26 +81,29 @@ public sealed class BookingController(
             {
                 await memberManager.UpdateProfileAsync(
                     existing.Id,
-                    req.ContactPerson.Trim(),
-                    req.BillingName.Trim(),
+                    req.Name?.Trim(),
+                    req.ContactFirstName.Trim(),
+                    req.ContactLastName.Trim(),
                     req.BillingAddress.Trim(),
+                    req.AddressLine2?.Trim(),
                     req.BillingPostalCode.Trim(),
                     req.BillingCity.Trim(),
-                    string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
-                    existing.HasKey);
+                    string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim());
                 memberId = existing.Id;
             }
             else
             {
                 var cmd = new RegisterRenterCommand(
                     Email: req.GuestEmail.Trim(),
-                    ContactPerson: req.ContactPerson.Trim(),
                     RenterType: new RenterType(req.RenterType),
-                    BillingName: req.BillingName.Trim(),
+                    Name: req.Name?.Trim(),
+                    ContactFirstName: req.ContactFirstName.Trim(),
+                    ContactLastName: req.ContactLastName.Trim(),
                     BillingAddress: req.BillingAddress.Trim(),
+                    AddressLine2: req.AddressLine2?.Trim(),
                     BillingPostalCode: req.BillingPostalCode.Trim(),
                     BillingCity: req.BillingCity.Trim(),
-                    BillingCountry: "CH",
+                    BillingCountry: "Schweiz",
                     Phone: string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
                     HasKey: false,
                     Password: null);
@@ -180,10 +183,12 @@ public sealed class BookingController(
         {
             var cmd = new RegisterRenterCommand(
                 Email: req.Email,
-                ContactPerson: req.ContactPerson,
                 RenterType: new RenterType(req.RenterType),
-                BillingName: req.BillingName,
+                Name: req.Name,
+                ContactFirstName: req.ContactFirstName,
+                ContactLastName: req.ContactLastName,
                 BillingAddress: req.BillingAddress,
+                AddressLine2: req.AddressLine2,
                 BillingPostalCode: req.BillingPostalCode,
                 BillingCity: req.BillingCity,
                 BillingCountry: req.BillingCountry,
@@ -368,14 +373,14 @@ public sealed class BookingController(
 }
 
 public sealed record GuestBookingRequest(
-    string FirstName,
-    string LastName,
-    string ContactPerson,
+    string ContactFirstName,
+    string ContactLastName,
+    string? Name,
     string GuestEmail,
     string? GuestPhone,
     string RenterType,
-    string BillingName,
     string BillingAddress,
+    string? AddressLine2,
     string BillingPostalCode,
     string BillingCity,
     DateTime StartUtc,

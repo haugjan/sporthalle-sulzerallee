@@ -112,43 +112,23 @@
             </label>
           </div>
 
-          <div class="bm-field bm-field--2col">
-            <label>Mietertyp *
-              <select id="admin-bm-renter-type">
-                <option value="Privatperson">Privatperson</option>
-                <option value="Verein">Verein</option>
-                <option value="Firma">Firma</option>
-                <option value="Behörde">Behörde</option>
-              </select>
+          <div class="bm-field bm-field--2col" style="position:relative">
+            <label>Mieter suchen *
+              <input type="text" id="admin-bm-member-search"
+                     placeholder="Name, Firma oder E-Mail eingeben…"
+                     autocomplete="off" />
+              <div id="admin-bm-member-results" class="bm-search-results" hidden></div>
             </label>
           </div>
-
-          <div class="bm-field bm-field--2col" id="admin-bm-org-row" hidden>
-            <label><span id="admin-bm-org-label">Vereinsname</span> *
-              <input type="text" id="admin-bm-org-name" autocomplete="organization" />
-            </label>
-          </div>
-
-          <div class="bm-field">
-            <label>Vorname *
-              <input type="text" id="admin-bm-firstname" autocomplete="given-name" placeholder="Vorname" />
-            </label>
-          </div>
-          <div class="bm-field">
-            <label>Nachname *
-              <input type="text" id="admin-bm-lastname" autocomplete="family-name" placeholder="Nachname" />
-            </label>
-          </div>
-
-          <div class="bm-field">
-            <label>E-Mail *
-              <input type="email" id="admin-bm-email" autocomplete="email" placeholder="name@beispiel.ch" />
-            </label>
-          </div>
-          <div class="bm-field">
-            <label>Handynummer
-              <input type="tel" id="admin-bm-phone" autocomplete="tel" placeholder="+41 79 000 00 00" />
-            </label>
+          <div id="admin-bm-member-selected" class="bm-field bm-field--2col" hidden>
+            <div class="bm-member-badge">
+              <div>
+                <span id="admin-bm-member-badge-name" class="bm-member-badge__name"></span>
+                <span id="admin-bm-member-badge-email" class="bm-member-badge__email"></span>
+              </div>
+              <button type="button" id="admin-bm-member-clear" class="bm-member-badge__clear" aria-label="Auswahl aufheben">&#x2715;</button>
+            </div>
+            <input type="hidden" id="admin-bm-member-id" value="" />
           </div>
 
           <div class="bm-field bm-field--2col">
@@ -319,7 +299,8 @@
             endUtc     = x.Slot.Slot.EndUtc.ToString("o"),
             title      = x.Slot.Title,
             color      = x.Slot.Color,
-            mieterName = x.Member?.ContactPerson
+            mieterName = x.Member is null ? null
+                : x.Member.Name ?? $"{x.Member.ContactFirstName} {x.Member.ContactLastName}".Trim()
         });
         return JsonSerializer.Serialize(dto);
     }
@@ -352,35 +333,12 @@
                 return Ok(true);
             }
 
-            // Buchungsanfrage: Mitglied suchen oder anlegen
-            var existing = await Members.FindByEmailAsync(payload.Email!.Trim());
-            int memberId;
-            if (existing is not null)
-            {
-                memberId = existing.Id;
-            }
-            else
-            {
-                var contactPerson = $"{payload.Firstname} {payload.Lastname}".Trim();
-                var billingName   = string.IsNullOrWhiteSpace(payload.OrgName) ? contactPerson : payload.OrgName!.Trim();
-                var cmd = new SporthalleWeb.Application.Booking.RegisterRenterCommand(
-                    Email:             payload.Email.Trim(),
-                    ContactPerson:     contactPerson,
-                    RenterType:        new SporthalleWeb.Domain.Booking.RenterType(payload.RenterType ?? "Privatperson"),
-                    BillingName:       billingName,
-                    BillingAddress:    "",
-                    BillingPostalCode: "",
-                    BillingCity:       "",
-                    BillingCountry:    "CH",
-                    Phone:             string.IsNullOrWhiteSpace(payload.Phone) ? null : payload.Phone!.Trim(),
-                    HasKey:            false,
-                    Password:          null);
-                var member = await Members.CreateAsync(cmd, null);
-                memberId = member.Id;
-            }
+            // Buchungsanfrage: ausgewählten Mieter verknüpfen
+            if (payload.MemberId is null)
+                return Err("Bitte wähle einen Mieter aus.");
 
             var bookCmd = new SporthalleWeb.Application.Booking.CreateBookingCommand(
-                memberId, startUtc, endUtc,
+                payload.MemberId.Value, startUtc, endUtc,
                 payload.Anlass ?? "Buchung",
                 string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen!.Trim(),
                 string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim());
@@ -400,6 +358,21 @@
         {
             return Err("Unerwarteter Fehler: " + ex.Message);
         }
+    }
+
+    [JSInvokable]
+    public async Task<string> SearchMembersAsync(string query)
+    {
+        var members = await Members.SearchAsync(query);
+        var result = members.Select(m => new
+        {
+            id = m.Id,
+            email = m.Email,
+            name = m.Name,
+            contactFirstName = m.ContactFirstName,
+            contactLastName = m.ContactLastName,
+        });
+        return JsonSerializer.Serialize(result);
     }
 
     [JSInvokable]
@@ -487,11 +460,6 @@
         public string? Anlass { get; set; }
         public string? Color { get; set; }
         public string? Notizen { get; set; }
-        public string? RenterType { get; set; }
-        public string? OrgName { get; set; }
-        public string? Firstname { get; set; }
-        public string? Lastname { get; set; }
-        public string? Email { get; set; }
-        public string? Phone { get; set; }
+        public int? MemberId { get; set; }
     }
 }

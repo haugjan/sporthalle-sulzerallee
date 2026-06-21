@@ -1,13 +1,15 @@
-﻿using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking;
 
 namespace SporthalleWeb.Application.Booking;
 
 public sealed record RegisterRenterCommand(
     string Email,
-    string ContactPerson,
     RenterType RenterType,
-    string BillingName,
+    string? Name,
+    string ContactFirstName,
+    string ContactLastName,
     string BillingAddress,
+    string? AddressLine2,
     string BillingPostalCode,
     string BillingCity,
     string BillingCountry,
