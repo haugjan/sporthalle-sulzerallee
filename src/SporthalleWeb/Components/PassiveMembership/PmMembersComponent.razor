@@ -22,7 +22,7 @@ else
   <p class="text-muted mb-2" style="font-size:0.875rem;">@_members.Count Mitglied@(_members.Count == 1 ? "" : "er")</p>
   <div class="table-responsive">
     <table class="table table-hover align-middle" style="font-size:0.875rem;">
-      <thead class="table-dark">
+      <thead>
         <tr>
           <th style="cursor:pointer" @onclick='() => Sort("FieldNumber")'>Feld @Ind("FieldNumber")</th>
           <th>VIP</th>
@@ -31,8 +31,8 @@ else
           <th>E-Mail</th>
           <th>Adresse</th>
           <th style="cursor:pointer" @onclick='() => Sort("CreatedAt")'>Angemeldet @Ind("CreatedAt")</th>
-          <th>Zahlung</th>
-          <th>FiBu</th>
+          <th>Zahlung 1. Rate</th>
+          <th>In FiBu übertragen</th>
           <th>Notizen</th>
         </tr>
       </thead>

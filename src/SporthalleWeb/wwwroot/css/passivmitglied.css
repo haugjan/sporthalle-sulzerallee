@@ -708,7 +708,7 @@
 }
 .pm-btn-next:hover { background: #a5300f; }
 
-#pm-btn-submit {
+.pm-btn-submit {
   background: #2d6a2d;
   color: #fff;
   border: none;
@@ -722,8 +722,32 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-#pm-btn-submit:hover { background: #1a4a1a; }
-#pm-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.pm-btn-submit:hover { background: #1a4a1a; }
+.pm-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Wizard form inputs */
+.pm-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  font-family: "Manrope", sans-serif;
+  color: #333;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.pm-input:focus {
+  outline: none;
+  border-color: rgb(235,80,75);
+}
+
+/* Step validation error */
+.pm-error {
+  color: rgb(235,80,75);
+  font-size: 0.88rem;
+  margin-top: 0.5rem;
+}
 
 .pm-hidden { display: none !important; }
 
