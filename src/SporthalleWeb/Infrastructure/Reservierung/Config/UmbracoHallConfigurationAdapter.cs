@@ -16,11 +16,19 @@ public sealed class UmbracoHallConfigurationAdapter(
     public Task<int> GetBlockDurationMinutesAsync() =>
         Task.FromResult(GetConfigNode()?.GetValue<int>("blockDurationMinutes") is int v && v > 0 ? v : 60);
 
-    public Task<int> GetOpeningHourStartAsync() =>
-        Task.FromResult(GetConfigNode()?.GetValue<int>("openingHourStart") is int v && v > 0 ? v : 8);
+    public async Task<int> GetOpeningHourStartAsync()
+    {
+        var raw = await hallConfigService.GetAsync("kalender_beginn");
+        if (int.TryParse(raw, out var h) && h >= 0 && h <= 23) return h;
+        return 7;
+    }
 
-    public Task<int> GetOpeningHourEndAsync() =>
-        Task.FromResult(GetConfigNode()?.GetValue<int>("openingHourEnd") is int v && v > 0 ? v : 22);
+    public async Task<int> GetOpeningHourEndAsync()
+    {
+        var raw = await hallConfigService.GetAsync("kalender_ende");
+        if (int.TryParse(raw, out var h) && h >= 0 && h <= 23) return h;
+        return 23;
+    }
 
     public async Task<DateOnly?> GetBuchungenBisDatumAsync()
     {

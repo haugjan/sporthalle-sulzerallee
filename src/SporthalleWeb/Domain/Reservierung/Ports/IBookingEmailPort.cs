@@ -2,7 +2,7 @@ namespace SporthalleWeb.Domain.Reservierung.Ports;
 
 public interface IBookingEmailPort
 {
-    Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member);
+    Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null);
     Task SendAdminNewBookingNotificationAsync(BookingSlot slot, HallMember member);
     Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null);
     Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null);

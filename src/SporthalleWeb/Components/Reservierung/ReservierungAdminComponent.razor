@@ -1,6 +1,7 @@
 @inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
 @inject SporthalleWeb.Application.Reservierung.ConfirmBookingUseCase ConfirmUseCase
 @inject SporthalleWeb.Application.Reservierung.RejectBookingUseCase RejectUseCase
+@inject SporthalleWeb.Application.Reservierung.HallConfigService Config
 
 <style>
     .reservierung-admin { height: 100%; display: flex; flex-direction: column; }
@@ -810,10 +811,24 @@
             var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
             var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
             var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
-            _confirmEmailText =
-                $"Ihre Buchung für {slotStr} wurde bestätigt.\n\n" +
-                $"Anlass: {slot.Title}\n\n" +
-                "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch.";
+
+            var configuredText = await Config.GetAsync("mail_bestaetigung_text");
+            if (!string.IsNullOrWhiteSpace(configuredText))
+            {
+                _confirmEmailText = configuredText
+                    .Replace("{Name}", member.ContactPerson)
+                    .Replace("{Anlass}", slot.Title ?? "")
+                    .Replace("{Datum}", start.ToString("dddd, d. MMMM yyyy", DeCh))
+                    .Replace("{Von}", start.ToString("HH:mm"))
+                    .Replace("{Bis}", end.ToString("HH:mm"));
+            }
+            else
+            {
+                _confirmEmailText =
+                    $"Ihre Buchung für {slotStr} wurde bestätigt.\n\n" +
+                    $"Anlass: {slot.Title}\n\n" +
+                    "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch.";
+            }
         }
         _confirmEmailLoading = false;
     }

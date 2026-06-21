@@ -1,3 +1,4 @@
+using System.Globalization;
 using SporthalleWeb.Domain.Reservierung;
 using SporthalleWeb.Domain.Reservierung.Ports;
 
@@ -7,8 +8,13 @@ public sealed class CreateBookingUseCase(
     IBookingSlotRepository slotRepo,
     IMemberManagerPort members,
     IBookingAuditRepository audit,
-    IBookingEmailPort email)
+    IBookingEmailPort email,
+    HallConfigService hallConfig)
 {
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+    private static readonly CultureInfo DeCh = CultureInfo.GetCultureInfo("de-CH");
+
     public async Task<BookingSlot> ExecuteAsync(CreateBookingCommand cmd)
     {
         var member = await members.FindByIdAsync(cmd.MemberId)
@@ -25,7 +31,21 @@ public sealed class CreateBookingUseCase(
             member.Email, null,
             new { Type = booking.Type.ToString(), slot.StartUtc, slot.EndUtc });
 
-        await email.SendProvisionConfirmationToRenterAsync(booking, member);
+        var reservationText = await hallConfig.GetAsync("mail_reservation_text");
+        string? customBody = null;
+        if (!string.IsNullOrWhiteSpace(reservationText))
+        {
+            var startLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.StartUtc, Zurich);
+            var endLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.EndUtc, Zurich);
+            customBody = reservationText
+                .Replace("{Name}", member.ContactPerson)
+                .Replace("{Anlass}", booking.Title ?? "")
+                .Replace("{Datum}", startLocal.ToString("dddd, d. MMMM yyyy", DeCh))
+                .Replace("{Von}", startLocal.ToString("HH:mm"))
+                .Replace("{Bis}", endLocal.ToString("HH:mm"));
+        }
+
+        await email.SendProvisionConfirmationToRenterAsync(booking, member, customBody);
         await email.SendAdminNewBookingNotificationAsync(booking, member);
 
         return booking;
