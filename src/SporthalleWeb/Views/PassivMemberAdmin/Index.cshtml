@@ -1,0 +1,26 @@
+@using SporthalleWeb.Components.PassiveMembership
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Passivmitglieder Admin</title>
+</head>
+<body>
+    <component type="typeof(PmAdminComponent)" render-mode="Server" />
+    <script src="/_framework/blazor.server.js"></script>
+    <script>
+        window.pmDownload = function(bytes, filename, mime) {
+            const blob = new Blob([new Uint8Array(bytes)], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        };
+    </script>
+</body>
+</html>

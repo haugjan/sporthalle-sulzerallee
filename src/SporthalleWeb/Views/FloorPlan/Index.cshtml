@@ -1,0 +1,35 @@
+@using SporthalleWeb.Components.PassiveMembership
+@model string
+@{
+    Layout = null;
+    var siteKey = Model ?? "1x00000000000000000000AA";
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Hallenboden</title>
+    <style>html, body { margin: 0; padding: 0; }</style>
+</head>
+<body>
+    <component type="typeof(FloorPlanComponent)" render-mode="Server"
+               param-TurnstileSiteKey="@siteKey" />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="/_framework/blazor.server.js"></script>
+    <script>
+        var _pmTurnstileToken = null;
+        window.pmInitTurnstile = function(siteKey, containerId) {
+            _pmTurnstileToken = null;
+            if (window.turnstile && document.getElementById(containerId)) {
+                window.turnstile.render('#' + containerId, {
+                    sitekey: siteKey,
+                    callback: function(token) { _pmTurnstileToken = token; }
+                });
+            }
+        };
+        window.pmGetTurnstileToken = function() { return _pmTurnstileToken; };
+    </script>
+</body>
+</html>
