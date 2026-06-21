@@ -35,14 +35,18 @@ if (builder.Configuration[sqliteProviderKey] == "Microsoft.Data.Sqlite")
         var resolved = $"Data Source={absDataSource};Foreign Keys=True;Pooling=True";
         builder.Configuration[connKey] = resolved;
 
-        // Pre-create the SQLite file so Umbraco's availability check can open it.
-        // Without this the check fails with SQLITE_CANTOPEN because the file doesn't
-        // exist yet and the check opens with ReadWrite (no-create) mode.
+        // Pre-create the SQLite file and switch to WAL journal mode.
+        // WAL allows concurrent readers alongside a writer without mutual blocking.
+        // The default DELETE journal causes SQLITE_BUSY (error 5) when Umbraco,
+        // OpenIddict/EF Core, and our NPoco repositories all open connections to the
+        // same file simultaneously. WAL mode is persistent in the DB file itself.
         Directory.CreateDirectory(Path.GetDirectoryName(absDataSource)!);
-        if (!File.Exists(absDataSource))
+        using (var init = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={absDataSource}"))
         {
-            using var init = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={absDataSource}");
             init.Open();
+            using var walCmd = init.CreateCommand();
+            walCmd.CommandText = "PRAGMA journal_mode=WAL";
+            walCmd.ExecuteNonQuery();
         }
     }
 }
