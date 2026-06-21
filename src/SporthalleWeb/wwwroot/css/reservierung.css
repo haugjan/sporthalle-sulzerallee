@@ -126,6 +126,15 @@
   background: #f8f8f8;
 }
 
+.cal-cell.is-beyond-cutoff {
+  background: #f0f4f8;
+  cursor: crosshair;
+}
+
+.cal-header-day.is-beyond-cutoff {
+  color: #89a;
+}
+
 .cal-cell.is-today {
   background: #fff5f5;
 }

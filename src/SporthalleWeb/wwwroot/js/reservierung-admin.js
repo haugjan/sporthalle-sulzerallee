@@ -364,8 +364,6 @@ window.SporthalleAdmin = (function () {
     e.preventDefault(); // prevent text selection anywhere inside the calendar grid
     var target = e.target;
     if (!target.classList.contains('cal-cell')) return;
-    if (target.classList.contains('is-past')) return;
-    // Admin: today is allowed
 
     var layout = computeGridLayout();
     if (!layout) return;
@@ -376,7 +374,6 @@ window.SporthalleAdmin = (function () {
     var days = [];
     for (var i = 0; i < 7; i++) days.push(addDays(currentMonday, i));
     if (dayIdx < 0 || dayIdx >= days.length) return;
-    if (isPastDay(days[dayIdx])) return;
     var startBlock = blockFromY(relY, layout.contentTop);
     if (isBlockOccupied(dayIdx, startBlock, days)) return;
     isDragging = true;
