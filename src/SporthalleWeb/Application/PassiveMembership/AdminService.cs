@@ -8,11 +8,49 @@ public sealed class AdminService(
     IExcelPort excel,
     IAbaninjaCsvPort abaninja)
 {
-    public async Task MarkAsPaidAsync(int memberId)
+    public async Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
+        => await repo.GetPendingAsync();
+
+    public async Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
+        => await repo.GetConfirmedAsync();
+
+    public async Task ConfirmAsync(int memberId, bool isPaid, string confirmedBy)
     {
         var member = await repo.FindByIdAsync(memberId)
             ?? throw new MemberNotFoundException(memberId);
-        member.MarkAsPaid();
+        member.Confirm(confirmedBy, isPaid, confirmedBy);
+        await repo.UpdateAsync(member);
+    }
+
+    public async Task SoftDeleteAsync(int memberId)
+    {
+        var member = await repo.FindByIdAsync(memberId)
+            ?? throw new MemberNotFoundException(memberId);
+        member.SoftDelete();
+        await repo.UpdateAsync(member);
+    }
+
+    public async Task MarkAsPaidAsync(int memberId, string paidBy)
+    {
+        var member = await repo.FindByIdAsync(memberId)
+            ?? throw new MemberNotFoundException(memberId);
+        member.MarkAsPaid(paidBy);
+        await repo.UpdateAsync(member);
+    }
+
+    public async Task MarkAsUnpaidAsync(int memberId)
+    {
+        var member = await repo.FindByIdAsync(memberId)
+            ?? throw new MemberNotFoundException(memberId);
+        member.MarkAsUnpaid();
+        await repo.UpdateAsync(member);
+    }
+
+    public async Task SetExportedToAccountingAsync(int memberId, bool exported)
+    {
+        var member = await repo.FindByIdAsync(memberId)
+            ?? throw new MemberNotFoundException(memberId);
+        member.SetExportedToAccounting(exported);
         await repo.UpdateAsync(member);
     }
 
@@ -24,12 +62,9 @@ public sealed class AdminService(
         await repo.UpdateAsync(member);
     }
 
-    public async Task<IReadOnlyList<PassiveMember>> GetAllAsync()
-        => await repo.GetAllAsync();
-
     public async Task<byte[]> ExportExcelAsync()
-        => excel.ExportMembers(await repo.GetAllAsync());
+        => excel.ExportMembers(await repo.GetConfirmedAsync());
 
     public async Task<byte[]> ExportAbaninjaAsync()
-        => abaninja.ExportMembers(await repo.GetAllAsync());
+        => abaninja.ExportMembers(await repo.GetConfirmedAsync());
 }

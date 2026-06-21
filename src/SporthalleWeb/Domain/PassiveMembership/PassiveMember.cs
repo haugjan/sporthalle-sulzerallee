@@ -15,7 +15,12 @@ public sealed class PassiveMember
     public bool ShowNameOnFloor { get; private set; }
     public string? DisplayName { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public string Status { get; private set; } = MemberStatus.Pending;
+    public DateTime? ConfirmedAt { get; private set; }
+    public string? ConfirmedBy { get; private set; }
     public DateTime? PaidAt { get; private set; }
+    public string? PaidBy { get; private set; }
+    public bool ExportedToAccounting { get; private set; }
     public string? Notes { get; private set; }
 
     private PassiveMember() { }
@@ -48,17 +53,20 @@ public sealed class PassiveMember
             Level = level,
             ShowNameOnFloor = showNameOnFloor,
             DisplayName = showNameOnFloor ? displayName!.Trim() : null,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Status = MemberStatus.Pending,
         };
     }
 
-    // Wird vom Repository genutzt, um Domain-Objekte aus DB-Records zu rekonstruieren.
     public static PassiveMember Reconstitute(
         int id, int fieldNumber, string firstName, string lastName,
         string addressLine, string postalCode, string city, string country,
         string email, string levelKey,
         bool showNameOnFloor, string? displayName,
-        DateTime createdAt, DateTime? paidAt, string? notes) => new PassiveMember
+        DateTime createdAt, string status,
+        DateTime? confirmedAt, string? confirmedBy,
+        DateTime? paidAt, string? paidBy,
+        bool exportedToAccounting, string? notes) => new PassiveMember
     {
         Id = id,
         FieldNumber = new FieldNumber(fieldNumber),
@@ -73,10 +81,42 @@ public sealed class PassiveMember
         ShowNameOnFloor = showNameOnFloor,
         DisplayName = displayName,
         CreatedAt = createdAt,
+        Status = status,
+        ConfirmedAt = confirmedAt,
+        ConfirmedBy = confirmedBy,
         PaidAt = paidAt,
-        Notes = notes
+        PaidBy = paidBy,
+        ExportedToAccounting = exportedToAccounting,
+        Notes = notes,
     };
 
-    public void MarkAsPaid() => PaidAt = DateTime.UtcNow;
+    public void Confirm(string confirmedBy, bool isPaid, string? paidBy)
+    {
+        Status = MemberStatus.Confirmed;
+        ConfirmedAt = DateTime.UtcNow;
+        ConfirmedBy = confirmedBy;
+        if (isPaid)
+        {
+            PaidAt = DateTime.UtcNow;
+            PaidBy = paidBy;
+        }
+    }
+
+    public void SoftDelete() => Status = MemberStatus.Deleted;
+
+    public void MarkAsPaid(string paidBy)
+    {
+        PaidAt = DateTime.UtcNow;
+        PaidBy = paidBy;
+    }
+
+    public void MarkAsUnpaid()
+    {
+        PaidAt = null;
+        PaidBy = null;
+    }
+
+    public void SetExportedToAccounting(bool value) => ExportedToAccounting = value;
+
     public void UpdateNotes(string? notes) => Notes = notes?.Trim();
 }

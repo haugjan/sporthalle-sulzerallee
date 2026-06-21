@@ -6,6 +6,7 @@ using SporthalleWeb.Infrastructure.PassiveMembership.Excel;
 using SporthalleWeb.Infrastructure.PassiveMembership.Persistence;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
+using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Infrastructure.Manifest;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Composition;
@@ -18,6 +19,7 @@ public class PassiveMemberComposer : IComposer
 
         // Persistence
         builder.AddComponent<PassiveMemberMigrationComponent>();
+        builder.AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, PassivMemberSchemaEnsurer>();
         builder.Services.AddScoped<IPassiveMemberRepository, PassiveMemberRepository>();
 
         // Email

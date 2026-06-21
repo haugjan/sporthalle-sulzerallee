@@ -9,5 +9,9 @@ namespace SporthalleWeb.Presentation.PassiveMembership.Controllers;
 public sealed class PassiveMemberAdminController : Controller
 {
     [HttpGet("")]
-    public IActionResult Index() => View();
+    public IActionResult Index()
+    {
+        var adminUser = User.Identity?.Name ?? "admin";
+        return View("~/Views/PassivMemberAdmin/Index.cshtml", model: adminUser);
+    }
 }

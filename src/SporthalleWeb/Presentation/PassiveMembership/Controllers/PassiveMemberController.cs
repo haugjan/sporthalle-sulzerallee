@@ -78,41 +78,36 @@ public class PassiveMemberController : ControllerBase
         }
     }
 
-    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
-    [HttpPost("{id:int}/paid")]
-    public async Task<IActionResult> MarkAsPaid(int id)
-    {
-        try
-        {
-            await _adminService.MarkAsPaidAsync(id);
-            return Ok();
-        }
-        catch (MemberNotFoundException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
-    }
+    // Admin endpoints
 
     [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
-    [HttpPost("{id:int}/notes")]
-    public async Task<IActionResult> UpdateNotes(int id, [FromBody] UpdateNotesRequest req)
+    [HttpGet("admin/pending")]
+    public async Task<IActionResult> GetPendingMembers()
     {
-        try
+        var members = await _adminService.GetPendingAsync();
+        return Ok(members.Select(m => new
         {
-            await _adminService.UpdateNotesAsync(id, req.Notes);
-            return Ok();
-        }
-        catch (MemberNotFoundException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+            m.Id,
+            FieldNumber = m.FieldNumber.Value,
+            VipLabel = VipField.GetLabel(m.FieldNumber.Value),
+            Level = m.Level.DisplayName,
+            LevelKey = m.Level.Key,
+            YearlyFee = m.Level.YearlyFee,
+            m.FirstName,
+            m.LastName,
+            Email = m.Email.Value,
+            m.AddressLine,
+            m.PostalCode,
+            m.City,
+            CreatedAt = m.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+        }));
     }
 
     [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
     [HttpGet("admin/members")]
-    public async Task<IActionResult> GetAllMembers()
+    public async Task<IActionResult> GetConfirmedMembers()
     {
-        var members = await _adminService.GetAllAsync();
+        var members = await _adminService.GetConfirmedAsync();
         return Ok(members.Select(m => new
         {
             m.Id,
@@ -129,8 +124,102 @@ public class PassiveMemberController : ControllerBase
             m.City,
             CreatedAt = m.CreatedAt.ToString("dd.MM.yyyy"),
             PaidAt = m.PaidAt?.ToString("dd.MM.yyyy"),
+            m.PaidBy,
+            m.ExportedToAccounting,
             m.Notes
         }));
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpPost("admin/{id:int}/confirm")]
+    public async Task<IActionResult> ConfirmMember(int id, [FromBody] ConfirmMemberRequest req)
+    {
+        var confirmedBy = User.Identity?.Name ?? "admin";
+        try
+        {
+            await _adminService.ConfirmAsync(id, req.IsPaid, confirmedBy);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpDelete("admin/{id:int}")]
+    public async Task<IActionResult> SoftDeleteMember(int id)
+    {
+        try
+        {
+            await _adminService.SoftDeleteAsync(id);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpPost("admin/{id:int}/paid")]
+    public async Task<IActionResult> MarkAsPaid(int id)
+    {
+        var paidBy = User.Identity?.Name ?? "admin";
+        try
+        {
+            await _adminService.MarkAsPaidAsync(id, paidBy);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpPost("admin/{id:int}/unpaid")]
+    public async Task<IActionResult> MarkAsUnpaid(int id)
+    {
+        try
+        {
+            await _adminService.MarkAsUnpaidAsync(id);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpPost("admin/{id:int}/accounting")]
+    public async Task<IActionResult> SetAccounting(int id, [FromBody] SetAccountingRequest req)
+    {
+        try
+        {
+            await _adminService.SetExportedToAccountingAsync(id, req.Exported);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpPost("admin/{id:int}/notes")]
+    public async Task<IActionResult> UpdateNotes(int id, [FromBody] UpdateNotesRequest req)
+    {
+        try
+        {
+            await _adminService.UpdateNotesAsync(id, req.Notes);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
     }
 
     [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
@@ -153,3 +242,5 @@ public class PassiveMemberController : ControllerBase
 }
 
 public record UpdateNotesRequest(string? Notes);
+public record ConfirmMemberRequest(bool IsPaid);
+public record SetAccountingRequest(bool Exported);
