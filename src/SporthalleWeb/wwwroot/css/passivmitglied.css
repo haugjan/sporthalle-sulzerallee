@@ -307,6 +307,9 @@
 }
 
 .pm-floor-section.is-expanded {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
   border-radius: 0;
 }
 
@@ -341,27 +344,42 @@
   padding: 0 2rem;
 }
 
+/* Container: stacks the floor image and the SVG overlay */
 #pm-svg-container {
+  position: relative;
   width: 100%;
-  cursor: crosshair;
+  cursor: zoom-in;
 }
 
-#pm-field-svg {
+/* Floor plan background — rendered as a plain <img> for reliable cross-browser display */
+#pm-floor-img {
   width: 100%;
   height: auto;
   display: block;
 }
 
-/* SVG grid cells */
-.pm-cell { cursor: crosshair; transition: opacity 0.1s; }
+/* SVG grid overlaid on the image */
+#pm-field-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 
-/* In collapsed view: cells pass through pointer events; SVG shows hand cursor */
-.pm-floor-section:not(.is-expanded) .pm-cell {
+/* In collapsed state the entire SVG is pass-through so clicks reach the container */
+.pm-floor-section:not(.is-expanded) #pm-field-svg {
   pointer-events: none;
 }
-.pm-floor-section:not(.is-expanded) #pm-field-svg {
-  cursor: pointer;
+
+/* In expanded state reset the container cursor and let cells handle theirs */
+.pm-floor-section.is-expanded #pm-svg-container {
+  cursor: default;
 }
+
+/* SVG grid cells */
+.pm-cell { transition: opacity 0.1s; }
 .pm-floor-section:not(.is-expanded) .pm-cell--free:focus {
   fill: transparent;
   stroke: rgba(255,255,255,0.1);

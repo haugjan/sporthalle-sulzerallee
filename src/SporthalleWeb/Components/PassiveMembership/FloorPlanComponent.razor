@@ -9,6 +9,7 @@
 
 @* ── Floor plan ──────────────────────────────────────────── *@
 <section class="pm-floor-section @(_expanded ? "is-expanded" : "")" id="pm-floor-section">
+
   <button class="pm-floor-toggle" id="pm-floor-toggle" @onclick="ToggleExpand"
           aria-label="@(_expanded ? "Bodenplan verkleinern" : "Bodenplan vergrössern")">
     @if (_expanded)
@@ -29,15 +30,16 @@
 
   <p class="pm-counter"><span id="pm-counter">@_occupiedCount von 300 Feldern belegt</span></p>
 
-  <div id="pm-svg-container">
-    <svg viewBox="0 0 840 440" id="pm-field-svg"
-         style="width:100%;display:block;"
-         xmlns="http://www.w3.org/2000/svg">
-
-      @* Background floor image *@
-      @((MarkupString)"<image href=\"/media/unihockey-boden.svg\" x=\"0\" y=\"0\" width=\"840\" height=\"440\" preserveAspectRatio=\"none\" />")
-
-      @* Grid cells — 20 cols × 15 rows, offset 20px each side *@
+  @*
+    Container: always clickable. In non-expanded state, the SVG has pointer-events:none
+    so clicks fall through to this div → expand. In expanded state, cell <g> elements
+    get clicks normally (and stop propagation so the container handler is not triggered).
+  *@
+  <div id="pm-svg-container" @onclick="OnContainerClick">
+    @* Floor image rendered as a real <img> — reliable cross-browser *@
+    <img src="/media/unihockey-boden.svg" alt="" aria-hidden="true" id="pm-floor-img" />
+    @* SVG grid overlaid on the image. pointer-events:none when collapsed (see CSS). *@
+    <svg viewBox="0 0 840 440" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
       @for (int row = 0; row < 15; row++)
       {
         for (int col = 0; col < 20; col++)
@@ -47,7 +49,7 @@
           var cy       = 20 + row * 400.0 / 15.0;
           var ch       = 400.0 / 15.0;
           var midX     = cx + 20;
-          var midY     = cy + ch / 2;
+          var midY     = cy + ch / 2.0;
           var isVip      = VipField.IsVip(fn);
           var isOccupied = _occupiedFields.Contains(fn);
           var isSelected = fn == _selectedField;
@@ -55,31 +57,23 @@
                          : isOccupied  ? "pm-cell pm-cell--occupied"
                          : isVip       ? "pm-cell pm-cell--vip"
                          :               "pm-cell pm-cell--free";
-          var dn = _displayNames.TryGetValue(fn, out var name) ? name : null;
-          var vipLbl = (!isOccupied) ? VipField.GetLabel(fn) : null;
+          var dn     = _displayNames.TryGetValue(fn, out var dname) ? dname : null;
+          var vipLbl = !isOccupied ? VipField.GetLabel(fn) : null;
 
-          <g @key="fn" @onclick="() => CellClicked(fn, isOccupied)">
-            @((MarkupString)$"<rect x='{cx:F1}' y='{cy:F2}' width='40' height='{ch:F2}' class='{cssClass}' />")
+          <g @key="fn" @onclick="() => CellClicked(fn, isOccupied)" @onclick:stopPropagation="true">
+            @((MarkupString)$"<rect x='{cx}' y='{cy:F2}' width='40' height='{ch:F2}' class='{cssClass}' />")
             @if (dn is not null)
             {
               var truncated = dn.Length > 9 ? dn[..8] + "…" : dn;
               var fullAttr  = dn.Length > 9 ? $" data-fullname=\"{HtmlEncoder.Default.Encode(dn)}\"" : "";
-              @((MarkupString)$"<text x='{midX:F1}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='5.5' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
+              @((MarkupString)$"<text x='{midX}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='5.5' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
             }
             @if (vipLbl is not null)
             {
-              @((MarkupString)$"<text x='{midX:F1}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='5.5' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.6)' pointer-events='none'>{HtmlEncoder.Default.Encode(vipLbl)}</text>")
+              @((MarkupString)$"<text x='{midX}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='5.5' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.6)' pointer-events='none'>{HtmlEncoder.Default.Encode(vipLbl)}</text>")
             }
           </g>
         }
-      }
-
-      @* Collapse overlay: sits on top of all cells when not expanded.
-         A click on it expands the floor plan instead of selecting a field. *@
-      @if (!_expanded)
-      {
-        <rect x="0" y="0" width="840" height="440" fill="transparent" style="cursor:zoom-in;"
-              @onclick="() => _expanded = true" @onclick:stopPropagation="true" />
       }
     </svg>
   </div>
@@ -125,7 +119,6 @@
 
       <div class="pm-wizard__body">
 
-        @* Step 1: field confirmation *@
         @if (_step == Step.Field)
         {
           <div class="pm-step pm-step--active" data-step="1">
@@ -136,7 +129,6 @@
           </div>
         }
 
-        @* Step 2: level *@
         @if (_step == Step.Level)
         {
           <div class="pm-step pm-step--active" data-step="2">
@@ -156,11 +148,10 @@
                 </label>
               }
             </div>
-            @if (_stepError is not null) { <p class="pm-error" id="pm-step-error">@_stepError</p> }
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
         }
 
-        @* Step 3: personal data *@
         @if (_step == Step.Person)
         {
           <div class="pm-step pm-step--active" data-step="3">
@@ -177,11 +168,10 @@
               <label>E-Mail *</label>
               <input class="pm-input" type="email" @bind="_email" placeholder="E-Mail-Adresse" />
             </div>
-            @if (_stepError is not null) { <p class="pm-error" id="pm-step-error">@_stepError</p> }
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
         }
 
-        @* Step 4: address *@
         @if (_step == Step.Address)
         {
           <div class="pm-step pm-step--active" data-step="4">
@@ -200,11 +190,10 @@
                 <input class="pm-input" @bind="_city" placeholder="Zürich" />
               </div>
             </div>
-            @if (_stepError is not null) { <p class="pm-error" id="pm-step-error">@_stepError</p> }
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
         }
 
-        @* Step 5: floor display + consent *@
         @if (_step == Step.Consent)
         {
           <div class="pm-step pm-step--active" data-step="5">
@@ -228,11 +217,10 @@
                 Ich stimme der Verarbeitung meiner Daten gemäss Datenschutzerklärung zu. *
               </label>
             </div>
-            @if (_stepError is not null) { <p class="pm-error" id="pm-step-error">@_stepError</p> }
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
         }
 
-        @* Step 6: CAPTCHA + submit *@
         @if (_step == Step.Captcha)
         {
           <div class="pm-step pm-step--active" data-step="6">
@@ -285,7 +273,6 @@
     private bool _submitting;
     private bool _success;
 
-    // Wizard fields
     private string _levelKey    = "";
     private string _firstName   = "";
     private string _lastName    = "";
@@ -313,13 +300,17 @@
             await JS.InvokeVoidAsync("pmInitTurnstile", TurnstileSiteKey, "pm-turnstile");
     }
 
+    // In collapsed state the SVG has pointer-events:none (CSS), so clicks reach
+    // #pm-svg-container and expand the plan. In expanded state, cell <g> elements
+    // stop propagation, so this only fires on clicks in empty SVG space (harmless).
+    private void OnContainerClick()
+    {
+        if (!_expanded) _expanded = true;
+    }
+
     private void CellClicked(int fieldNum, bool isOccupied)
     {
-        if (!_expanded)
-        {
-            _expanded = true;
-            return;
-        }
+        if (!_expanded) { _expanded = true; return; } // fallback guard
         if (isOccupied) return;
         _selectedField = fieldNum;
         _step          = Step.Field;
@@ -394,12 +385,9 @@
             _selectedField  = null;
             _success        = true;
         }
-        catch (FieldAlreadyTakenException)
-        {
-            _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes.";
-        }
-        catch (DomainException ex) { _submitError = ex.Message; }
-        catch (Exception)          { _submitError = "Ein Fehler ist aufgetreten. Bitte versuche es erneut."; }
+        catch (FieldAlreadyTakenException) { _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes."; }
+        catch (DomainException ex)         { _submitError = ex.Message; }
+        catch (Exception)                  { _submitError = "Ein Fehler ist aufgetreten. Bitte versuche es erneut."; }
         finally { _submitting = false; }
     }
 
