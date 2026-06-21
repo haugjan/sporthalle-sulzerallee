@@ -33,9 +33,9 @@ Interactive calendar for booking time slots in the hall. Renters can register an
 
 Supporters can symbolically adopt one square metre of the unihockey hall floor and become passive members at CHF 50, 100, or 200 per year.
 
-**Public:** `/passivmitgliedschaft` — interactive SVG floor plan of the hall (300 fields). Clicking a free field opens a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
+**Public:** `/passivmitgliedschaft` — interactive SVG floor plan of the hall (300 fields, rendered as a Blazor Server component). Clicking a free field opens a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
 
-**Admin:** Umbraco backoffice → "Passivmitglieder" section. Table of all members with payment status, Excel export, and AbaNinja CSV export.
+**Admin:** Umbraco backoffice → "Passivmitglieder" section. Blazor Server admin UI with member table (sortable, mark as paid, notes), Excel export, and AbaNinja CSV export.
 
 ## Local Development
 
@@ -109,6 +109,10 @@ ConnectionStrings__umbracoDbDSN_ProviderName  (Microsoft.Data.SqlClient)
 | `reservierungKonfiguration` | Admin-only config node for booking settings |
 
 Content types are managed via uSync and are imported automatically on startup.
+
+## Language Policy
+
+Code (namespaces, class names, method names, variable names, comments) is written in English. Public-facing content (UI text, page copy, emails) stays in German to match the target audience. A small number of identifiers remain in German to avoid breaking external contracts: URL routes, Umbraco content type aliases, the `PassivMitglieder` database table name, and the `App_Plugins/PassivMitglieder/` folder.
 
 ## Architecture Notes
 
