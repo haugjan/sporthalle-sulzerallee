@@ -92,7 +92,6 @@ app.UseUmbraco()
     {
         u.UseBackOfficeEndpoints();
         u.UseWebsiteEndpoints();
-        u.EndpointRouteBuilder.MapBlazorHub();
     });
 
 await app.RunAsync();

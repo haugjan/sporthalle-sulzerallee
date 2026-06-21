@@ -5,6 +5,16 @@
   margin: 0 auto;
 }
 
+/* ===== Intro-Section vor den Stufen-Cards ===== */
+.pm-intro-section {
+  padding-top: 2rem;
+  padding-bottom: 1rem;
+}
+
+.pm-outro-section {
+  padding-top: 2rem;
+}
+
 /* ===== Intro-Abschnitt (legacy, für evtl. eigene Klassen im Richtext) ===== */
 .pm-intro {
   padding: 4rem 2rem;
@@ -279,7 +289,7 @@
 
 /* ===== Stufen-Abschnitt (im Modul) ===== */
 .pm-stufen-section {
-  padding: 3rem 2rem 2rem;
+  padding: 0 2rem 2rem;
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -343,7 +353,25 @@
 }
 
 /* SVG grid cells */
-.pm-cell { cursor: pointer; transition: opacity 0.1s; }
+.pm-cell { cursor: crosshair; transition: opacity 0.1s; }
+
+/* In collapsed view: cells pass through pointer events; SVG shows hand cursor */
+.pm-floor-section:not(.is-expanded) .pm-cell {
+  pointer-events: none;
+}
+.pm-floor-section:not(.is-expanded) #pm-field-svg {
+  cursor: pointer;
+}
+.pm-floor-section:not(.is-expanded) .pm-cell--free:focus {
+  fill: transparent;
+  stroke: rgba(255,255,255,0.1);
+  outline: none;
+}
+.pm-floor-section:not(.is-expanded) .pm-cell--vip:focus {
+  fill: rgba(201,162,39,0.12);
+  stroke: rgba(201,162,39,0.4);
+  outline: none;
+}
 
 .pm-cell--free {
   fill: transparent;
@@ -733,4 +761,19 @@
   }
 
   .pm-summary__row { grid-template-columns: 100px 1fr; }
+}
+
+/* ===== Hallenboden Hover-Tooltip ===== */
+#pm-name-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(20, 20, 30, 0.92);
+  color: #fff;
+  font-size: 0.78rem;
+  font-family: Manrope, sans-serif;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
