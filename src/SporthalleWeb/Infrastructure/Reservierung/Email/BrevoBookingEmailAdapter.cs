@@ -47,15 +47,20 @@ public sealed class BrevoBookingEmailAdapter(
             <p>Falls Sie kein neues Passwort angefordert haben, ignorieren Sie diese E-Mail.</p>
             """);
 
-    public Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member) =>
-        SendAsync(member.Email, member.ContactPerson,
+    public Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
+    {
+        var body = customEmailBody is not null
+            ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
+            : $"Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> ist bei uns eingegangen und wird geprüft.";
+        return SendAsync(member.Email, member.ContactPerson,
             "Buchungsanfrage erhalten – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage erhalten",
                 greeting: $"Guten Tag {member.ContactPerson}",
-                body: $"Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> ist bei uns eingegangen und wird geprüft.",
-                detail: $"Anlass: {slot.Title}",
-                note: "Sie erhalten eine separate Bestätigung, sobald die Buchung genehmigt wurde."));
+                body: body,
+                detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
+                note: customEmailBody is null ? "Sie erhalten eine separate Bestätigung, sobald die Buchung genehmigt wurde." : null));
+    }
 
     public Task SendAdminNewBookingNotificationAsync(BookingSlot slot, HallMember member) =>
         SendAsync(AdminEmail, SenderName,

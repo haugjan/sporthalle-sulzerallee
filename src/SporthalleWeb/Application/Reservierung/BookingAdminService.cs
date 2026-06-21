@@ -51,7 +51,8 @@ public sealed class BookingAdminService(
 
     public async Task<IReadOnlyList<(BookingSlot Slot, HallMember? Member)>> GetSlotsWithMembersForPeriodAsync(DateOnly from, DateOnly toInclusive, bool includeRejected = false)
     {
-        var slots = await slotRepo.GetAllAsync(from, toInclusive, null, includeRejected);
+        var allSlots = await slotRepo.GetAllAsync(from, toInclusive, null, includeRejected);
+        var slots = allSlots.Where(s => s.Type != SlotType.Blocker).ToList();
         var result = new List<(BookingSlot, HallMember?)>();
         foreach (var slot in slots)
         {
