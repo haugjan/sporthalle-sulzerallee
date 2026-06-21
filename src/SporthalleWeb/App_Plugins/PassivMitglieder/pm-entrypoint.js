@@ -94,7 +94,7 @@ class PmAdminElement extends HTMLElement {
       <tr class="${m.paidAt ? 'paid' : ''}" data-id="${m.id}">
         <td>${m.fieldNumber}</td>
         <td>${m.vipLabel ?? ''}</td>
-        <td><span class="badge badge-${m.levelKey.toLowerCase()}">${m.levelKey}</span><br><small>${m.level}</small></td>
+        <td><span class="badge badge-${m.levelKey.toLowerCase()}">${m.levelKey}</span></td>
         <td>${m.firstName} ${m.lastName}</td>
         <td><a href="mailto:${m.email}">${m.email}</a></td>
         <td>${m.addressLine}, ${m.postalCode} ${m.city}</td>
