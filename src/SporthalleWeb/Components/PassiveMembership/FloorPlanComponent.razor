@@ -1,0 +1,401 @@
+@using SporthalleWeb.Application.PassiveMembership
+@using SporthalleWeb.Domain.PassiveMembership
+@using System.Text.Encodings.Web
+@inject GetFieldStatusesQuery FieldQuery
+@inject RegisterMemberUseCase RegisterUseCase
+@inject IJSRuntime JS
+
+<link rel="stylesheet" href="/css/passivmitglied.css" />
+
+@* ── Floor plan ──────────────────────────────────────────── *@
+<section class="pm-floor-section @(_expanded ? "pm-floor-section--expanded" : "")" id="pm-floor-section">
+  <button class="pm-floor-toggle" @onclick="ToggleExpand" aria-label="Bodenplan vergrössern">
+    @if (_expanded)
+    {
+      <svg class="pm-floor-toggle__collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+        <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+      </svg>
+    }
+    else
+    {
+      <svg class="pm-floor-toggle__expand" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+      </svg>
+    }
+  </button>
+
+  <p class="pm-counter"><span id="pm-counter">@_occupiedCount von 300 Feldern belegt</span></p>
+
+  <div id="pm-svg-container">
+    <svg viewBox="0 0 620 465" xmlns="http://www.w3.org/2000/svg"
+         style="width:100%;max-width:620px;display:block;margin:0 auto;background:#1a1a1a;border-radius:6px;">
+      @for (int row = 0; row < 15; row++)
+      {
+        @for (int col = 0; col < 20; col++)
+        {
+          var fn = row * 20 + col + 1;
+          var x = col * 31;
+          var y = row * 31;
+          var isVip = VipField.IsVip(fn);
+          var isOccupied = _occupiedFields.Contains(fn);
+          var displayName = _displayNames.TryGetValue(fn, out var dn) ? dn : null;
+          var fill = isOccupied ? "#555" : isVip ? "#2a4a7f" : "#2c2c2c";
+          var hover = isOccupied ? "default" : "pointer";
+
+          <g @key="fn" style="cursor:@hover" @onclick="() => CellClicked(fn, isOccupied)">
+            <rect x="@x" y="@y" width="30" height="30"
+                  fill="@fill"
+                  stroke="@(fn == _selectedField ? "#ffcc00" : "#111")"
+                  stroke-width="@(fn == _selectedField ? "2" : "0.5")" />
+            @if (displayName is not null)
+            {
+              var truncated = displayName.Length > 9 ? displayName[..8] + "…" : displayName;
+              @((MarkupString)$"<text x='{x + 15}' y='{y + 19}' text-anchor='middle' font-size='7' fill='#ccc' font-family='sans-serif'>{HtmlEncoder.Default.Encode(truncated)}</text>")
+            }
+            @if (isVip && !isOccupied)
+            {
+              @((MarkupString)$"<text x='{x + 15}' y='{y + 19}' text-anchor='middle' font-size='7' fill='#7aa4d8' font-family='sans-serif'>{HtmlEncoder.Default.Encode(VipField.GetLabel(fn) ?? "")}</text>")
+            }
+          </g>
+        }
+      }
+    </svg>
+  </div>
+
+  <div class="pm-legend">
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--free"></span> Frei</div>
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--vip"></span> Torraum / Anspielkreis</div>
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--occupied"></span> Belegt</div>
+  </div>
+</section>
+
+@* ── Success message ─────────────────────────────────────── *@
+@if (_success)
+{
+  <div class="pm-success-wrap">
+    <div class="pm-message pm-message--success">
+      Herzlich willkommen! Deine Anmeldung ist eingegangen. Du erhältst in Kürze eine Bestätigungs-E-Mail.
+    </div>
+  </div>
+}
+
+@* ── Wizard modal ─────────────────────────────────────────── *@
+@if (_step != Step.None)
+{
+  <div class="pm-wizard-overlay" role="dialog" aria-modal="true" aria-label="Anmeldung Passivmitgliedschaft"
+       style="display:flex;">
+    <div class="pm-wizard__modal">
+
+      <div class="pm-wizard__header">
+        <h2 class="pm-wizard__title">Passivmitglied werden</h2>
+        <button class="pm-wizard__close" aria-label="Schliessen" @onclick="CloseWizard">&times;</button>
+      </div>
+
+      <div class="pm-progress" aria-hidden="true">
+        @for (int s = 1; s <= 6; s++)
+        {
+          var stepNum = s;
+          <span class="pm-progress__dot @(CurrentStepNum() >= stepNum ? "pm-progress__dot--active" : "")"
+                data-step="@stepNum"></span>
+        }
+        <span class="pm-progress__label">Schritt @CurrentStepNum() von 6</span>
+      </div>
+
+      <div class="pm-wizard__body">
+
+        @* Step 1: field confirmation *@
+        @if (_step == Step.Field)
+        {
+          <div class="pm-step pm-step--active">
+            <h3>Dein Feld</h3>
+            <p>Du hast folgendes Feld gewählt:</p>
+            <div class="pm-field-preview">Feld Nr. @_selectedField @(VipField.GetLabel(_selectedField ?? 0) is { } lbl ? $"({lbl})" : "")</div>
+            <p style="font-size:0.9rem;color:#666;">Klicke «Weiter» um fortzufahren, oder schliesse den Dialog um ein anderes Feld zu wählen.</p>
+          </div>
+        }
+
+        @* Step 2: level *@
+        @if (_step == Step.Level)
+        {
+          <div class="pm-step pm-step--active">
+            <h3>Mitgliedsstufe wählen</h3>
+            <div class="pm-wizard-levels">
+              @foreach (var level in new[] { MembershipLevel.Bronze, MembershipLevel.Silber, MembershipLevel.Gold })
+              {
+                var lk = level.Key;
+                <label class="pm-wizard-level pm-wizard-level--@lk.ToLower() @(_levelKey == lk ? "pm-wizard-level--selected" : "")">
+                  <input type="radio" name="levelKey" value="@lk" checked="@(_levelKey == lk)"
+                         @onchange="() => _levelKey = lk" />
+                  <span class="pm-wizard-level__badge">@lk</span>
+                  <span class="pm-wizard-level__info">
+                    <span class="pm-wizard-level__name">@level.DisplayName</span>
+                    <span class="pm-wizard-level__fee">CHF @level.YearlyFee.ToString("0.–")/Jahr</span>
+                  </span>
+                </label>
+              }
+            </div>
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
+          </div>
+        }
+
+        @* Step 3: personal data *@
+        @if (_step == Step.Person)
+        {
+          <div class="pm-step pm-step--active">
+            <h3>Persönliche Daten</h3>
+            <div class="pm-form-group">
+              <label>Vorname *</label>
+              <input class="pm-input" @bind="_firstName" placeholder="Vorname" />
+            </div>
+            <div class="pm-form-group">
+              <label>Nachname *</label>
+              <input class="pm-input" @bind="_lastName" placeholder="Nachname" />
+            </div>
+            <div class="pm-form-group">
+              <label>E-Mail *</label>
+              <input class="pm-input" type="email" @bind="_email" placeholder="E-Mail-Adresse" />
+            </div>
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
+          </div>
+        }
+
+        @* Step 4: address *@
+        @if (_step == Step.Address)
+        {
+          <div class="pm-step pm-step--active">
+            <h3>Adresse</h3>
+            <div class="pm-form-group">
+              <label>Strasse und Hausnummer *</label>
+              <input class="pm-input" @bind="_addressLine" placeholder="Musterstrasse 1" />
+            </div>
+            <div class="pm-form-row">
+              <div class="pm-form-group">
+                <label>PLZ *</label>
+                <input class="pm-input" @bind="_postalCode" placeholder="8000" />
+              </div>
+              <div class="pm-form-group">
+                <label>Ort *</label>
+                <input class="pm-input" @bind="_city" placeholder="Zürich" />
+              </div>
+            </div>
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
+          </div>
+        }
+
+        @* Step 5: floor display + consent *@
+        @if (_step == Step.Consent)
+        {
+          <div class="pm-step pm-step--active">
+            <h3>Bodenplan & Einwilligung</h3>
+            <div class="pm-form-group">
+              <label class="pm-checkbox-label">
+                <input type="checkbox" @bind="_showNameOnFloor" />
+                Meinen Namen auf dem Bodenplan anzeigen
+              </label>
+            </div>
+            @if (_showNameOnFloor)
+            {
+              <div class="pm-form-group">
+                <label>Anzeigename (max. 20 Zeichen)</label>
+                <input class="pm-input" @bind="_displayName" placeholder="z.B. Fam. Muster" maxlength="20" />
+              </div>
+            }
+            <div class="pm-form-group" style="margin-top:1rem;">
+              <label class="pm-checkbox-label">
+                <input type="checkbox" @bind="_consent" />
+                Ich stimme der Verarbeitung meiner Daten gemäss Datenschutzerklärung zu. *
+              </label>
+            </div>
+            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
+          </div>
+        }
+
+        @* Step 6: CAPTCHA + submit *@
+        @if (_step == Step.Captcha)
+        {
+          <div class="pm-step pm-step--active">
+            <h3>Bestätigung</h3>
+            <p style="font-size:0.9rem;color:#555;">Bitte bestätige, dass du kein Roboter bist.</p>
+            <div id="pm-turnstile" style="margin:1rem 0;"></div>
+            @if (!string.IsNullOrEmpty(_submitError))
+            {
+              <p class="pm-error">@_submitError</p>
+            }
+          </div>
+        }
+
+      </div>
+
+      <div class="pm-wizard__footer">
+        @if (_step != Step.Field)
+        {
+          <button class="pm-btn pm-btn--back" @onclick="PrevStep">Zurück</button>
+        }
+        @if (_step != Step.Captcha)
+        {
+          <button class="pm-btn pm-btn--next" @onclick="NextStep">Weiter</button>
+        }
+        else
+        {
+          <button class="pm-btn pm-btn--submit" disabled="@_submitting" @onclick="Submit">
+            @(_submitting ? "Wird gesendet…" : "Anmelden")
+          </button>
+        }
+      </div>
+
+    </div>
+  </div>
+}
+
+@code {
+    [Parameter] public string TurnstileSiteKey { get; set; } = "1x00000000000000000000AA";
+
+    private enum Step { None, Field, Level, Person, Address, Consent, Captcha }
+
+    private HashSet<int> _occupiedFields = [];
+    private Dictionary<int, string> _displayNames = [];
+    private int _occupiedCount;
+    private bool _expanded;
+    private int? _selectedField;
+    private Step _step = Step.None;
+    private string? _stepError;
+    private string? _submitError;
+    private bool _submitting;
+    private bool _success;
+
+    // Wizard fields
+    private string _levelKey  = "";
+    private string _firstName = "";
+    private string _lastName  = "";
+    private string _email     = "";
+    private string _addressLine = "";
+    private string _postalCode  = "";
+    private string _city        = "";
+    private bool   _showNameOnFloor;
+    private string _displayName = "";
+    private bool   _consent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await FieldQuery.ExecuteAsync();
+        _occupiedFields = result.OccupiedFields.Select(f => f.FieldNumber).ToHashSet();
+        _displayNames   = result.OccupiedFields
+            .Where(f => f.DisplayName is not null)
+            .ToDictionary(f => f.FieldNumber, f => f.DisplayName!);
+        _occupiedCount  = _occupiedFields.Count;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_step == Step.Captcha)
+            await JS.InvokeVoidAsync("pmInitTurnstile", TurnstileSiteKey, "pm-turnstile");
+    }
+
+    private void CellClicked(int fieldNum, bool isOccupied)
+    {
+        if (isOccupied) return;
+        _selectedField = fieldNum;
+        _step = Step.Field;
+        _stepError = null;
+    }
+
+    private void ToggleExpand() => _expanded = !_expanded;
+
+    private void CloseWizard()
+    {
+        _step = Step.None;
+        _selectedField = null;
+        _stepError = null;
+        _submitError = null;
+    }
+
+    private void NextStep()
+    {
+        _stepError = null;
+        if (_step == Step.Level   && string.IsNullOrEmpty(_levelKey))        { _stepError = "Bitte eine Stufe wählen."; return; }
+        if (_step == Step.Person  && (string.IsNullOrWhiteSpace(_firstName) || string.IsNullOrWhiteSpace(_lastName) || string.IsNullOrWhiteSpace(_email))) { _stepError = "Bitte alle Felder ausfüllen."; return; }
+        if (_step == Step.Address && (string.IsNullOrWhiteSpace(_addressLine) || string.IsNullOrWhiteSpace(_postalCode) || string.IsNullOrWhiteSpace(_city))) { _stepError = "Bitte alle Felder ausfüllen."; return; }
+        if (_step == Step.Consent && !_consent)                              { _stepError = "Bitte stimme der Datenschutzerklärung zu."; return; }
+        if (_step == Step.Consent && _showNameOnFloor && string.IsNullOrWhiteSpace(_displayName)) { _stepError = "Bitte einen Anzeigenamen eingeben."; return; }
+        _step = _step switch
+        {
+            Step.Field   => Step.Level,
+            Step.Level   => Step.Person,
+            Step.Person  => Step.Address,
+            Step.Address => Step.Consent,
+            Step.Consent => Step.Captcha,
+            _ => _step
+        };
+    }
+
+    private void PrevStep()
+    {
+        _stepError = null;
+        _step = _step switch
+        {
+            Step.Level   => Step.Field,
+            Step.Person  => Step.Level,
+            Step.Address => Step.Person,
+            Step.Consent => Step.Address,
+            Step.Captcha => Step.Consent,
+            _ => _step
+        };
+    }
+
+    private async Task Submit()
+    {
+        _submitError = null;
+        var token = await JS.InvokeAsync<string?>("pmGetTurnstileToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            _submitError = "Bitte das CAPTCHA lösen.";
+            return;
+        }
+        _submitting = true;
+        try
+        {
+            var cmd = new RegisterMemberCommand(
+                _selectedField!.Value,
+                _firstName, _lastName,
+                _addressLine, _postalCode, _city,
+                _email, _levelKey,
+                _showNameOnFloor,
+                _showNameOnFloor ? _displayName : null,
+                _consent);
+            await RegisterUseCase.ExecuteAsync(cmd);
+            var result = await FieldQuery.ExecuteAsync();
+            _occupiedFields = result.OccupiedFields.Select(f => f.FieldNumber).ToHashSet();
+            _displayNames   = result.OccupiedFields.Where(f => f.DisplayName is not null).ToDictionary(f => f.FieldNumber, f => f.DisplayName!);
+            _occupiedCount  = _occupiedFields.Count;
+            _step = Step.None;
+            _selectedField = null;
+            _success = true;
+        }
+        catch (FieldAlreadyTakenException)
+        {
+            _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes.";
+        }
+        catch (DomainException ex)
+        {
+            _submitError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _submitError = "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
+        }
+        finally { _submitting = false; }
+    }
+
+    private int CurrentStepNum() => _step switch
+    {
+        Step.Field   => 1,
+        Step.Level   => 2,
+        Step.Person  => 3,
+        Step.Address => 4,
+        Step.Consent => 5,
+        Step.Captcha => 6,
+        _ => 1
+    };
+}

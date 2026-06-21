@@ -1,4 +1,4 @@
-﻿@inject IHttpContextAccessor HttpCtx
+@inject IHttpContextAccessor HttpCtx
 @inject SporthalleWeb.Domain.Booking.Ports.IHallConfigurationPort Config
 @inject SporthalleWeb.Domain.Booking.Ports.IMemberManagerPort Members
 @inject SporthalleWeb.Application.Booking.GetAvailableDaysQuery AvailDays
@@ -355,13 +355,16 @@
             }
             else
             {
-                var nameParts = _guestName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var guestFullName = _guestName.Trim();
+                var guestSpaceIdx = guestFullName.IndexOf(' ');
+                var guestFirstName = guestSpaceIdx >= 0 ? guestFullName[..guestSpaceIdx].Trim() : guestFullName;
+                var guestLastName  = guestSpaceIdx >= 0 ? guestFullName[(guestSpaceIdx + 1)..].Trim() : "";
                 var regCmd = new SporthalleWeb.Application.Booking.RegisterRenterCommand(
                     Email: _guestEmail.Trim(),
                     RenterType: new SporthalleWeb.Domain.Booking.RenterType(_guestRenterTypeStr),
                     Name: null,
-                    ContactFirstName: nameParts.Length > 1 ? nameParts[0] : "",
-                    ContactLastName: nameParts.Length > 1 ? nameParts[1] : nameParts[0],
+                    ContactFirstName: guestFirstName,
+                    ContactLastName: guestLastName,
                     BillingAddress: "",
                     AddressLine2: null,
                     BillingPostalCode: "",

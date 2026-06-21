@@ -34,6 +34,26 @@ Sporthalle-Sulzerallee/
   src/
     SporthalleWeb/          # Main Umbraco project
       Application/          # Use cases, queries, service classes
+<<<<<<< HEAD
+        PassiveMembership/
+        Reservierung/
+      Components/           # Blazor components (admin UI + public)
+        PassiveMembership/
+        Reservierung/
+      ContentSeeder.cs      # Startup seeder for content and templates
+      Domain/               # Entities, value objects, ports
+        PassiveMembership/
+        Reservierung/
+        Shared/
+      Infrastructure/       # Adapters: email, CAPTCHA, persistence, members
+        PassiveMembership/
+        Reservierung/
+        Shared/
+      Pages/                # Razor Pages (legacy, mostly empty)
+      Presentation/         # MVC Controllers, DTOs
+        PassiveMembership/
+        Reservierung/
+=======
         Booking/
         PassivMitgliedschaft/
       Components/           # Blazor components (admin UI)
@@ -51,6 +71,7 @@ Sporthalle-Sulzerallee/
       Presentation/         # MVC Controllers, DTOs
         Booking/
         PassivMitgliedschaft/
+>>>>>>> worktree-feature-reservierung
       Program.cs
       appsettings.json
       appsettings.Development.json  # SQLite + uSync dev settings
@@ -209,7 +230,7 @@ Children seeded as contentPage: Unterstützung, Das Projekt, Über uns, Zweck, I
 
 ---
 
-## Feature: Passivmitgliedschaft
+## Feature: Passive Membership (Passivmitgliedschaft)
 
 Allows supporters to symbolically adopt one square metre of the unihockey hall floor and become passive members.
 
@@ -218,68 +239,96 @@ Note: this feature pre-dates the English convention and retains German in its na
 ### Architecture
 
 ```
-Domain/PassivMitgliedschaft/
-  PassivMitglied.cs              Aggregate Root
+Domain/PassiveMembership/
+  PassiveMember.cs               Aggregate Root
   FieldNumber.cs                 Value Object (1–300)
   MemberEmail.cs                 Value Object (normalised lowercase)
   MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
   VipField.cs                    Named areas (Torraum, Anspielkreis, Anspielpunkt)
   DomainException.cs             + FieldAlreadyTakenException + MemberNotFoundException
   Events/MemberRegisteredEvent.cs
-  Ports/IPassivMitgliederRepository.cs
+  Ports/IPassiveMemberRepository.cs
   Ports/IEmailPort.cs
   Ports/IExcelPort.cs
   Ports/IAbaninjaCsvPort.cs
   Ports/ICaptchaPort.cs
 
-Application/PassivMitgliedschaft/
+Application/PassiveMembership/
   RegisterMemberCommand.cs
   RegisterMemberUseCase.cs       Checks field free → saves → sends email
   GetFieldStatusesQuery.cs       Returns occupied fields with VIP labels
   FieldStatusDto.cs
   AdminService.cs                MarkAsPaid, UpdateNotes, Excel/CSV export
 
-Infrastructure/PassivMitgliedschaft/
-  Composition/PassivMitgliederComposer.cs   IComposer, DI registration
+Infrastructure/PassiveMembership/
+  Composition/PassiveMemberComposer.cs      IComposer, DI registration
   Email/BrevoEmailOptions.cs
   Email/BrevoEmailAdapter.cs                Brevo REST API, Template ID 1
   Excel/ClosedXmlExcelAdapter.cs            Excel export (ClosedXML NuGet)
   Excel/AbaninjaCsvAdapter.cs               AbaNinja import CSV
   Captcha/TurnstileOptions.cs
   Captcha/TurnstileCaptchaAdapter.cs        Cloudflare Turnstile
-  Persistence/PassivMitgliedDbRecord.cs     NPoco POCO
-  Persistence/PassivMitgliederRepository.cs IScopeProvider from Infrastructure.Scoping
-  Persistence/PassivMitgliederMigration.cs  v1 + v2
+  Persistence/PassiveMemberDbRecord.cs      NPoco POCO (table: PassivMitglieder)
+  Persistence/PassiveMemberRepository.cs    IScopeProvider from Infrastructure.Scoping
+  Persistence/PassiveMemberMigration.cs     v1 + v2
 
-Presentation/PassivMitgliedschaft/
-  Controllers/PassivMitgliederController.cs       REST API (public)
-  Controllers/PassivMitgliederAdminController.cs  Backoffice admin view
+Presentation/PassiveMembership/
+  Controllers/PassiveMemberController.cs        REST API (public)
+  Controllers/PassiveMemberAdminController.cs   Backoffice admin (single iframe host)
+  Controllers/FloorPlanController.cs            Public floor plan page (iframe)
   Dtos/RegisterMemberRequest.cs
   Dtos/FieldStatusResponse.cs
 
-Views/PassivMitgliedschaft.cshtml            Umbraco template shell
-Views/PassivMitgliederAdmin/Index.cshtml     Standalone admin HTML (no layout)
+Components/PassiveMembership/
+  PmAdminComponent.razor         Main admin shell: subnav + tab routing
+  PmMembersComponent.razor       Member table (sortable, mark as paid, notes)
+  PmExportsComponent.razor       Excel + AbaNinja CSV download buttons
+  FloorPlanComponent.razor       Interactive SVG floor plan + 6-step registration wizard
+
+App_Plugins/PassivMitglieder/    Umbraco backoffice section registration
+  pm-entrypoint.js               Custom Element <pm-admin>: renders single iframe to /passivmitglieder/admin
+
+Views/PassivMitgliedschaft.cshtml            Umbraco template shell (filename matches template alias)
+Views/PassiveMemberAdmin/Index.cshtml        Blazor host for PmAdminComponent
+Views/FloorPlan/Index.cshtml                 Blazor host for FloorPlanComponent
 
 wwwroot/css/passivmitglied.css
 wwwroot/js/passivmitglied.js
 wwwroot/media/unihockey-boden.svg
 ```
 
+### Admin UI
+
+The Umbraco backoffice section loads `pm-entrypoint.js`, which renders a single `<iframe src="/passivmitglieder/admin">`. Inside that iframe, `PmAdminComponent` (Blazor Server) provides the subnav and routes between two child components:
+
+- **Mitglieder tab** → `PmMembersComponent`: sortable member table, mark-as-paid button, inline notes
+- **Exporte tab** → `PmExportsComponent`: Excel and AbaNinja CSV export buttons
+
+Auth: Umbraco backoffice session cookie (inherited by the iframe).
+
+### Public Floor Plan
+
+The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The component renders a 20×15 SVG grid (300 fields) and a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
+
 ### Membership Levels
 
-| Key | Display Name | Annual Fee |
+| Key | Display Name (German, public-facing) | Annual Fee |
 |---|---|---|
 | `Bronze` | Hallenbodenbesitzer | CHF 50 |
 | `Silber` | Chnebler | CHF 100 |
 | `Gold` | Cüpli-Chnebler | CHF 200 |
 
-### Floor Plan
+### Floor Plan VIP Areas (German labels, public-facing)
 
-SVG floor plan: 20 columns x 15 rows = 300 fields. Field number = `row * 20 + col + 1` (0-based).
-VIP areas: Torraum (left and right goal creases), Anspielkreis (centre circle), Anspielpunkte.
-Interactive grid in `passivmitglied.js` — clicking a free cell opens a 6-step registration wizard.
+| Area | Fields |
+|---|---|
+| Torraum | Left and right goal creases |
+| Anspielkreis | Centre circle |
+| Anspielpunkte | Face-off spots |
 
 ### Database Table: `PassivMitglieder`
+
+Table name kept in German to avoid a destructive migration. All column names are English.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -297,7 +346,7 @@ Interactive grid in `passivmitglied.js` — clicking a free cell opens a 6-step 
 | PaidAt | DATETIME NULL | |
 | Notes | NVARCHAR(MAX) NULL | |
 
-Migration: `PassivMitgliederMigrationPlan` (v1: create table, v2: drop+recreate for correct IDENTITY). Runs automatically via `PassivMitgliederMigrationComponent`.
+Migration: `PassiveMemberMigration` plan (v1: create table, v2: drop+recreate for correct IDENTITY). Runs automatically via `PassiveMemberComposer`.
 
 ### REST API
 
@@ -318,11 +367,7 @@ GET  /api/passivmitglieder/admin/export/excel
 GET  /api/passivmitglieder/admin/export/abaninja
 ```
 
-### Admin
-
-URL: `/passivmitglieder/admin/` embedded as iframe in Umbraco backoffice.
-Auth: Umbraco backoffice session.
-Shows member table with level color badges, field number with hover tooltip, registration date, payment status.
+Routes use the German URL segment `/passivmitglieder/` intentionally — it is part of the public URL structure.
 
 ### Email
 
@@ -663,12 +708,21 @@ Blazor Server is active globally for admin components:
 - `_Imports.razor`: global `@using` statements
 - `_Layout.cshtml`: `<script src="_framework/blazor.server.js"></script>`
 
+<<<<<<< HEAD
+Admin and public components are embedded in Razor views (with `Layout = null`) via:
+```cshtml
+<component type="typeof(PmAdminComponent)" render-mode="Server" />
+```
+
+PassiveMembership components live in `Components/PassiveMembership/`, Reservierung components in `Components/Reservierung/`.
+=======
 Admin components in `Components/Booking/` are embedded in admin Razor views via:
 ```cshtml
 <component type="typeof(AdminConfigurationComponent)" render-mode="Server" />
 ```
 
 The `BookingAdminComponent` is the root shell for the backoffice tab navigation. It renders one of the six sub-components based on the active tab.
+>>>>>>> worktree-feature-reservierung
 
 ---
 

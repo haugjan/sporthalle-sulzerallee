@@ -1,4 +1,4 @@
-/* Admin-Kalender – initialisiert via Blazor JSInterop (SporthalleAdmin.initKalender) */
+﻿/* Admin-Kalender – initialisiert via Blazor JSInterop (SporthalleAdmin.initKalender) */
 window.SporthalleAdmin = (function () {
   'use strict';
 
@@ -164,7 +164,7 @@ window.SporthalleAdmin = (function () {
     days.forEach(function (day) {
       var cell = document.createElement('div');
       cell.className = 'cal-header-day';
-      if (isPastDay(day)) cell.classList.add('is-past');
+      if (isPastDay(day)) cell.classList.add('is-past-admin');
       else if (isToday(day)) cell.classList.add('is-today');
       cell.textContent = formatDayHeader(day);
       grid.appendChild(cell);
@@ -181,7 +181,7 @@ window.SporthalleAdmin = (function () {
       days.forEach(function (day) {
         var cell = document.createElement('div');
         cell.className = 'cal-cell' + (isHourStart ? ' hour-start' : '');
-        if (isPastDay(day)) cell.classList.add('is-past');
+        if (isPastDay(day)) cell.classList.add('is-past-admin');
         else if (isToday(day)) cell.classList.add('is-today');
         grid.appendChild(cell);
       });

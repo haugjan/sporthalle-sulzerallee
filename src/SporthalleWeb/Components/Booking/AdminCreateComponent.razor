@@ -347,7 +347,7 @@
                 string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen!.Trim(),
                 payload.MemberId.Value, AdminUser);
 
-            return Ok(false);
+            return Ok(true);
         }
         catch (SporthalleWeb.Domain.Booking.SlotConflictException)
         {
