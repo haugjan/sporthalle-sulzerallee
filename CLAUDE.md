@@ -19,18 +19,13 @@ Live site: `https://app-sporthalle-sulzerallee.azurewebsites.net/`
 - **Email**: Brevo REST API (Template ID 1 for all transactional mails)
 - **CAPTCHA**: Cloudflare Turnstile
 
-## Language Policy
+## Language Convention
 
-Code is written in English: namespaces, class names, method names, variable names, and comments are all English.
+**All code is written in English.** This includes type names, namespaces, class names, method names, interface names, property names, and code comments.
 
-Public-facing content stays in German: UI text, page content, email bodies, and anything visible to end users on the website remains in German to match the target audience.
+**Public-facing content stays in German.** This covers: UI labels, button text, page headings, form field labels, email content, and any text visible to end users on the website. HTTP routes (e.g. `/reservierung`, `/passivmitgliedschaft`) and Umbraco content type aliases (e.g. `reservierung`, `passivMitgliedschaft`) also remain in German because they are user-visible URLs.
 
-The following identifiers are intentionally kept in German despite appearing in code, because changing them would break external contracts:
-
-- URL routes (e.g. `/passivmitglieder/`, `/reservierung/`) — part of the public URL structure
-- Umbraco content type aliases (e.g. `passivMitgliedschaft`, `reservierung`) — defined in uSync schema
-- Database table name `PassivMitglieder` — changing it would require a data migration
-- `App_Plugins/PassivMitglieder/` folder — tied to Umbraco's plugin discovery mechanism
+The Passivmitgliedschaft feature pre-dates this convention and still has German in its namespace (`SporthalleWeb.*.PassivMitgliedschaft`) and type names. These are not being migrated.
 
 ## Repository Layout
 
@@ -39,6 +34,7 @@ Sporthalle-Sulzerallee/
   src/
     SporthalleWeb/          # Main Umbraco project
       Application/          # Use cases, queries, service classes
+<<<<<<< HEAD
         PassiveMembership/
         Reservierung/
       Components/           # Blazor components (admin UI + public)
@@ -57,6 +53,25 @@ Sporthalle-Sulzerallee/
       Presentation/         # MVC Controllers, DTOs
         PassiveMembership/
         Reservierung/
+=======
+        Booking/
+        PassivMitgliedschaft/
+      Components/           # Blazor components (admin UI)
+        Booking/
+      ContentSeeder.cs      # Startup seeder for content and templates
+      Domain/               # Entities, value objects, ports
+        Booking/
+        PassivMitgliedschaft/
+        Shared/
+      Infrastructure/       # Adapters: email, CAPTCHA, persistence, members
+        Booking/
+        PassivMitgliedschaft/
+        Shared/
+      Pages/                # Razor Pages (legacy, mostly empty)
+      Presentation/         # MVC Controllers, DTOs
+        Booking/
+        PassivMitgliedschaft/
+>>>>>>> worktree-feature-reservierung
       Program.cs
       appsettings.json
       appsettings.Development.json  # SQLite + uSync dev settings
@@ -191,6 +206,8 @@ GitHub Actions (`deploy.yml`) builds and ZipDeploys to Azure on push to `main`. 
 | `passivMitgliedschaft` | Passivmitgliedschaft | `PassivMitgliedschaft` | `homePage` |
 | `reservierungKonfiguration` | Reservierung Konfiguration | (none) | root only |
 
+Note: content type aliases and template names are German (user-visible URLs). The code that handles them is English.
+
 ### Content Type Properties
 
 **contentPage**: `pageHeading` (TextBox), `bodyContent` (TextArea), `pageImage` (TextBox)
@@ -216,6 +233,8 @@ Children seeded as contentPage: Unterstützung, Das Projekt, Über uns, Zweck, I
 ## Feature: Passive Membership (Passivmitgliedschaft)
 
 Allows supporters to symbolically adopt one square metre of the unihockey hall floor and become passive members.
+
+Note: this feature pre-dates the English convention and retains German in its namespace and type names.
 
 ### Architecture
 
@@ -358,18 +377,21 @@ Brevo API key: `Brevo:ApiKey` config — `dotnet user-secrets` locally, Azure Ap
 
 ---
 
-## Feature: Reservierung (Hall Booking)
+## Feature: Booking (Reservierung)
 
 Allows hall renters to book time slots via an interactive weekly calendar. Supports guest booking and account-based booking with Magic Link or password auth.
+
+All code is under the `Booking` namespace (`SporthalleWeb.*.Booking`). The public-facing URL path and Umbraco content type alias remain `reservierung`.
 
 ### Architecture
 
 ```
-Domain/Reservierung/
+Domain/Booking/
   BookingSlot.cs               Aggregate Root
-  SlotType.cs                  Enum: Blocker/Reserved/Booked/Rejected
+  SlotType.cs                  Enum: Blocker/Reserved/Booked/Rejected/Recurring
   HallMember.cs                Lightweight record wrapping Umbraco Member
   MagicLinkToken.cs
+  RecurringSlot.cs             Recurring appointment series
   TimeSlot.cs                  Value Object (UTC start/end)
   RenterEmail.cs               Value Object
   RenterType.cs                Enum: Privatperson/Verein/Firma/Behörde
@@ -381,21 +403,27 @@ Domain/Reservierung/
   Ports/IBookingAuditRepository.cs
   Ports/IBookingEmailPort.cs
   Ports/IBookingCsvPort.cs
+  Ports/IHallConfigurationPort.cs
+  Ports/IRecurringSlotRepository.cs
 
 Domain/Shared/
   ICaptchaPort.cs
 
-Application/Reservierung/
+Application/Booking/
   GetWeekSlotsQuery.cs
   GetAvailableDaysQuery.cs
   GetAvailableTimeSlotsQuery.cs
+  GetRecurringSlotsQuery.cs      Returns RecurringSlotWithYearCount list
   SlotOption.cs
   WeekSlotDto.cs
   CreateBookingUseCase.cs
   CreateBookingCommand.cs
   ConfirmBookingUseCase.cs
   RejectBookingUseCase.cs
-  SendMagicLinkUseCase.cs      SHA-256 hashed tokens, 20 min TTL
+  CreateRecurringSlotUseCase.cs  Creates recurring slot series; uses RecurringSlotCommand
+  UpdateRecurringSlotUseCase.cs
+  DeleteRecurringSlotUseCase.cs
+  SendMagicLinkUseCase.cs        SHA-256 hashed tokens, 20 min TTL
   ValidateMagicLinkUseCase.cs
   RegisterRenterUseCase.cs
   RegisterRenterCommand.cs
@@ -404,35 +432,53 @@ Application/Reservierung/
   RequestPasswordResetUseCase.cs
   ResetPasswordUseCase.cs
   BookingAdminService.cs
-  HallConfigService.cs         Key-value store for booking configuration
+  HallConfigService.cs           Key-value store for booking configuration
 
-Infrastructure/Reservierung/
-  Composition/ReservierungComposer.cs
-  Members/UmbracoMemberAdapter.cs    IMemberManagerPort via IMemberManager + SignInManager
+Infrastructure/Booking/
+  Composition/BookingComposer.cs
+  Config/UmbracoHallConfigurationAdapter.cs  IHallConfigurationPort
+  Members/UmbracoMemberAdapter.cs            IMemberManagerPort via IMemberManager + SignInManager
   Email/BrevoBookingEmailAdapter.cs
   Export/BookingCsvAdapter.cs
   Persistence/
     BookingSlotRepository.cs
     MagicLinkTokenRepository.cs
     BookingAuditRepository.cs
-    ReservierungMigration.cs   v1.0.0 → v1.1.0 → v1.2.0 → v1.3.0
+    RecurringSlotRepository.cs
+    BookingMigration.cs         BookingMigrationPlan v1.0.0 → v1.1.0 → v1.2.0 → v1.3.0
     DbRecords/
 
 Infrastructure/Shared/
   TurnstileCaptchaAdapter.cs
 
-Presentation/Reservierung/
-  Controllers/ReservierungController.cs        REST API
-  Controllers/ReservierungAuthController.cs    Auth pages (MVC)
-  Controllers/ReservierungAdminController.cs   Backoffice admin
-  ReservationenManifestComposer.cs             Backoffice section (weight 101)
+Presentation/Booking/
+  Controllers/BookingController.cs              REST API (public)
+  Controllers/BookingAuthController.cs          Auth pages (MVC)
+  Controllers/BookingAdminController.cs         Backoffice admin view
+  Controllers/BookingAdminApiController.cs      Admin REST API
+  Controllers/BookingBackofficeAdminController.cs
+  BookingManifestComposer.cs                    Backoffice section (alias: Sporthalle.Booking)
   Dtos/
 
-Components/Reservierung/
-  AdminErfassenComponent.razor         Blazor: admin booking entry
-  AdminKonfigurationComponent.razor    Blazor: configuration editor
+Components/Booking/
+  BookingAdminComponent.razor       Root admin shell (tab navigation + badge)
+  AdminRequestsComponent.razor      Pending bookings (tab: Anfragen)
+  AdminBookingsComponent.razor      All bookings (tab: Buchungen)
+  AdminBlockerComponent.razor       Blockers (tab: Blocker)
+  AdminRecurringComponent.razor     Recurring slots (tab: Serientermine)
+  AdminCreateComponent.razor        Admin calendar booking entry (tab: Erfassen)
+  AdminConfigurationComponent.razor HallConfig editor (tab: Konfiguration)
+  AdminEditDialogComponent.razor    Shared edit dialog with day-calendar time picker
+  WeeklyCalendarComponent.razor     Public-facing weekly calendar
+  BookingPickerComponent.razor      Time slot picker
 
-Views/Reservierung.cshtml                     Public calendar page
+Views/Reservierung.cshtml                     Public calendar page (template name: Reservierung)
+Views/BookingAdmin/Index.cshtml               Admin dashboard shell
+Views/BookingAuth/Index.cshtml                Auth redirect page
+Views/BookingAuth/Anmelden.cshtml             Login page
+Views/BookingAuth/Registrieren.cshtml         Registration page
+Views/BookingBackofficeAdmin/Index.cshtml     Backoffice admin view
+Views/Partials/_BookingCalendar.cshtml        Booking calendar partial
 Views/Shared/_BackofficeLayout.cshtml         Admin backoffice layout
 
 wwwroot/css/reservierung.css
@@ -448,6 +494,9 @@ wwwroot/js/reservierung-admin.js  Admin backoffice
 | `Reserved` | Pending admin confirmation, shown in azure blue with diagonal stripes |
 | `Booked` | Confirmed booking |
 | `Rejected` | Rejected (soft delete), hidden in public calendar |
+| `Recurring` | Recurring appointment occurrence, public, blocks external bookings |
+
+The `Type` column in `BookingSlots` stores the enum name as a string (e.g. `"Recurring"`).
 
 ### Database Tables
 
@@ -457,7 +506,7 @@ wwwroot/js/reservierung-admin.js  Admin backoffice
 |---|---|---|
 | Id | INT IDENTITY | PK |
 | MemberId | INT NULL | Umbraco IMember.Id |
-| Type | NVARCHAR(20) | Blocker/Reserved/Booked/Rejected |
+| Type | NVARCHAR(20) | Blocker/Reserved/Booked/Rejected/Recurring |
 | StartUtc | DATETIME2 | |
 | EndUtc | DATETIME2 | |
 | Title | NVARCHAR(300) | Event name |
@@ -482,7 +531,9 @@ wwwroot/js/reservierung-admin.js  Admin backoffice
 
 **HallConfig**: key-value store for booking settings. Keys: `openingHourStart`, `openingHourEnd`, `blockDurationMinutes`, `pricePerBlock`, `buchbareDauern`, `anlaesse`, `preisText`, `bookingCutoffDate`.
 
-Migration plan: `ReservierungMigrationPlan` versions v1.0.0–v1.3.0. Runs via `ReservierungMigrationComponent`.
+Note: the HallConfig keys `buchbareDauern`, `anlaesse`, `preisText` are stored DB strings (not code identifiers); they pre-date the English convention and are not changed to avoid a data migration. The C# methods accessing them are English: `GetBookableDurationsAsync`, `GetEventTypesAsync`, `GetPreisTextAsync`.
+
+Migration plan: `BookingMigrationPlan` versions v1.0.0–v1.3.0. Runs via `BookingMigrationComponent`.
 
 ### Renter Accounts (Hall Members)
 
@@ -507,7 +558,7 @@ Rate limit: 1 magic link per 10 min per email.
 **Password (optional):** Set after first magic link login. BCrypt via ASP.NET Core Identity.
 Password reset uses Identity TOTP tokens (no custom token table).
 
-**Guest booking:** `POST /api/reservierung/gast-buchung` — no session required; creates/updates member inline.
+**Guest booking:** `POST /api/reservierung/gast-buchung` — no session required; creates/updates member inline. The route string is German (user-visible URL); the C# method is `GuestBooking`.
 
 ### REST API
 
@@ -533,12 +584,14 @@ GET  /api/reservierung/meine-buchungen
 POST /api/reservierung/buchungen
 
 Admin (Umbraco admin role):
-GET  /api/reservierung/admin/pending
-POST /api/reservierung/admin/buchungen/{id}/confirm
-POST /api/reservierung/admin/buchungen/{id}/reject
-DELETE /api/reservierung/admin/buchungen/{id}
-GET  /api/reservierung/admin/export?von=YYYY-MM-DD&bis=YYYY-MM-DD
+GET  /api/admin/reservierungen/pending
+POST /api/admin/reservierungen/{id}/confirm
+POST /api/admin/reservierungen/{id}/reject
+DELETE /api/admin/reservierungen/{id}
+GET  /api/admin/reservierungen/export?von=YYYY-MM-DD&bis=YYYY-MM-DD
 ```
+
+Note: HTTP routes are German (user-visible URLs). Controller class names and action method names are English.
 
 ### Auth Pages (MVC views)
 
@@ -554,10 +607,21 @@ POST /reservierung/registrieren
 
 ### Admin Backoffice
 
-URL: `/reservierung/admin/` (Umbraco section, weight 101, appears after Content)
-Tabs: Anfragen (pending Reserved), Buchungen (all), Blocker (all Blockers), Erfassen (admin booking with full calendar UI), Konfiguration (HallConfig editor)
+URL: `/reservierung/admin/` (Umbraco section alias `Sporthalle.Booking`, weight 101, appears after Content)
+Tabs: Anfragen (pending Reserved), Buchungen (all), Blocker (all Blockers), Serientermine (recurring slots), Erfassen (admin booking with full calendar UI), Konfiguration (HallConfig editor)
 
-The admin UI uses `reservierung-admin.js` for most tabs, and Blazor for Erfassen and Konfiguration.
+Tab labels are German (public-facing). The Blazor component names behind them are English:
+
+| Tab label | Component |
+|---|---|
+| Anfragen | `AdminRequestsComponent` |
+| Buchungen | `AdminBookingsComponent` |
+| Blocker | `AdminBlockerComponent` |
+| Serientermine | `AdminRecurringComponent` |
+| Erfassen | `AdminCreateComponent` |
+| Konfiguration | `AdminConfigurationComponent` |
+
+The shared edit dialog for Buchungen and Blocker tabs is `AdminEditDialogComponent` — it exposes a public `OpenAsync(int id)` method and is referenced via Blazor `@ref`.
 
 ### Email
 
@@ -644,12 +708,21 @@ Blazor Server is active globally for admin components:
 - `_Imports.razor`: global `@using` statements
 - `_Layout.cshtml`: `<script src="_framework/blazor.server.js"></script>`
 
+<<<<<<< HEAD
 Admin and public components are embedded in Razor views (with `Layout = null`) via:
 ```cshtml
 <component type="typeof(PmAdminComponent)" render-mode="Server" />
 ```
 
 PassiveMembership components live in `Components/PassiveMembership/`, Reservierung components in `Components/Reservierung/`.
+=======
+Admin components in `Components/Booking/` are embedded in admin Razor views via:
+```cshtml
+<component type="typeof(AdminConfigurationComponent)" render-mode="Server" />
+```
+
+The `BookingAdminComponent` is the root shell for the backoffice tab navigation. It renders one of the six sub-components based on the active tab.
+>>>>>>> worktree-feature-reservierung
 
 ---
 

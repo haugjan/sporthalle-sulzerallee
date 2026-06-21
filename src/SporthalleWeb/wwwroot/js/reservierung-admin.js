@@ -14,6 +14,7 @@ window.SporthalleAdmin = (function () {
   // State
   var _dotNet = null;
   var _handlers = [];
+  var _docEditMouseUp = null;
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -276,11 +277,13 @@ window.SporthalleAdmin = (function () {
   function getOverlayMod(slot) {
     if (slot.type === 'Booked') return 'confirmed';
     if (slot.type === 'Blocker') return 'recurring';
+    if (slot.type === 'Serie') return 'recurring';
     return 'provisional'; // Reserved
   }
 
   function getAdminDefaultColor(slot) {
     if (slot.type === 'Blocker') return '#78909C';
+    if (slot.type === 'Serie') return '#546E7A';
     if (slot.type === 'Reserved') return '#F1C40F';
     return '#444';
   }
@@ -452,8 +455,10 @@ window.SporthalleAdmin = (function () {
   // ── Admin-Modal ───────────────────────────────────────────────────────────────
 
   var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
-  var _isBlocker = true;
+  var _modalMode = 'blocker'; // 'blocker' | 'event' | 'serie'
   var _selectedColor = '#F1C40F';
+  var _selectedSerieColor = '#F1C40F';
+  var _seriePayload = null;
 
   function openAdminModal() {
     if (!selectedSlot) return;
@@ -467,7 +472,7 @@ window.SporthalleAdmin = (function () {
     var title = document.getElementById('admin-bm-title');
     if (title) title.textContent = 'Slot erfassen';
     resetAdminModal();
-    setModalTyp(true);
+    setModalTyp('blocker');
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
     setTimeout(function () {
@@ -510,27 +515,69 @@ window.SporthalleAdmin = (function () {
     selectColor('#F1C40F');
     hideError('admin-bm-error-blocker');
     hideError('admin-bm-error');
+    hideError('admin-bm-error-serie');
+    hideSerieConflicts();
+    _seriePayload = null;
     var success = document.getElementById('admin-bm-success');
     if (success) success.hidden = true;
     var bodyBlocker = document.getElementById('admin-bm-body-blocker');
     if (bodyBlocker) bodyBlocker.hidden = false;
     var bodyEvent = document.getElementById('admin-bm-body-event');
     if (bodyEvent) bodyEvent.hidden = true;
+    var bodySerie = document.getElementById('admin-bm-body-serie');
+    if (bodySerie) bodySerie.hidden = true;
     enableSubmit('admin-bm-submit-blocker', 'Blocker speichern');
     enableSubmit('admin-bm-submit', 'Buchungsanfrage erstellen');
+    enableSubmit('admin-bm-submit-serie', 'Serientermine erstellen');
   }
 
-  function setModalTyp(isBlocker) {
-    _isBlocker = isBlocker;
+  function hideSerieConflicts() {
+    var panel = document.getElementById('admin-bm-serie-conflicts');
+    if (panel) panel.hidden = true;
+    var text = document.getElementById('admin-bm-serie-conflict-text');
+    if (text) text.textContent = '';
+  }
+
+  function setModalTyp(mode) {
+    _modalMode = mode;
     var btnBlocker = document.getElementById('admin-typ-blocker');
-    var btnEvent = document.getElementById('admin-typ-event');
+    var btnEvent   = document.getElementById('admin-typ-event');
+    var btnSerie   = document.getElementById('admin-typ-serie');
     var bodyBlocker = document.getElementById('admin-bm-body-blocker');
-    var bodyEvent = document.getElementById('admin-bm-body-event');
-    if (btnBlocker) btnBlocker.className = isBlocker ? 'bm-btn-primary' : 'bm-btn-secondary';
-    if (btnEvent) btnEvent.className = isBlocker ? 'bm-btn-secondary' : 'bm-btn-primary';
-    if (bodyBlocker) bodyBlocker.hidden = !isBlocker;
-    if (bodyEvent) bodyEvent.hidden = isBlocker;
-    if (!isBlocker) updateOrgField();
+    var bodyEvent   = document.getElementById('admin-bm-body-event');
+    var bodySerie   = document.getElementById('admin-bm-body-serie');
+    if (btnBlocker) btnBlocker.className = (mode === 'blocker') ? 'bm-btn-primary' : 'bm-btn-secondary';
+    if (btnEvent)   btnEvent.className   = (mode === 'event')   ? 'bm-btn-primary' : 'bm-btn-secondary';
+    if (btnSerie)   btnSerie.className   = (mode === 'serie')   ? 'bm-btn-primary' : 'bm-btn-secondary';
+    if (bodyBlocker) bodyBlocker.hidden = (mode !== 'blocker');
+    if (bodyEvent)   bodyEvent.hidden   = (mode !== 'event');
+    if (bodySerie)   bodySerie.hidden   = (mode !== 'serie');
+    if (mode === 'event') updateOrgField();
+    if (mode === 'serie') prefillSerieForm();
+  }
+
+  function prefillSerieForm() {
+    if (!selectedSlot) return;
+    setEl('admin-bm-serie-von-datum', toLocalDateStr(selectedSlot.day));
+    setEl('admin-bm-serie-bis-datum', toLocalDateStr(selectedSlot.day));
+    setEl('admin-bm-serie-wochentag', String(selectedSlot.day.getDay()));
+    setEl('admin-bm-serie-start-time', minutesToTimeStr(selectedSlot.startMin));
+    setEl('admin-bm-serie-end-time', minutesToTimeStr(selectedSlot.endMin));
+    selectSerieColor('#F1C40F');
+  }
+
+  function selectSerieColor(color) {
+    _selectedSerieColor = color;
+    var picker = document.getElementById('admin-bm-serie-color-picker');
+    if (!picker) return;
+    var swatches = picker.querySelectorAll('.bm-color-swatch');
+    for (var i = 0; i < swatches.length; i++) {
+      if (swatches[i].dataset.color === color) {
+        swatches[i].classList.add('bm-color-swatch--active');
+      } else {
+        swatches[i].classList.remove('bm-color-swatch--active');
+      }
+    }
   }
 
   function updateOrgField() {
@@ -544,9 +591,9 @@ window.SporthalleAdmin = (function () {
 
   function submitAdminBooking() {
     if (!selectedSlot || !_dotNet) return;
-    hideError(_isBlocker ? 'admin-bm-error-blocker' : 'admin-bm-error');
+    hideError(_modalMode === 'blocker' ? 'admin-bm-error-blocker' : 'admin-bm-error');
     var payload;
-    if (_isBlocker) {
+    if (_modalMode === 'blocker') {
       var titel = getVal('admin-bm-titel');
       if (!titel) { showError('admin-bm-error-blocker', 'Bezeichnung ist erforderlich.'); return; }
       payload = {
@@ -609,7 +656,7 @@ window.SporthalleAdmin = (function () {
           selectedSlot = null;
           loadWeek();
         } else {
-          if (_isBlocker) {
+          if (_modalMode === 'blocker') {
             enableSubmit('admin-bm-submit-blocker', 'Blocker speichern');
             showError('admin-bm-error-blocker', result.error || 'Fehler beim Speichern.');
           } else {
@@ -619,13 +666,106 @@ window.SporthalleAdmin = (function () {
         }
       })
       .catch(function () {
-        if (_isBlocker) {
+        if (_modalMode === 'blocker') {
           enableSubmit('admin-bm-submit-blocker', 'Blocker speichern');
           showError('admin-bm-error-blocker', 'Verbindungsfehler. Bitte erneut versuchen.');
         } else {
           enableSubmit('admin-bm-submit', 'Buchungsanfrage erstellen');
           showError('admin-bm-error', 'Verbindungsfehler. Bitte erneut versuchen.');
         }
+      });
+  }
+
+  function submitSerientermin() {
+    if (!selectedSlot || !_dotNet) return;
+    hideError('admin-bm-error-serie');
+    hideSerieConflicts();
+    _seriePayload = null;
+
+    var titel = getVal('admin-bm-serie-titel');
+    var vonDatum = getVal('admin-bm-serie-von-datum');
+    var bisDatum = getVal('admin-bm-serie-bis-datum');
+    var startTime = getVal('admin-bm-serie-start-time');
+    var endTime = getVal('admin-bm-serie-end-time');
+    if (!titel) { showError('admin-bm-error-serie', 'Bezeichnung ist erforderlich.'); return; }
+    if (!vonDatum) { showError('admin-bm-error-serie', 'Serie-Beginn ist erforderlich.'); return; }
+    if (!bisDatum) { showError('admin-bm-error-serie', 'Serie-Ende ist erforderlich.'); return; }
+    if (bisDatum < vonDatum) { showError('admin-bm-error-serie', 'Serie-Ende muss nach Serie-Beginn liegen.'); return; }
+    if (!startTime || !endTime) { showError('admin-bm-error-serie', 'Zeiten sind erforderlich.'); return; }
+    if (endTime <= startTime) { showError('admin-bm-error-serie', 'Endzeit muss nach Startzeit liegen.'); return; }
+
+    var payload = {
+      titel: titel,
+      wochentag: parseInt(getVal('admin-bm-serie-wochentag'), 10),
+      startTime: startTime,
+      endTime: endTime,
+      vonDatum: vonDatum,
+      bisDatum: bisDatum,
+      color: _selectedSerieColor || null,
+      notizen: getVal('admin-bm-serie-notizen') || null
+    };
+
+    disableSubmit('admin-bm-submit-serie', 'Prüfen…');
+
+    _dotNet.invokeMethodAsync('SerienTerminPruefenAsync', JSON.stringify(payload))
+      .then(function (resultJson) {
+        var result = JSON.parse(resultJson);
+        if (result.error) {
+          enableSubmit('admin-bm-submit-serie', 'Serientermine erstellen');
+          showError('admin-bm-error-serie', result.error);
+          return;
+        }
+        if (!result.conflicts || result.conflicts.length === 0) {
+          doSerienAnlegen(payload, false);
+          return;
+        }
+        // Konflikte gefunden → anzeigen
+        _seriePayload = payload;
+        enableSubmit('admin-bm-submit-serie', 'Serientermine erstellen');
+        var panel = document.getElementById('admin-bm-serie-conflicts');
+        var text = document.getElementById('admin-bm-serie-conflict-text');
+        if (text) {
+          var shown = result.conflicts.slice(0, 3).map(function (c) { return c.label; }).join(', ');
+          var extra = result.conflicts.length > 3 ? ' … und ' + (result.conflicts.length - 3) + ' weitere' : '';
+          text.textContent = result.conflicts.length + ' Termin(e) mit Konflikten: ' + shown + extra + '.';
+        }
+        if (panel) panel.hidden = false;
+      })
+      .catch(function () {
+        enableSubmit('admin-bm-submit-serie', 'Serientermine erstellen');
+        showError('admin-bm-error-serie', 'Verbindungsfehler. Bitte erneut versuchen.');
+      });
+  }
+
+  function doSerienAnlegen(payload, skipConflicts) {
+    disableSubmit('admin-bm-submit-serie', 'Wird gespeichert…');
+    _dotNet.invokeMethodAsync('SerienTerminAnlegenAsync', JSON.stringify(payload), skipConflicts)
+      .then(function (resultJson) {
+        var result = JSON.parse(resultJson);
+        if (result.ok) {
+          var bodySerie = document.getElementById('admin-bm-body-serie');
+          var success = document.getElementById('admin-bm-success');
+          var successTitle = document.getElementById('admin-bm-success-title');
+          var successMsg = document.getElementById('admin-bm-success-msg');
+          if (bodySerie) bodySerie.hidden = true;
+          if (successTitle) successTitle.textContent = 'Serientermine erstellt';
+          if (successMsg) successMsg.textContent = result.created + ' Termine angelegt' +
+            (result.skipped > 0 ? ', ' + result.skipped + ' übersprungen.' : '.');
+          if (success) success.hidden = false;
+          var title = document.getElementById('admin-bm-title');
+          if (title) title.textContent = 'Serientermine erstellt';
+          clearSelectionOverlay();
+          selectedSlot = null;
+          _seriePayload = null;
+          loadWeek();
+        } else {
+          enableSubmit('admin-bm-submit-serie', 'Serientermine erstellen');
+          showError('admin-bm-error-serie', result.error || 'Fehler beim Speichern.');
+        }
+      })
+      .catch(function () {
+        enableSubmit('admin-bm-submit-serie', 'Serientermine erstellen');
+        showError('admin-bm-error-serie', 'Verbindungsfehler. Bitte erneut versuchen.');
       });
   }
 
@@ -752,8 +892,18 @@ window.SporthalleAdmin = (function () {
       addHandler(document.getElementById('admin-bm-submit-blocker'), 'click', submitAdminBooking);
       addHandler(document.getElementById('admin-bm-submit'), 'click', submitAdminBooking);
       addHandler(document.getElementById('admin-bm-done'), 'click', closeAdminModal);
-      addHandler(document.getElementById('admin-typ-blocker'), 'click', function () { setModalTyp(true); });
-      addHandler(document.getElementById('admin-typ-event'), 'click', function () { setModalTyp(false); });
+      addHandler(document.getElementById('admin-bm-cancel-serie'), 'click', closeAdminModal);
+      addHandler(document.getElementById('admin-bm-submit-serie'), 'click', submitSerientermin);
+      addHandler(document.getElementById('admin-bm-serie-retry'), 'click', function () {
+        hideSerieConflicts();
+        _seriePayload = null;
+      });
+      addHandler(document.getElementById('admin-bm-serie-skip'), 'click', function () {
+        if (_seriePayload) { hideSerieConflicts(); doSerienAnlegen(_seriePayload, true); }
+      });
+      addHandler(document.getElementById('admin-typ-blocker'), 'click', function () { setModalTyp('blocker'); });
+      addHandler(document.getElementById('admin-typ-event'), 'click', function () { setModalTyp('event'); });
+      addHandler(document.getElementById('admin-typ-serie'), 'click', function () { setModalTyp('serie'); });
       addHandler(document.getElementById('admin-bm-renter-type'), 'change', updateOrgField);
 
       var colorPicker = document.getElementById('admin-bm-color-picker');
@@ -763,6 +913,16 @@ window.SporthalleAdmin = (function () {
           (function (swatch) {
             addHandler(swatch, 'click', function () { selectColor(swatch.dataset.color); });
           })(swatches[ci]);
+        }
+      }
+
+      var serieColorPicker = document.getElementById('admin-bm-serie-color-picker');
+      if (serieColorPicker) {
+        var serieSwatches = serieColorPicker.querySelectorAll('.bm-color-swatch');
+        for (var si = 0; si < serieSwatches.length; si++) {
+          (function (swatch) {
+            addHandler(swatch, 'click', function () { selectSerieColor(swatch.dataset.color); });
+          })(serieSwatches[si]);
         }
       }
 
@@ -797,6 +957,104 @@ window.SporthalleAdmin = (function () {
       selectionEl = null;
       selectedSlot = null;
       isDragging = false;
+      _seriePayload = null;
+    },
+
+    // ── Edit-Dialog Tageskalender ────────────────────────────────────────────────
+    // Drag-to-select für den Bearbeiten-Dialog. Gibt Start/End-Slot-Index via
+    // DotNet-Callback zurück; Blazor prüft Konflikte und aktualisiert die Farben.
+
+    initEditCalendar: function (containerId, dotNetRef) {
+      // Alten Document-Listener vom vorherigen Edit-Dialog entfernen
+      if (_docEditMouseUp) {
+        document.removeEventListener('mouseup', _docEditMouseUp);
+        _docEditMouseUp = null;
+      }
+
+      var el = document.getElementById(containerId);
+      if (!el) return;
+
+      var dragging = false;
+      var startIdx = -1;
+      var endIdx = -1;
+
+      function getCells() { return Array.from(el.querySelectorAll('[data-slot-idx]')); }
+
+      function highlight(lo, hi) {
+        getCells().forEach(function (c) {
+          var i = parseInt(c.dataset.slotIdx, 10);
+          c.classList.toggle('ec-drag', i >= lo && i <= hi);
+        });
+      }
+
+      el.addEventListener('mousedown', function (e) {
+        var cell = e.target.closest('[data-slot-idx]');
+        if (!cell || cell.dataset.booked === '1') return;
+        dragging = true;
+        startIdx = parseInt(cell.dataset.slotIdx, 10);
+        endIdx = startIdx;
+        highlight(startIdx, startIdx);
+        e.preventDefault();
+      });
+
+      el.addEventListener('mouseover', function (e) {
+        if (!dragging) return;
+        var cell = e.target.closest('[data-slot-idx]');
+        if (!cell) return;
+        endIdx = parseInt(cell.dataset.slotIdx, 10);
+        highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
+      });
+
+      function finishDrag() {
+        if (!dragging) return;
+        dragging = false;
+        getCells().forEach(function (c) { c.classList.remove('ec-drag'); });
+        var lo = Math.min(startIdx, endIdx);
+        var hi = Math.max(startIdx, endIdx);
+        dotNetRef.invokeMethodAsync('OnCalendarDragEnd', lo, hi);
+      }
+
+      _docEditMouseUp = finishDrag;
+      document.addEventListener('mouseup', _docEditMouseUp);
+
+      // Touch-Support
+      el.addEventListener('touchstart', function (e) {
+        var t = e.touches[0];
+        var under = document.elementFromPoint(t.clientX, t.clientY);
+        var cell = under ? under.closest('[data-slot-idx]') : null;
+        if (!cell || cell.dataset.booked === '1') return;
+        dragging = true;
+        startIdx = parseInt(cell.dataset.slotIdx, 10);
+        endIdx = startIdx;
+        highlight(startIdx, startIdx);
+      }, { passive: true });
+
+      el.addEventListener('touchmove', function (e) {
+        if (!dragging) return;
+        var t = e.touches[0];
+        var under = document.elementFromPoint(t.clientX, t.clientY);
+        var cell = under ? under.closest('[data-slot-idx]') : null;
+        if (!cell) return;
+        endIdx = parseInt(cell.dataset.slotIdx, 10);
+        highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
+      }, { passive: true });
+
+      el.addEventListener('touchend', finishDrag);
+
+      // Nach Init: auf die aktuelle Selektion scrollen
+      setTimeout(function () {
+        var firstSel = el.querySelector('.ec-slot-selected');
+        if (firstSel) {
+          firstSel.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      }, 0);
+    },
+
+    destroyEditCalendar: function () {
+      if (_docEditMouseUp) {
+        document.removeEventListener('mouseup', _docEditMouseUp);
+        _docEditMouseUp = null;
+      }
     }
   };
 })();
