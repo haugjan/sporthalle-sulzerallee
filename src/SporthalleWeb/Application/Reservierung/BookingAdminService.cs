@@ -46,6 +46,9 @@ public sealed class BookingAdminService(
     public async Task<IReadOnlyList<BookingSlot>> GetSlotsForPeriodAsync(DateOnly from, DateOnly toInclusive, bool includeRejected = false)
         => await slotRepo.GetAllAsync(from, toInclusive, null, includeRejected);
 
+    public async Task<IReadOnlyList<BookingSlot>> GetBlockersForPeriodAsync(DateOnly from, DateOnly toInclusive)
+        => await slotRepo.GetAllAsync(from, toInclusive, SlotType.Blocker);
+
     public async Task<IReadOnlyList<(BookingSlot Slot, HallMember? Member)>> GetSlotsWithMembersForPeriodAsync(DateOnly from, DateOnly toInclusive, bool includeRejected = false)
     {
         var slots = await slotRepo.GetAllAsync(from, toInclusive, null, includeRejected);
