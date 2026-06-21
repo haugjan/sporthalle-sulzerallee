@@ -5,5 +5,6 @@ public sealed record CreateBookingCommand(
     DateTime StartUtc,
     DateTime EndUtc,
     string Title,
-    string? Notes
+    string? Notes,
+    string? Color = null
 );

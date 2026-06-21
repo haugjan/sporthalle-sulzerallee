@@ -1,9 +1,12 @@
+using SporthalleWeb.Application.Reservierung;
 using SporthalleWeb.Domain.Reservierung.Ports;
 using Umbraco.Cms.Core.Services;
 
 namespace SporthalleWeb.Infrastructure.Reservierung.Config;
 
-public sealed class UmbracoHallConfigurationAdapter(IContentService contentService) : IHallConfigurationPort
+public sealed class UmbracoHallConfigurationAdapter(
+    IContentService contentService,
+    HallConfigService hallConfigService) : IHallConfigurationPort
 {
     private const string ConfigAlias = "reservierungKonfiguration";
 
@@ -13,14 +16,26 @@ public sealed class UmbracoHallConfigurationAdapter(IContentService contentServi
     public Task<int> GetBlockDurationMinutesAsync() =>
         Task.FromResult(GetConfigNode()?.GetValue<int>("blockDurationMinutes") is int v && v > 0 ? v : 60);
 
-    public Task<int> GetOpeningHourStartAsync() =>
-        Task.FromResult(GetConfigNode()?.GetValue<int>("openingHourStart") is int v && v > 0 ? v : 8);
+    public async Task<int> GetOpeningHourStartAsync()
+    {
+        var raw = await hallConfigService.GetAsync("kalender_beginn");
+        if (int.TryParse(raw, out var h) && h >= 0 && h <= 23) return h;
+        return 7;
+    }
 
-    public Task<int> GetOpeningHourEndAsync() =>
-        Task.FromResult(GetConfigNode()?.GetValue<int>("openingHourEnd") is int v && v > 0 ? v : 22);
+    public async Task<int> GetOpeningHourEndAsync()
+    {
+        var raw = await hallConfigService.GetAsync("kalender_ende");
+        if (int.TryParse(raw, out var h) && h >= 0 && h <= 23) return h;
+        return 23;
+    }
 
-    public Task<int> GetMaxWeeksAheadAsync() =>
-        Task.FromResult(GetConfigNode()?.GetValue<int>("maxWeeksAhead") is int v && v > 0 ? v : 12);
+    public async Task<DateOnly?> GetBuchungenBisDatumAsync()
+    {
+        var raw = await hallConfigService.GetAsync("buchungen_bis_datum");
+        if (DateOnly.TryParse(raw, out var date)) return date;
+        return null;
+    }
 
     public Task<IReadOnlyList<int>> GetBuchbareDauernAsync()
     {
@@ -38,4 +53,7 @@ public sealed class UmbracoHallConfigurationAdapter(IContentService contentServi
         var result = raw.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
         return Task.FromResult<IReadOnlyList<string>>(result);
     }
+
+    public Task<string?> GetPreisTextAsync() =>
+        Task.FromResult(GetConfigNode()?.GetValue<string>("preisText"));
 }

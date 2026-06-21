@@ -10,11 +10,11 @@ public class BookingSlotRecord
 {
     [Column("Id")]
     [PrimaryKeyColumn(AutoIncrement = true, IdentitySeed = 1)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     [Column("MemberId")]
     [NullSetting(NullSetting = NullSettings.Null)]
-    public int? MemberId { get; set; }
+    public long? MemberId { get; set; }
 
     [Column("Type")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
