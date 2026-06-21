@@ -19,8 +19,8 @@ const CSS = `
   tr.paid td { background: #f0f9f0; }
   .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; font-weight: 700; }
   .badge-bronze { background: #cd7f32; color: #fff; }
-  .badge-silber { background: #aaa; color: #fff; }
-  .badge-gold { background: #d4a017; color: #fff; }
+  .badge-silber { background: #909090; color: #fff; }
+  .badge-gold   { background: #b08000; color: #fff; }
   .paid-check { color: #2d8a4e; font-weight: 600; font-size: 0.8rem; }
   .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 5px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: opacity 0.15s; }
   .btn:hover { opacity: 0.85; }
@@ -94,7 +94,7 @@ class PmAdminElement extends HTMLElement {
       <tr class="${m.paidAt ? 'paid' : ''}" data-id="${m.id}">
         <td>${m.fieldNumber}</td>
         <td>${m.vipLabel ?? ''}</td>
-        <td><span class="badge badge-${m.levelKey}">${m.levelKey}</span><br><small>${m.level}</small></td>
+        <td><span class="badge badge-${m.levelKey.toLowerCase()}">${m.levelKey}</span><br><small>${m.level}</small></td>
         <td>${m.firstName} ${m.lastName}</td>
         <td><a href="mailto:${m.email}">${m.email}</a></td>
         <td>${m.addressLine}, ${m.postalCode} ${m.city}</td>
