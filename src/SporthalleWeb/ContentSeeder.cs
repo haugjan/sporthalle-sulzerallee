@@ -57,10 +57,12 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         EnsureContentTemplates(homeTemplate, contentPageTemplate);
 
         EnsureContentTypeTemplates(homeTemplate, contentPageTemplate);
+        EnsureHomePageProperties();
 
         if (_contentService.GetRootContent().Any())
         {
             _logger.LogInformation("ContentSeeder: root content already exists, skipping seed.");
+            MigrateMediaPathsToImg();
             return Task.CompletedTask;
         }
 
@@ -294,6 +296,83 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         }
     }
 
+    private void EnsureHomePageProperties()
+    {
+        var homePage = _contentTypeService.Get("homePage");
+        if (homePage == null) return;
+
+        var textBox = _dataTypeService.GetByEditorAlias("Umbraco.TextBox").FirstOrDefault();
+        var textArea = _dataTypeService.GetByEditorAlias("Umbraco.TextArea").FirstOrDefault();
+        if (textBox == null || textArea == null) return;
+
+        var existing = homePage.PropertyTypes.Select(p => p.Alias).ToHashSet();
+        var dirty = false;
+
+        void Add(string alias, string name, IDataType type, string groupAlias, string groupName)
+        {
+            if (existing.Contains(alias)) return;
+            homePage.AddPropertyType(new PropertyType(_shortStringHelper, type) { Alias = alias, Name = name }, groupAlias, groupName);
+            dirty = true;
+        }
+
+        Add("heroImage",    "Hero Image",    textBox, "hero",    "Hero");
+        Add("logoSvg",      "Logo SVG",      textBox, "hero",    "Hero");
+        Add("schlagwoerter","Schlagwörter",  textBox, "hero",    "Hero");
+        Add("festLabel",    "Fest Label",    textBox, "fest",    "Eröffnungsfest");
+        Add("festTitel",    "Fest Titel",    textBox, "fest",    "Eröffnungsfest");
+        Add("festDatum",    "Fest Datum",    textBox, "fest",    "Eröffnungsfest");
+        Add("festText",     "Fest Text",     textArea,"fest",    "Eröffnungsfest");
+        Add("teaser1Label", "Teaser 1 Label",textBox, "teasers", "Teasers");
+        Add("teaser1Titel", "Teaser 1 Titel",textBox, "teasers", "Teasers");
+        Add("teaser1Text",  "Teaser 1 Text", textArea,"teasers", "Teasers");
+        Add("teaser1Link",  "Teaser 1 Link", textBox, "teasers", "Teasers");
+        Add("teaser1Bild",  "Teaser 1 Bild", textBox, "teasers", "Teasers");
+        Add("teaser2Label", "Teaser 2 Label",textBox, "teasers", "Teasers");
+        Add("teaser2Titel", "Teaser 2 Titel",textBox, "teasers", "Teasers");
+        Add("teaser2Text",  "Teaser 2 Text", textArea,"teasers", "Teasers");
+        Add("teaser2Link",  "Teaser 2 Link", textBox, "teasers", "Teasers");
+        Add("teaser3Label", "Teaser 3 Label",textBox, "teasers", "Teasers");
+        Add("teaser3Titel", "Teaser 3 Titel",textBox, "teasers", "Teasers");
+        Add("teaser3Text",  "Teaser 3 Text", textArea,"teasers", "Teasers");
+        Add("teaser3Link",  "Teaser 3 Link", textBox, "teasers", "Teasers");
+
+        if (!dirty) return;
+        _contentTypeService.Save(homePage, Constants.Security.SuperUserId);
+        _logger.LogInformation("ContentSeeder: added redesign properties to homePage content type.");
+    }
+
+    private void MigrateMediaPathsToImg()
+    {
+        var root = _contentService.GetRootContent().FirstOrDefault();
+        if (root == null) return;
+        var children = _contentService.GetPagedChildren(root.Id, 0, 100, out _);
+        var updated = false;
+        foreach (var child in children)
+        {
+            var dirty = false;
+            var img = child.GetValue<string>("pageImage");
+            if (img != null && img.Contains("/media/", StringComparison.Ordinal))
+            {
+                child.SetValue("pageImage", img.Replace("/media/", "/img/", StringComparison.Ordinal));
+                dirty = true;
+            }
+            var body = child.GetValue<string>("bodyContent");
+            if (body != null && body.Contains("/media/", StringComparison.Ordinal))
+            {
+                child.SetValue("bodyContent", body.Replace("/media/", "/img/", StringComparison.Ordinal));
+                dirty = true;
+            }
+            if (dirty)
+            {
+                PublishContent(child);
+                _logger.LogInformation("ContentSeeder: migrated /media/ paths to /img/ for '{Name}'.", child.Name);
+                updated = true;
+            }
+        }
+        if (!updated)
+            _logger.LogInformation("ContentSeeder: no /media/ paths needed migration.");
+    }
+
     private void PublishContent(IContent content)
     {
         _contentService.Save(content, Constants.Security.SuperUserId);
@@ -305,26 +384,26 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         (
             "Unterstützung", 0, "Unterstützung",
             "<p>Der Abbruch der Mieterausbauten ist vollbracht! Nun heisst es bauen und bauen lassen.<br /><br />Im Innern der alten Industriehalle entsteht in den nächsten Monaten eine zweite Hülle in Form eines Holzbaus. Die Planung ist vollbracht, die Holzträger sind bereits vor Ort und die Elemente in Produktion. Der Grossteil der Arbeiten wird durch Profis ausgeführt. Wir dürfen uns auf das Know-How und die Unterstützung diverser lokaler Unternehmer verlassen. Herzlichen Dank dafür!<br /><br />Es gibt während der ganzen Bauzeit nebst Werke durch die Profis auch Arbeiten auszuführen, die Laien oder Halbprofis ausführen können. Wir wollen so mit Eigenleistungen die Kosten tief halten.<br /><br /><b>Möchtest du während dem Bau anpacken?</b><br />&#10145; <a href=\"https://forms.office.com/e/ZuZC2k4nJR\" target=\"_blank\">Als Helfer eintragen</a><br />Oder du meldest dich direkt bei Mats 079 740 36 59 und lässt dich in den Helferchat eintragen.<br /><br />Aktuelle Infos gibt's auf <a href=\"https://www.instagram.com/sporthalle_sulzerallee/\" target=\"_blank\">Instagram (@sporthalle_sulzerallee)</a></p>",
-            "/media/Abbruch_10.jpg"
+            "/img/Abbruch_10.jpg"
         ),
         (
             "Das Projekt", 1, "Das Projekt",
             "<p>Die Sporthalle Sulzerallee ist ein wegweisendes Projekt, das die dringend benötigte Hallenkapazität in Winterthur erhöhen wird. Die Halle wird in einer ehemaligen Lagerhalle errichtet, welche optimal für die sportliche Nutzung angepasst werden kann. Durch ihre zentrale Lage in der Nähe des Bahnhofs Grüze und die Zusammenarbeit mit der Stadt Winterthur wird ein Ort für Schulen und Vereine geschaffen, der neue Möglichkeiten für Sport und Bewegung eröffnet.</p>",
-            "/media/2502_SporthalleSulzerallee_Bild8.jpg"
+            "/img/2502_SporthalleSulzerallee_Bild8.jpg"
         ),
         (
             "Über uns", 2, "Über uns",
             "<p>Die Sporthalle Sulzerallee ist ein gemeinsames Projekt der Winterthurer Unihockeyvereine. Mit einem eigenständigen Trägerverein soll die Halle ausgebaut und betrieben werden. Ziel ist es, zusätzliche Trainingszeiten für Vereine und Schulsport zu ermöglichen und den Bedarf an Sportinfrastruktur nachhaltig zu decken.</p>",
-            "/media/logo_vereine.jpg"
+            "/img/logo_vereine.jpg"
         ),
         (
             "Zweck", 3, "Zweck",
             "<p>Die Sporthalle Sulzerallee schafft neue Möglichkeiten für über 1'100 Unihockeyspielerinnen und -spieler sowie zahlreiche Schulen in Winterthur. Mit der Halle wird der akute Mangel an Sportinfrastruktur gemildert und die Basis für weitere sportliche Entwicklung gelegt.</p>",
-            "/media/2502_SporthalleSulzerallee_Bild6.jpg"
+            "/img/2502_SporthalleSulzerallee_Bild6.jpg"
         ),
         (
             "In den Medien", 4, "In den Medien",
-            "<p>Auch in der lokalen Presse findet unser Projekt Beachtung. Der Landbote berichtete über unsere Initiative zum Bau der neuen Sporthalle Sulzerallee.<br /><br />&#10145; <a href=\"/media/2025.03.07_Bericht_Landbote.pdf\" target=\"_blank\">Artikel im Landboten 7.3.2025 lesen (PDF)</a><br />&#10145; <a href=\"/media/2025.04.09_Bericht_Landbote.pdf\" target=\"_blank\">Artikel im Landboten 9.4.2025 lesen (PDF)</a><br />&#10145; <a href=\"/media/2025.09.25_Bericht_Landbote.pdf\" target=\"_blank\">Artikel im Landboten 25.9.2025 lesen (PDF)</a></p>",
+            "<p>Auch in der lokalen Presse findet unser Projekt Beachtung. Der Landbote berichtete über unsere Initiative zum Bau der neuen Sporthalle Sulzerallee.<br /><br />&#10145; <a href=\"/img/2025.03.07_Bericht_Landbote.pdf\" target=\"_blank\">Artikel im Landboten 7.3.2025 lesen (PDF)</a><br />&#10145; <a href=\"/img/2025.04.09_Bericht_Landbote.pdf\" target=\"_blank\">Artikel im Landboten 9.4.2025 lesen (PDF)</a><br />&#10145; <a href=\"/img/2025.09.25_Bericht_Landbote.pdf\" target=\"_blank\">Artikel im Landboten 25.9.2025 lesen (PDF)</a></p>",
             ""
         ),
         (

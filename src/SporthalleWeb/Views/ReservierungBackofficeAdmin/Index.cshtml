@@ -1,7 +1,0 @@
-@using SporthalleWeb.Components.Reservierung
-@{
-    Layout = "~/Views/Shared/_BackofficeLayout.cshtml";
-}
-<component type="typeof(ReservierungAdminComponent)"
-           render-mode="Server"
-           param-AdminUser="@(User.Identity?.Name ?? "admin")" />

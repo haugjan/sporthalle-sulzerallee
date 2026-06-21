@@ -1,0 +1,313 @@
+﻿@inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
+@inject SporthalleWeb.Application.Booking.ConfirmBookingUseCase ConfirmUseCase
+@inject SporthalleWeb.Application.Booking.RejectBookingUseCase RejectUseCase
+@inject SporthalleWeb.Application.Booking.HallConfigService Config
+
+@if (_message is not null)
+{
+    <div class="alert alert-success alert-dismissible">
+        @_message
+        <button type="button" class="btn-close" @onclick="() => _message = null"></button>
+    </div>
+}
+@if (_error is not null)
+{
+    <div class="alert alert-danger alert-dismissible">
+        @_error
+        <button type="button" class="btn-close" @onclick="() => _error = null"></button>
+    </div>
+}
+
+@if (_loading)
+{
+    <p>Lade Anfragen…</p>
+}
+else if (!_pending.Any())
+{
+    <div class="alert alert-info">Keine ausstehenden Anfragen.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" style="font-size:0.875rem">
+            <thead>
+                <tr>
+                    <th style="white-space:nowrap">Eingegangen</th>
+                    <th style="white-space:nowrap">Termin</th>
+                    <th>Anlass</th>
+                    <th>Mieter</th>
+                    <th>Rechnungsadresse</th>
+                    <th>Kontakt</th>
+                    <th>Bemerkungen</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _pending)
+                {
+                    var slot = item.Slot;
+                    var member = item.Member;
+                    <tr>
+                        <td style="white-space:nowrap">
+                            @{ var eingegangen = TimeZoneInfo.ConvertTimeFromUtc(slot.CreatedAt, Zurich); }
+                            @eingegangen.ToString("d. MMM yyyy", DeCh)<br />
+                            <small class="text-muted">@eingegangen.ToString("HH:mm", DeCh)</small>
+                        </td>
+                        <td style="white-space:nowrap">
+                            @FormatSlot(slot.Slot.StartUtc, slot.Slot.EndUtc)<br />
+                            <small class="text-muted">@((int)(slot.Slot.EndUtc - slot.Slot.StartUtc).TotalMinutes) min</small>
+                        </td>
+                        <td>@(slot.Title ?? "–")</td>
+                        <td>
+                            @if (member is not null)
+                            {
+                                <strong>@($"{member.ContactFirstName} {member.ContactLastName}".Trim())</strong>
+                                <br /><small class="text-muted">@member.RenterType.Value</small>
+                                @if (member.Name is not null)
+                                {
+                                    <br /><small class="text-muted">@member.Name</small>
+                                }
+                                @if (member.HasKey)
+                                {
+                                    <br /><span class="badge bg-secondary mt-1" style="font-size:0.7rem">Hat Schlüssel</span>
+                                }
+                            }
+                            else { <span class="text-muted">–</span> }
+                        </td>
+                        <td>
+                            @if (member is not null)
+                            {
+                                <span>@member.BillingAddress</span><br />
+                                <span>@member.BillingPostalCode @member.BillingCity</span>
+                                @if (!string.IsNullOrEmpty(member.BillingCountry) &&
+                                     member.BillingCountry != "CH" &&
+                                     member.BillingCountry != "Schweiz")
+                                {
+                                    <br /><small class="text-muted">@member.BillingCountry</small>
+                                }
+                            }
+                            else { <span class="text-muted">–</span> }
+                        </td>
+                        <td>
+                            @if (member is not null)
+                            {
+                                <a href="mailto:@member.Email">@member.Email</a>
+                                @if (!string.IsNullOrEmpty(member.Phone))
+                                {
+                                    <br /><small>@member.Phone</small>
+                                }
+                            }
+                        </td>
+                        <td style="max-width:200px">
+                            @if (!string.IsNullOrEmpty(slot.Notes))
+                            {
+                                <span style="white-space:pre-wrap;font-size:0.85rem">@slot.Notes</span>
+                            }
+                            else { <span class="text-muted">–</span> }
+                        </td>
+                        <td style="white-space:nowrap">
+                            <button class="btn btn-sm btn-success me-1"
+                                    @onclick="() => OpenConfirmDialog(slot.Id)">
+                                Bestätigen
+                            </button>
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="() => OpenRejectDialog(slot.Id)">
+                                Ablehnen
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_confirmSlotId is not null)
+{
+    <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1050">
+        <div class="card" style="min-width:380px;max-width:540px;max-height:90vh;overflow-y:auto">
+            <div class="card-header"><strong>Buchung bestätigen</strong></div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Buchungsanfrage #@_confirmSlotId wird bestätigt. E-Mail-Text kann unten angepasst werden.
+                </p>
+                @if (_confirmEmailLoading)
+                {
+                    <p class="text-muted small">Lade E-Mail-Vorschau…</p>
+                }
+                else
+                {
+                    <label class="form-label fw-semibold small">E-Mail-Text an Mieter</label>
+                    <textarea class="form-control font-monospace" style="font-size:0.82rem"
+                              @bind="_confirmEmailText" rows="7"></textarea>
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelConfirm">Abbrechen</button>
+                <button class="btn btn-success" @onclick="ConfirmConfirmAsync"
+                        disabled="@_confirmEmailLoading">Bestätigen &amp; senden</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_rejectSlotId is not null)
+{
+    <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1050">
+        <div class="card" style="min-width:380px;max-width:540px;max-height:90vh;overflow-y:auto">
+            <div class="card-header"><strong>Buchung ablehnen</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Interner Ablehnungsgrund (optional)</label>
+                    <textarea class="form-control" @bind="_rejectReason" rows="2"
+                              placeholder="Wird nicht an den Mieter gesendet"></textarea>
+                </div>
+                @if (_rejectEmailLoading)
+                {
+                    <p class="text-muted small">Lade E-Mail-Vorschau…</p>
+                }
+                else
+                {
+                    <label class="form-label fw-semibold small">E-Mail-Text an Mieter</label>
+                    <textarea class="form-control font-monospace" style="font-size:0.82rem"
+                              @bind="_rejectEmailText" rows="6"></textarea>
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelReject">Abbrechen</button>
+                <button class="btn btn-danger" @onclick="ConfirmRejectAsync"
+                        disabled="@_rejectEmailLoading">Ablehnen &amp; senden</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+    [Parameter] public EventCallback<int> OnPendingCountChanged { get; set; }
+
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+    private static readonly System.Globalization.CultureInfo DeCh =
+        System.Globalization.CultureInfo.GetCultureInfo("de-CH");
+
+    private IReadOnlyList<(SporthalleWeb.Domain.Booking.BookingSlot Slot, SporthalleWeb.Domain.Booking.HallMember? Member)> _pending = [];
+    private bool _loading = true;
+    private string? _message;
+    private string? _error;
+    private int? _confirmSlotId;
+    private string _confirmEmailText = "";
+    private bool _confirmEmailLoading;
+    private int? _rejectSlotId;
+    private string? _rejectReason;
+    private string _rejectEmailText = "";
+    private bool _rejectEmailLoading;
+
+    protected override async Task OnInitializedAsync() => await LoadPendingAsync();
+
+    private async Task LoadPendingAsync()
+    {
+        _loading = true;
+        _pending = await AdminService.GetPendingAsync();
+        _loading = false;
+        await OnPendingCountChanged.InvokeAsync(_pending.Count);
+    }
+
+    private async Task OpenConfirmDialog(int id)
+    {
+        _confirmSlotId = id;
+        _confirmEmailLoading = true;
+        _confirmEmailText = "";
+        var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
+        if (slot is not null && member is not null)
+        {
+            var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
+            var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
+            var configuredText = await Config.GetAsync("mail_bestaetigung_text");
+            if (!string.IsNullOrWhiteSpace(configuredText))
+            {
+                _confirmEmailText = configuredText
+                    .Replace("{Name}", $"{member.ContactFirstName} {member.ContactLastName}".Trim())
+                    .Replace("{Anlass}", slot.Title ?? "")
+                    .Replace("{Datum}", start.ToString("dddd, d. MMMM yyyy", DeCh))
+                    .Replace("{Von}", start.ToString("HH:mm"))
+                    .Replace("{Bis}", end.ToString("HH:mm"));
+            }
+            else
+            {
+                var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
+                _confirmEmailText =
+                    $"Ihre Buchung für {slotStr} wurde bestätigt.\n\n" +
+                    $"Anlass: {slot.Title}\n\n" +
+                    "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch.";
+            }
+        }
+        _confirmEmailLoading = false;
+    }
+
+    private void CancelConfirm() => _confirmSlotId = null;
+
+    private async Task ConfirmConfirmAsync()
+    {
+        if (_confirmSlotId is null) return;
+        var id = _confirmSlotId.Value;
+        _confirmSlotId = null;
+        _message = null;
+        _error = null;
+        try
+        {
+            var body = string.IsNullOrWhiteSpace(_confirmEmailText) ? null : _confirmEmailText;
+            await ConfirmUseCase.ExecuteAsync(id, AdminUser, body);
+            _message = $"Buchung #{id} wurde bestätigt.";
+            await LoadPendingAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+    }
+
+    private async Task OpenRejectDialog(int id)
+    {
+        _rejectSlotId = id;
+        _rejectReason = null;
+        _rejectEmailLoading = true;
+        _rejectEmailText = "";
+        var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
+        if (slot is not null && member is not null)
+        {
+            var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
+            var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
+            var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
+            _rejectEmailText =
+                $"Leider können wir Ihre Buchungsanfrage für {slotStr} nicht bestätigen.\n\n" +
+                "Bitte kontaktieren Sie uns unter reservierung@sporthalle-sulzerallee.ch " +
+                "für weitere Informationen oder einen alternativen Termin.";
+        }
+        _rejectEmailLoading = false;
+    }
+
+    private async Task ConfirmRejectAsync()
+    {
+        if (_rejectSlotId is null) return;
+        _message = null;
+        _error = null;
+        try
+        {
+            var body = string.IsNullOrWhiteSpace(_rejectEmailText) ? null : _rejectEmailText;
+            await RejectUseCase.ExecuteAsync(_rejectSlotId.Value, _rejectReason ?? "", AdminUser, body);
+            _message = $"Buchung #{_rejectSlotId} wurde abgelehnt.";
+            _rejectSlotId = null;
+            await LoadPendingAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+    }
+
+    private void CancelReject() { _rejectSlotId = null; _rejectReason = null; }
+
+    private string FormatSlot(DateTime startUtc, DateTime endUtc)
+    {
+        var start = TimeZoneInfo.ConvertTimeFromUtc(startUtc, Zurich);
+        var end   = TimeZoneInfo.ConvertTimeFromUtc(endUtc, Zurich);
+        return $"{start.ToString("ddd d. MMM yyyy HH:mm", DeCh)} – {end:HH:mm}";
+    }
+}

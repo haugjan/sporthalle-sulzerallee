@@ -19,15 +19,21 @@ Live site: `https://app-sporthalle-sulzerallee.azurewebsites.net/`
 | CI/CD | GitHub Actions → Azure ZipDeploy |
 | Hosting | Azure App Service Linux B1 |
 
+## Language Convention
+
+All code (types, namespaces, methods, identifiers) is written in English. Public-facing content shown to website visitors — UI labels, button text, page headings, email content, and URL paths — stays in German.
+
 ## Features
 
 ### Hall Booking (Reservierung)
 
-Interactive calendar for booking time slots in the hall. Renters can register and book with Magic Link (passwordless) or password. The admin approves or rejects bookings, manages blockers, and exports CSV reports.
+Interactive calendar for booking time slots in the hall. Renters can register and book with Magic Link (passwordless) or password. The admin approves or rejects bookings, manages blockers and recurring appointments, and exports CSV reports.
 
 **Public:** `/reservierung` — weekly calendar with available and booked time slots. Clicking a free slot opens a booking form (guest or logged-in).
 
-**Admin:** Umbraco backoffice → "Reservationen" section. Tabs for pending requests, all bookings, blockers, manual booking entry, and hall configuration.
+**Admin:** Umbraco backoffice → "Booking" section. Tabs for pending requests (Anfragen), all bookings (Buchungen), blockers, recurring appointments (Serientermine), manual booking entry (Erfassen), and hall configuration (Konfiguration).
+
+Code namespace: `SporthalleWeb.*.Booking`
 
 ### Passive Membership (Passivmitgliedschaft)
 
@@ -36,6 +42,8 @@ Supporters can symbolically adopt one square metre of the unihockey hall floor a
 **Public:** `/passivmitgliedschaft` — interactive SVG floor plan of the hall (300 fields, rendered as a Blazor Server component). Clicking a free field opens a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
 
 **Admin:** Umbraco backoffice → "Passivmitglieder" section. Blazor Server admin UI with member table (sortable, mark as paid, notes), Excel export, and AbaNinja CSV export.
+
+Code namespace: `SporthalleWeb.*.PassivMitgliedschaft` (pre-dates the English convention, retains German naming)
 
 ## Local Development
 
@@ -67,11 +75,22 @@ The Cloudflare Turnstile test keys (always-pass) are already in `appsettings.Dev
 ```
 src/SporthalleWeb/
   Application/       Business logic: use cases, queries, services
+    Booking/
+    PassivMitgliedschaft/
   Components/        Blazor admin components
+    Booking/
   ContentSeeder.cs   Seeds Umbraco pages on first boot
   Domain/            Entities, value objects, ports
+    Booking/
+    PassivMitgliedschaft/
+    Shared/
   Infrastructure/    Persistence, email, CAPTCHA adapters
+    Booking/
+    PassivMitgliedschaft/
+    Shared/
   Presentation/      MVC controllers and DTOs
+    Booking/
+    PassivMitgliedschaft/
   Views/             Razor templates
   uSync/             Content type XML (committed, imported on startup)
   wwwroot/           CSS, JS, media files
@@ -108,7 +127,7 @@ ConnectionStrings__umbracoDbDSN_ProviderName  (Microsoft.Data.SqlClient)
 | `passivMitgliedschaft` | Passive membership page with floor plan |
 | `reservierungKonfiguration` | Admin-only config node for booking settings |
 
-Content types are managed via uSync and are imported automatically on startup.
+Content type aliases are German (user-visible URLs). Content types are managed via uSync and imported automatically on startup.
 
 ## Language Policy
 

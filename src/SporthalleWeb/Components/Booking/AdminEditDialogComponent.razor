@@ -1,0 +1,437 @@
+﻿@using Microsoft.JSInterop
+@inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
+@inject SporthalleWeb.Application.Booking.HallConfigService Config
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (_editSlotId is not null)
+{
+    <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1050">
+        <div class="card" style="min-width:540px;max-width:700px;max-height:90vh;overflow-y:auto">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Blocker bearbeiten" : "Buchung bearbeiten")</strong>
+                <span class="badge @TypeBadge(_editSlotType.ToString())">@TypeLabel(_editSlotType)</span>
+            </div>
+            <div class="card-body">
+                @if (_editLoading)
+                {
+                    <p>Lade…</p>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tag</label>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="date" class="form-control" style="max-width:175px"
+                                   value="@_editStartDate"
+                                   @onchange="OnEditDayChangedAsync" />
+                            @if (DateOnly.TryParse(_editStartDate, out var editDayLabel))
+                            {
+                                <span class="text-muted">@editDayLabel.ToString("dddd, d. MMMM yyyy", DeCh)</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
+                        </label>
+                        <div id="ec-@_editSlotId"
+                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;max-height:420px;user-select:none;cursor:crosshair">
+                            @{
+                                var calSlotCount = (_calEnd - _calStart) * 2;
+                                var loSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Min(_editSelStart, _editSelEnd) : -1;
+                                var hiSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Max(_editSelStart, _editSelEnd) : -1;
+                            }
+                            @for (int si = 0; si < calSlotCount; si++)
+                            {
+                                var slotIdx = si;
+                                var slotH = _calStart + slotIdx / 2;
+                                var slotM = (slotIdx % 2) * 30;
+                                var isHour = slotM == 0;
+                                var inSel = loSel >= 0 && slotIdx >= loSel && slotIdx <= hiSel;
+                                var otherBooking = GetExistingBookingAtSlot(slotIdx);
+                                var cellClass = GetSlotCssClass(inSel, otherBooking);
+
+                                <div data-slot-idx="@slotIdx"
+                                     data-booked="@(otherBooking != null ? "1" : "0")"
+                                     class="@cellClass"
+                                     style="display:flex;height:22px;@(isHour ? "border-top:1px solid #dee2e6;" : "border-top:1px dotted #f0f0f0;")">
+                                    <div style="width:46px;flex-shrink:0;font-size:0.68rem;line-height:22px;
+                                                color:#adb5bd;text-align:right;padding-right:6px;
+                                                border-right:1px solid #dee2e6;background:#f8f9fa">
+                                        @(isHour ? $"{slotH:00}:00" : "")
+                                    </div>
+                                    <div style="flex:1;padding-left:6px;line-height:22px;font-size:0.7rem;overflow:hidden;white-space:nowrap">
+                                        @if (otherBooking is not null && isHour)
+                                        {
+                                            <span class="text-muted">@otherBooking.Title</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (_editSelStart >= 0 && _editSelEnd >= 0)
+                        {
+                            <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold">@_editStartTime – @_editEndTime Uhr</span>
+                                @if (_editConflict)
+                                {
+                                    <span class="badge bg-danger">Zeitraum belegt</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Verfügbar</span>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
+                        <input class="form-control" @bind="_editTitle" />
+                    </div>
+
+                    @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Farbe</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var c in new[] { "#F1C40F","#C0392B","#1F4E79","#2B4C7E","#1E5E4A","#4A5568","#8C3A5C","#A8522A","#4A3762","#1A5A66","#3A563C","#5C4033" })
+                                {
+                                    <button type="button"
+                                            style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
+                                            @onclick="() => _editColor = c"
+                                            title="@c"></button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Bemerkungen</label>
+                        <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
+                    </div>
+
+                    @if (_editHasMember)
+                    {
+                        <hr />
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">E-Mail</label>
+                            <input class="form-control" value="@_editEmail" readonly />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-8">
+                                <label class="form-label fw-semibold">Kontaktperson</label>
+                                <input class="form-control" @bind="_editContactPerson" />
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label fw-semibold">Telefon</label>
+                                <input class="form-control" @bind="_editPhone" type="tel" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mietertyp</label>
+                            <select class="form-select" @bind="_editRenterType">
+                                <option value="Privatperson">Privatperson</option>
+                                <option value="Verein">Verein</option>
+                                <option value="Firma">Firma</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Rechnungsname</label>
+                            <input class="form-control" @bind="_editBillingName" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Rechnungsadresse</label>
+                            <input class="form-control" @bind="_editBillingAddress" />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-4">
+                                <label class="form-label fw-semibold">PLZ</label>
+                                <input class="form-control" @bind="_editBillingPostalCode" />
+                            </div>
+                            <div class="col-sm-8">
+                                <label class="form-label fw-semibold">Ort</label>
+                                <input class="form-control" @bind="_editBillingCity" />
+                            </div>
+                        </div>
+                    }
+
+                    @if (_editError is not null)
+                    {
+                        <div class="alert alert-danger mb-0 mt-2">@_editError</div>
+                    }
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelEdit">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="SaveEditAsync"
+                        disabled="@(_editLoading || _editConflict)">Speichern</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+    private static readonly System.Globalization.CultureInfo DeCh =
+        System.Globalization.CultureInfo.GetCultureInfo("de-CH");
+
+    private int? _editSlotId;
+    private SporthalleWeb.Domain.Booking.SlotType _editSlotType;
+    private string _editTitle = "";
+    private string? _editColor;
+    private string _editNotes = "";
+    private bool _editHasMember;
+    private int? _editMemberId;
+    private string _editEmail = "";
+    private string _editContactPerson = "";
+    private string _editPhone = "";
+    private string _editRenterType = "";
+    private string _editBillingName = "";
+    private string _editBillingAddress = "";
+    private string _editBillingPostalCode = "";
+    private string _editBillingCity = "";
+    private string _editStartDate = "";
+    private string _editStartTime = "";
+    private string _editEndDate = "";
+    private string _editEndTime = "";
+    private bool _editLoading;
+    private string? _editError;
+
+    private int _editSelStart = -1;
+    private int _editSelEnd   = -1;
+    private bool _editConflict;
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.BookingSlot> _calendarSlotsForDay = [];
+    private int _calStart = 7;
+    private int _calEnd   = 23;
+    private DotNetObjectReference<AdminEditDialogComponent>? _dotNetRef;
+    private int? _calInitializedForSlotId;
+
+    public void Dispose() => _dotNetRef?.Dispose();
+
+    public async Task OpenAsync(int id)
+    {
+        _editSlotId = id;
+        _editLoading = true;
+        _editError = null;
+        var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
+        if (slot is null) { _editSlotId = null; _editLoading = false; return; }
+        _editSlotType          = slot.Type;
+        _editTitle             = slot.Title ?? "";
+        _editColor             = slot.Color ?? "#C0392B";
+        _editNotes             = slot.Notes ?? "";
+        _editHasMember         = member is not null;
+        _editMemberId          = member?.Id;
+        _editEmail             = member?.Email ?? "";
+        _editContactPerson     = member is null ? "" : $"{member.ContactFirstName} {member.ContactLastName}".Trim();
+        _editPhone             = member?.Phone ?? "";
+        _editRenterType        = member?.RenterType.Value.ToString() ?? "Privatperson";
+        _editBillingName       = member?.Name ?? "";
+        _editBillingAddress    = member?.BillingAddress ?? "";
+        _editBillingPostalCode = member?.BillingPostalCode ?? "";
+        _editBillingCity       = member?.BillingCity ?? "";
+        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
+        var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
+        _editStartDate = startLocal.ToString("yyyy-MM-dd");
+        _editStartTime = startLocal.ToString("HH:mm");
+        _editEndDate   = _editStartDate;
+        _editEndTime   = endLocal.ToString("HH:mm");
+
+        var cfgStart = await Config.GetAsync("kalender_beginn");
+        var cfgEnd   = await Config.GetAsync("kalender_ende");
+        _calStart = int.TryParse(cfgStart, out var cs) ? cs : 7;
+        _calEnd   = int.TryParse(cfgEnd,   out var ce) ? ce : 23;
+
+        _editSelStart = -1;
+        _editSelEnd   = -1;
+        _editConflict = false;
+        _calInitializedForSlotId = null;
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+        var stMin = startLocal.Hour * 60 + startLocal.Minute;
+        var etMin = endLocal.Hour * 60 + endLocal.Minute;
+        var slotCount = (_calEnd - _calStart) * 2;
+        var selStart = (stMin - _calStart * 60) / 30;
+        var selEnd   = (etMin - _calStart * 60) / 30 - 1;
+        if (selStart >= 0 && selStart < slotCount && selEnd >= selStart && selEnd < slotCount)
+        {
+            _editSelStart = selStart;
+            _editSelEnd   = selEnd;
+        }
+
+        await LoadCalendarSlotsAsync();
+        CheckConflicts();
+        _editLoading = false;
+    }
+
+    private void CancelEdit()
+    {
+        _editSlotId = null;
+        _calInitializedForSlotId = null;
+        _editSelStart = -1;
+        _editSelEnd   = -1;
+        _editConflict = false;
+        _editError = null;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (_editSlotId is null) return;
+        if (_editConflict)
+        {
+            _editError = "Der gewählte Zeitraum ist nicht verfügbar. Bitte einen anderen Zeitraum wählen.";
+            return;
+        }
+        _editError = null;
+        try
+        {
+            var color = _editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker
+                ? "#78909C"
+                : (string.IsNullOrWhiteSpace(_editColor) ? null : _editColor.Trim());
+            await AdminService.UpdateSlotAsync(_editSlotId.Value,
+                _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
+                AdminUser);
+
+            if (DateTime.TryParse(_editStartDate + "T" + _editStartTime, out var startLocal) &&
+                DateTime.TryParse(_editEndDate   + "T" + _editEndTime,   out var endLocal))
+            {
+                var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, Zurich);
+                var endUtc   = TimeZoneInfo.ConvertTimeToUtc(endLocal,   Zurich);
+                await AdminService.RescheduleSlotAsync(_editSlotId.Value, startUtc, endUtc, AdminUser);
+            }
+
+            if (_editHasMember && _editMemberId.HasValue)
+                await AdminService.UpdateMemberAsync(_editMemberId.Value,
+                    _editContactPerson.Trim(),
+                    string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone.Trim(),
+                    _editRenterType,
+                    _editBillingName.Trim(),
+                    _editBillingAddress.Trim(),
+                    _editBillingPostalCode.Trim(),
+                    _editBillingCity.Trim(),
+                    AdminUser);
+
+            _editSlotId = null;
+            await OnSaved.InvokeAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _editError = ex.Message; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_editSlotId is not null && !_editLoading
+            && _dotNetRef is not null
+            && _calInitializedForSlotId != _editSlotId)
+        {
+            _calInitializedForSlotId = _editSlotId;
+            await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendar",
+                $"ec-{_editSlotId}", _dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCalendarDragEnd(int startIdx, int endIdx)
+    {
+        _editSelStart = Math.Min(startIdx, endIdx);
+        _editSelEnd   = Math.Max(startIdx, endIdx);
+        SyncTimesFromSelection();
+        CheckConflicts();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncTimesFromSelection()
+    {
+        if (_editSelStart < 0 || _editSelEnd < 0) return;
+        _editStartTime = SlotIdxToTime(_editSelStart);
+        _editEndTime   = SlotIdxToTime(_editSelEnd + 1);
+    }
+
+    private string SlotIdxToTime(int idx)
+    {
+        var totalMin = _calStart * 60 + idx * 30;
+        return $"{totalMin / 60:00}:{totalMin % 60:00}";
+    }
+
+    private void CheckConflicts()
+    {
+        if (_editSelStart < 0 || _editSelEnd < 0
+            || !DateOnly.TryParse(_editStartDate, out var day))
+        {
+            _editConflict = false;
+            return;
+        }
+        var selStartUtc = SlotIdxToUtc(day, _editSelStart);
+        var selEndUtc   = SlotIdxToUtc(day, _editSelEnd + 1);
+        _editConflict = _calendarSlotsForDay.Any(s =>
+            s.Id != _editSlotId &&
+            s.Slot.StartUtc < selEndUtc &&
+            s.Slot.EndUtc   > selStartUtc);
+    }
+
+    private DateTime SlotIdxToUtc(DateOnly day, int idx)
+    {
+        var totalMin = _calStart * 60 + idx * 30;
+        var local = new DateTime(day.Year, day.Month, day.Day,
+            totalMin / 60, totalMin % 60, 0, DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(local, Zurich);
+    }
+
+    private SporthalleWeb.Domain.Booking.BookingSlot? GetExistingBookingAtSlot(int idx)
+    {
+        if (!DateOnly.TryParse(_editStartDate, out var day)) return null;
+        var startUtc = SlotIdxToUtc(day, idx);
+        var endUtc   = SlotIdxToUtc(day, idx + 1);
+        return _calendarSlotsForDay.FirstOrDefault(s =>
+            s.Id != _editSlotId &&
+            s.Slot.StartUtc < endUtc &&
+            s.Slot.EndUtc   > startUtc);
+    }
+
+    private string GetSlotCssClass(bool inSel, SporthalleWeb.Domain.Booking.BookingSlot? other)
+    {
+        if (inSel && other is not null) return "ec-slot-conflict";
+        if (inSel) return "ec-slot-selected";
+        if (other is not null) return "ec-slot-booked";
+        return "";
+    }
+
+    private async Task LoadCalendarSlotsAsync()
+    {
+        if (!DateOnly.TryParse(_editStartDate, out var day)) return;
+        _calendarSlotsForDay = await AdminService.GetSlotsForPeriodAsync(day, day, includeRejected: false);
+    }
+
+    private async Task OnEditDayChangedAsync(ChangeEventArgs e)
+    {
+        _editStartDate = e.Value?.ToString() ?? _editStartDate;
+        _editEndDate   = _editStartDate;
+        await LoadCalendarSlotsAsync();
+        CheckConflicts();
+    }
+
+    private static string TypeBadge(string type) => type switch
+    {
+        "Booked"    => "bg-success",
+        "Reserved"  => "bg-warning text-dark",
+        "Blocker"   => "bg-secondary",
+        "Rejected"  => "bg-danger",
+        _           => "bg-secondary"
+    };
+
+    private static string TypeLabel(SporthalleWeb.Domain.Booking.SlotType type) => type switch
+    {
+        SporthalleWeb.Domain.Booking.SlotType.Booked    => "Bestätigt",
+        SporthalleWeb.Domain.Booking.SlotType.Reserved  => "Angefragt",
+        SporthalleWeb.Domain.Booking.SlotType.Blocker   => "Blocker",
+        SporthalleWeb.Domain.Booking.SlotType.Rejected  => "Abgelehnt",
+        SporthalleWeb.Domain.Booking.SlotType.Recurring     => "Serientermin",
+        _ => type.ToString()
+    };
+}

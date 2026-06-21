@@ -160,7 +160,7 @@
 
     // Background field image
     const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-    img.setAttribute('href', '/media/unihockey-boden.svg');
+    img.setAttribute('href', '/img/unihockey-boden.svg');
     img.setAttribute('x', '0');
     img.setAttribute('y', '0');
     img.setAttribute('width', '840');

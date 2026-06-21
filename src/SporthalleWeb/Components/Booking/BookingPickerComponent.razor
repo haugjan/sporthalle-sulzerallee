@@ -1,0 +1,439 @@
+﻿@inject IHttpContextAccessor HttpCtx
+@inject SporthalleWeb.Domain.Booking.Ports.IHallConfigurationPort Config
+@inject SporthalleWeb.Domain.Booking.Ports.IMemberManagerPort Members
+@inject SporthalleWeb.Application.Booking.GetAvailableDaysQuery AvailDays
+@inject SporthalleWeb.Application.Booking.GetAvailableTimeSlotsQuery AvailSlots
+@inject SporthalleWeb.Application.Booking.CreateBookingUseCase CreateBooking
+@inject SporthalleWeb.Application.Booking.SetPasswordUseCase SetPassword
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+@using System.Globalization
+
+<div class="buchungs-picker">
+
+    @if (!string.IsNullOrEmpty(_sessionInfo))
+    {
+        <div class="alert alert-success mb-3">@_sessionInfo</div>
+    }
+    @if (!string.IsNullOrEmpty(_sessionError))
+    {
+        <div class="alert alert-danger mb-3">@_sessionError</div>
+    }
+
+    @switch (_step)
+    {
+        case PickerStep.Dauer:
+            <h3 class="h5 mt-3">Buchungsdauer wählen</h3>
+            <div class="dauerauswahl d-flex flex-wrap gap-2 mt-2">
+                @foreach (var d in _dauern)
+                {
+                    <button class="btn @(_selectedDauer == d ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SelectDauerAsync(d)">
+                        @(d >= 60 ? $"{d / 60} h" : $"{d} min")
+                    </button>
+                }
+            </div>
+            break;
+
+        case PickerStep.Datum:
+            <div class="datum-nav d-flex align-items-center gap-3 mt-3">
+                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevMonthAsync">&larr;</button>
+                <strong>@_month.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("de-CH"))</strong>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="NextMonthAsync">&rarr;</button>
+            </div>
+            @if (_loadingDays)
+            {
+                <p class="mt-2">Lade verfügbare Tage…</p>
+            }
+            else if (!_verfuegbareTage.Any())
+            {
+                <p class="mt-2 text-muted">Keine verfügbaren Tage in diesem Monat.</p>
+            }
+            else
+            {
+                <div class="datumauswahl d-flex flex-wrap gap-2 mt-2">
+                    @foreach (var tag in _verfuegbareTage)
+                    {
+                        var tagDate = DateOnly.Parse(tag);
+                        <button class="btn btn-sm @(_selectedDate == tag ? "btn-primary" : "btn-outline-secondary")"
+                                @onclick="() => SelectDateAsync(tag)">
+                            @tagDate.ToString("ddd d. MMM", CultureInfo.GetCultureInfo("de-CH"))
+                        </button>
+                    }
+                </div>
+            }
+            <button class="btn btn-secondary mt-3" @onclick="() => _step = PickerStep.Dauer">&larr; Zurück</button>
+            break;
+
+        case PickerStep.Zeit:
+            <h3 class="h6 mt-3">@_selectedDate — @_selectedDauer min</h3>
+            @if (_loadingSlots)
+            {
+                <p>Lade freie Zeitfenster…</p>
+            }
+            else
+            {
+                <div class="zeitauswahl d-flex flex-wrap gap-2 mt-2">
+                    @foreach (var slot in _slots)
+                    {
+                        var cls = slot.IsAvailable
+                            ? (_selectedSlot == slot ? "btn-primary" : "btn-outline-success")
+                            : "btn-outline-secondary";
+                        <button class="btn btn-sm @cls"
+                                disabled="@(!slot.IsAvailable)"
+                                @onclick="() => SelectSlot(slot)">
+                            @slot.StartLocal – @slot.EndLocal
+                        </button>
+                    }
+                </div>
+            }
+            <button class="btn btn-secondary mt-3" @onclick="() => _step = PickerStep.Datum">&larr; Zurück</button>
+            break;
+
+        case PickerStep.Kontakt:
+            <h3 class="h5 mt-3">Deine Kontaktdaten</h3>
+            <p class="text-muted small mb-3">
+                @_selectedDate, @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr &middot;
+                @_selectedDauer min
+            </p>
+
+            @if (_isLoggedIn)
+            {
+                <div class="alert alert-info">
+                    Angemeldet als <strong>@_email</strong>
+                </div>
+                <button class="btn btn-secondary mt-2" @onclick="() => _step = PickerStep.Zeit">&larr; Zurück</button>
+                <button class="btn btn-primary ms-2 mt-2" @onclick="() => _step = PickerStep.Bestaetigen">Weiter &rarr;</button>
+            }
+            else
+            {
+                <div class="row g-4">
+                    <div class="col-md-7">
+                        <h6 class="mb-3">Daten eingeben</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Name / Kontaktperson *</label>
+                            <input type="text" class="form-control" @bind="_guestName" placeholder="Vor- und Nachname" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">E-Mail *</label>
+                            <input type="email" class="form-control" @bind="_guestEmail" placeholder="name@beispiel.ch" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Telefon (optional)</label>
+                            <input type="tel" class="form-control" @bind="_guestPhone" placeholder="+41 79 000 00 00" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mietertyp *</label>
+                            <select class="form-select" @bind="_guestRenterTypeStr">
+                                <option value="Privatperson">Privatperson</option>
+                                <option value="Verein">Verein</option>
+                                <option value="Firma">Firma</option>
+                            </select>
+                        </div>
+                        @if (_kontaktError is not null)
+                        {
+                            <div class="alert alert-danger">@_kontaktError</div>
+                        }
+                        <button class="btn btn-secondary" @onclick="() => _step = PickerStep.Zeit">&larr; Zurück</button>
+                        <button class="btn btn-primary ms-2" @onclick="KontaktWeiterAsync">Weiter &rarr;</button>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="card border-0 bg-light p-3 h-100">
+                            <h6>Bereits ein Konto?</h6>
+                            <p class="small text-muted">Meld dich an und deine Daten werden automatisch übernommen.</p>
+                            <a href="/reservierung/anmelden" class="btn btn-outline-primary btn-sm">Anmelden</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            break;
+
+        case PickerStep.Bestaetigen:
+            <h3 class="h5 mt-3">Buchung bestätigen</h3>
+            <dl class="row mt-2">
+                <dt class="col-sm-4">Datum / Zeit</dt>
+                <dd class="col-sm-8">@_selectedDate, @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr</dd>
+                <dt class="col-sm-4">Dauer</dt>
+                <dd class="col-sm-8">@_selectedDauer min</dd>
+                <dt class="col-sm-4">Kontakt</dt>
+                <dd class="col-sm-8">@(_isLoggedIn ? _email : $"{_guestName} ({_guestEmail})")</dd>
+            </dl>
+            <div class="mb-3">
+                <label class="form-label">Anlass *</label>
+                <select class="form-select" @bind="_anlass">
+                    @foreach (var a in _anlaesse)
+                    {
+                        <option value="@a">@a</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bemerkungen (optional)</label>
+                <textarea class="form-control" @bind="_notizen" rows="3"></textarea>
+            </div>
+            @if (_error is not null)
+            {
+                <div class="alert alert-danger">@_error</div>
+            }
+            <button class="btn btn-secondary" @onclick="() => _step = PickerStep.Kontakt">&larr; Zurück</button>
+            <button class="btn btn-primary ms-2" @onclick="SubmitAsync" disabled="@_submitting">
+                @(_submitting ? "Wird gesendet…" : "Buchungsanfrage absenden")
+            </button>
+            break;
+
+        case PickerStep.Bestaetigung:
+            <div class="alert alert-success mt-3">
+                <h4 class="alert-heading">Anfrage eingegangen!</h4>
+                <p class="mb-0">Wir prüfen deinen Termin und melden uns per E-Mail.</p>
+            </div>
+            @if (!_memberHasPassword)
+            {
+                <details class="mt-3">
+                    <summary>Passwort für zukünftige Anmeldungen einrichten (optional)</summary>
+                    <div class="mt-2 ms-2">
+                        <input type="password" class="form-control mb-2" style="max-width:320px"
+                               placeholder="Mindestens 8 Zeichen" @bind="_newPassword" />
+                        @if (_passwordMessage is not null)
+                        {
+                            <p class="@(_passwordError ? "text-danger" : "text-success") small">@_passwordMessage</p>
+                        }
+                        <button class="btn btn-sm btn-outline-primary" @onclick="SetPasswordAsync">
+                            Passwort speichern
+                        </button>
+                    </div>
+                </details>
+            }
+            <button class="btn btn-outline-primary mt-3" @onclick="Reset">Weitere Buchung anfragen</button>
+            break;
+    }
+</div>
+
+@code {
+    private enum PickerStep { Dauer, Datum, Zeit, Kontakt, Bestaetigen, Bestaetigung }
+
+    private bool _isLoggedIn;
+    private int? _memberId;
+    private string? _email;
+    private bool _memberHasPassword;
+    private string? _sessionInfo;
+    private string? _sessionError;
+
+    private string _guestName = "";
+    private string _guestEmail = "";
+    private string? _guestPhone;
+    private string _guestRenterTypeStr = "Privatperson";
+    private string? _kontaktError;
+
+    private PickerStep _step = PickerStep.Dauer;
+    private IReadOnlyList<int> _dauern = [60, 120];
+    private IReadOnlyList<string> _anlaesse = [];
+    private int _selectedDauer;
+    private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
+    private IReadOnlyList<string> _verfuegbareTage = [];
+    private bool _loadingDays;
+    private string? _selectedDate;
+    private IReadOnlyList<SporthalleWeb.Application.Booking.SlotOption> _slots = [];
+    private bool _loadingSlots;
+    private SporthalleWeb.Application.Booking.SlotOption? _selectedSlot;
+    private string _anlass = "";
+    private string? _notizen;
+    private string? _error;
+    private bool _submitting;
+
+    private string? _newPassword;
+    private string? _passwordMessage;
+    private bool _passwordError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = HttpCtx.HttpContext?.User;
+        _isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+
+        if (_isLoggedIn)
+        {
+            var idStr = user!.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            _memberId = int.TryParse(idStr, out var id) ? id : null;
+            _email = user.Identity?.Name;
+
+            if (_memberId.HasValue)
+            {
+                var member = await Members.FindByIdAsync(_memberId.Value);
+                _memberHasPassword = member?.HasPassword ?? false;
+            }
+        }
+
+        _dauern = await Config.GetBookableDurationsAsync();
+        _anlaesse = await Config.GetEventTypesAsync();
+        _anlass = _anlaesse.FirstOrDefault() ?? "";
+
+        var uri = new Uri(Nav.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        if (query["session"] == "confirmed")
+            _sessionInfo = "Du bist jetzt angemeldet!";
+        if (query["error"] == "invalid-token")
+            _sessionError = "Der Anmelde-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.";
+    }
+
+    private async Task SelectDauerAsync(int d)
+    {
+        _selectedDauer = d;
+        await LoadDaysAsync();
+        _step = PickerStep.Datum;
+    }
+
+    private async Task LoadDaysAsync()
+    {
+        _loadingDays = true;
+        _verfuegbareTage = await AvailDays.GetAsync(_month.ToString("yyyy-MM"), _selectedDauer);
+        _loadingDays = false;
+    }
+
+    private async Task PrevMonthAsync()
+    {
+        _month = _month.AddMonths(-1);
+        await LoadDaysAsync();
+    }
+
+    private async Task NextMonthAsync()
+    {
+        _month = _month.AddMonths(1);
+        await LoadDaysAsync();
+    }
+
+    private async Task SelectDateAsync(string date)
+    {
+        _selectedDate = date;
+        _step = PickerStep.Zeit;
+        _loadingSlots = true;
+        _slots = await AvailSlots.GetAsync(date, _selectedDauer);
+        _loadingSlots = false;
+    }
+
+    private void SelectSlot(SporthalleWeb.Application.Booking.SlotOption slot)
+    {
+        if (!slot.IsAvailable) return;
+        _selectedSlot = slot;
+        _step = PickerStep.Kontakt;
+    }
+
+    private async Task KontaktWeiterAsync()
+    {
+        _kontaktError = null;
+
+        if (string.IsNullOrWhiteSpace(_guestName))
+        {
+            _kontaktError = "Bitte gib deinen Namen ein.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_guestEmail) || !_guestEmail.Contains('@'))
+        {
+            _kontaktError = "Bitte gib eine gültige E-Mail-Adresse ein.";
+            return;
+        }
+
+        var existing = await Members.FindByEmailAsync(_guestEmail.Trim());
+        if (existing is not null)
+        {
+            _kontaktError = "Diese E-Mail-Adresse ist bereits registriert. Bitte meld dich oben rechts an.";
+            return;
+        }
+
+        _step = PickerStep.Bestaetigen;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _submitting = true;
+        _error = null;
+        try
+        {
+            int memberId;
+
+            if (_isLoggedIn && _memberId.HasValue)
+            {
+                memberId = _memberId.Value;
+            }
+            else
+            {
+                var guestFullName = _guestName.Trim();
+                var guestSpaceIdx = guestFullName.IndexOf(' ');
+                var guestFirstName = guestSpaceIdx >= 0 ? guestFullName[..guestSpaceIdx].Trim() : guestFullName;
+                var guestLastName  = guestSpaceIdx >= 0 ? guestFullName[(guestSpaceIdx + 1)..].Trim() : "";
+                var regCmd = new SporthalleWeb.Application.Booking.RegisterRenterCommand(
+                    Email: _guestEmail.Trim(),
+                    RenterType: new SporthalleWeb.Domain.Booking.RenterType(_guestRenterTypeStr),
+                    Name: null,
+                    ContactFirstName: guestFirstName,
+                    ContactLastName: guestLastName,
+                    BillingAddress: "",
+                    AddressLine2: null,
+                    BillingPostalCode: "",
+                    BillingCity: "",
+                    BillingCountry: "CH",
+                    Phone: string.IsNullOrWhiteSpace(_guestPhone) ? null : _guestPhone.Trim(),
+                    HasKey: false,
+                    Password: null
+                );
+                var member = await Members.CreateAsync(regCmd, null);
+                await Members.SignInAsync(member.Id);
+                _memberId = member.Id;
+                _email = member.Email;
+                _isLoggedIn = true;
+                _memberHasPassword = false;
+                memberId = member.Id;
+            }
+
+            var bookCmd = new SporthalleWeb.Application.Booking.CreateBookingCommand(
+                memberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _anlass, _notizen);
+            await CreateBooking.ExecuteAsync(bookCmd);
+            _step = PickerStep.Bestaetigung;
+        }
+        catch (SporthalleWeb.Domain.Booking.SlotConflictException)
+        {
+            _error = "Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle einen anderen Termin.";
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task SetPasswordAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newPassword) || _memberId is null) return;
+        _passwordError = false;
+        _passwordMessage = null;
+        try
+        {
+            await SetPassword.ExecuteAsync(_memberId.Value, _newPassword);
+            _memberHasPassword = true;
+            _passwordMessage = "Passwort gespeichert.";
+            _newPassword = null;
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex)
+        {
+            _passwordError = true;
+            _passwordMessage = ex.Message;
+        }
+    }
+
+    private void Reset()
+    {
+        _step = PickerStep.Dauer;
+        _selectedDauer = 0;
+        _selectedDate = null;
+        _selectedSlot = null;
+        _anlass = _anlaesse.FirstOrDefault() ?? "";
+        _notizen = null;
+        _error = null;
+        _guestName = "";
+        _guestEmail = "";
+        _guestPhone = null;
+        _guestRenterTypeStr = "Privatperson";
+        _kontaktError = null;
+    }
+}
