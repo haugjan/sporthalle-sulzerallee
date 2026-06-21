@@ -12,4 +12,6 @@ public interface IBookingSlotRepository
     Task<IReadOnlyList<BookingSlot>> GetForMemberAsync(int memberId);
     Task<IReadOnlyList<BookingSlot>> GetReservedSlotsAsync();
     Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, SlotType? type, bool includeRejected = false);
+    Task<IReadOnlyList<BookingSlot>> GetActiveOverlapsExcludingSerieAsync(TimeSlot slot, int excludeRecurringSlotId);
+    Task DeleteByRecurringSlotIdAsync(int recurringSlotId);
 }

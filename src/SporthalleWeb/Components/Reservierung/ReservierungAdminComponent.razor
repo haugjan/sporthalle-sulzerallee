@@ -403,6 +403,11 @@
                 }
                 break;
 
+            // ── Serientermine ─────────────────────────────────────────────────
+            case "Serientermine":
+                <AdminSerienComponent AdminUser="@AdminUser" />
+                break;
+
             // ── Erfassen ──────────────────────────────────────────────────────
             case "Erfassen":
                 <AdminErfassenComponent AdminUser="@AdminUser" />
@@ -654,7 +659,7 @@
     private static readonly System.Globalization.CultureInfo DeCh =
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
-    private static readonly string[] _tabs = ["Anfragen", "Buchungen", "Blocker", "Erfassen", "Konfiguration"];
+    private static readonly string[] _tabs = ["Anfragen", "Buchungen", "Blocker", "Serientermine", "Erfassen", "Konfiguration"];
     private string _activeTab = "Anfragen";
 
     // ── Anfragen ─────────────────────────────────────────────────────────────
@@ -977,6 +982,7 @@
         "Reserved"  => "bg-warning text-dark",
         "Blocker"   => "bg-secondary",
         "Rejected"  => "bg-danger",
+        "Serie"     => "bg-info text-dark",
         _           => "bg-secondary"
     };
 
@@ -986,6 +992,7 @@
         SporthalleWeb.Domain.Reservierung.SlotType.Reserved  => "Angefragt",
         SporthalleWeb.Domain.Reservierung.SlotType.Blocker   => "Blocker",
         SporthalleWeb.Domain.Reservierung.SlotType.Rejected  => "Abgelehnt",
+        SporthalleWeb.Domain.Reservierung.SlotType.Serie     => "Serientermin",
         _ => type.ToString()
     };
 

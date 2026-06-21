@@ -6,6 +6,7 @@ using SporthalleWeb.Infrastructure.Reservierung.Config;
 using SporthalleWeb.Infrastructure.Reservierung.Email;
 using SporthalleWeb.Infrastructure.Reservierung.Export;
 using SporthalleWeb.Infrastructure.Reservierung.Members;
+using SporthalleWeb.Domain.Reservierung.Ports;
 using SporthalleWeb.Infrastructure.Reservierung.Persistence;
 using SporthalleWeb.Infrastructure.Shared;
 
@@ -24,6 +25,7 @@ public class ReservierungComposer : IComposer
 
         // Repositories
         builder.Services.AddScoped<IBookingSlotRepository, BookingSlotRepository>();
+        builder.Services.AddScoped<IRecurringSlotRepository, RecurringSlotRepository>();
         builder.Services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
         builder.Services.AddScoped<IBookingAuditRepository, BookingAuditRepository>();
 
@@ -54,5 +56,9 @@ public class ReservierungComposer : IComposer
         builder.Services.AddScoped<ConfirmBookingUseCase>();
         builder.Services.AddScoped<RejectBookingUseCase>();
         builder.Services.AddScoped<BookingAdminService>();
+        builder.Services.AddScoped<CreateRecurringSlotUseCase>();
+        builder.Services.AddScoped<UpdateRecurringSlotUseCase>();
+        builder.Services.AddScoped<DeleteRecurringSlotUseCase>();
+        builder.Services.AddScoped<GetSerienQuery>();
     }
 }

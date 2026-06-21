@@ -12,6 +12,7 @@ public sealed class BookingSlot
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public string CreatedBy { get; private set; } = "";
+    public int? RecurringSlotId { get; private set; }
 
     private BookingSlot() { }
 
@@ -59,11 +60,27 @@ public sealed class BookingSlot
             CreatedBy = createdBy
         };
 
+    public static BookingSlot CreateSerie(
+        TimeSlot slot, string title, string? color, string? notes, string createdBy, int recurringSlotId) =>
+        new()
+        {
+            Type = SlotType.Serie,
+            Slot = slot,
+            Title = title,
+            Color = color,
+            Notes = notes,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy,
+            RecurringSlotId = recurringSlotId
+        };
+
     public static BookingSlot FromPersistence(
         int id, int? memberId, string type,
         DateTime startUtc, DateTime endUtc,
         string title, string? color, string? notes,
-        DateTime createdAt, DateTime updatedAt, string createdBy) =>
+        DateTime createdAt, DateTime updatedAt, string createdBy,
+        int? recurringSlotId = null) =>
         new()
         {
             Id = id,
@@ -75,7 +92,8 @@ public sealed class BookingSlot
             Notes = notes,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt,
-            CreatedBy = createdBy
+            CreatedBy = createdBy,
+            RecurringSlotId = recurringSlotId
         };
 
     public void Confirm()

@@ -1,8 +1,10 @@
 @using Microsoft.JSInterop
 @using System.Text.Json
+@using System.Globalization
 @inject IJSRuntime JS
 @inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
 @inject SporthalleWeb.Application.Reservierung.CreateBookingUseCase CreateBooking
+@inject SporthalleWeb.Application.Reservierung.CreateRecurringSlotUseCase CreateSerie
 @inject SporthalleWeb.Domain.Reservierung.Ports.IMemberManagerPort Members
 @implements IAsyncDisposable
 
@@ -65,6 +67,7 @@
     <div style="display:flex; gap:0.75rem; padding: 0.75rem 1.5rem; border-bottom: 1px solid #eee;">
       <button id="admin-typ-blocker" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Blocker</button>
       <button id="admin-typ-event" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Buchungsanfrage</button>
+      <button id="admin-typ-serie" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Serientermin</button>
     </div>
 
     <!-- Blocker-Formular -->
@@ -179,6 +182,101 @@
       <div class="bm-footer">
         <button class="bm-btn-secondary" id="admin-bm-cancel2">Abbrechen</button>
         <button class="bm-btn-primary" id="admin-bm-submit">Buchungsanfrage erstellen</button>
+      </div>
+    </div>
+
+    <!-- Serientermin-Formular -->
+    <div id="admin-bm-body-serie" hidden>
+      <div class="bm-body">
+        <div class="bm-form">
+
+          <div class="bm-field bm-field--2col">
+            <label>Bezeichnung *
+              <input type="text" id="admin-bm-serie-titel" placeholder="z.B. Schulsport, Training" />
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label>Wochentag *
+              <select id="admin-bm-serie-wochentag">
+                <option value="1">Montag</option>
+                <option value="2">Dienstag</option>
+                <option value="3">Mittwoch</option>
+                <option value="4">Donnerstag</option>
+                <option value="5">Freitag</option>
+                <option value="6">Samstag</option>
+                <option value="0">Sonntag</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label>Zeit von *
+              <input type="time" id="admin-bm-serie-start-time" step="1800" />
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label>Zeit bis *
+              <input type="time" id="admin-bm-serie-end-time" step="1800" />
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label>Serie von *
+              <input type="date" id="admin-bm-serie-von-datum" />
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label>Serie bis *
+              <input type="date" id="admin-bm-serie-bis-datum" />
+            </label>
+          </div>
+
+          <div class="bm-field bm-field--2col">
+            <label>Farbe
+              <div id="admin-bm-serie-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
+                <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#F1C40F" style="background:#F1C40F" title="#F1C40F"></button>
+                <button type="button" class="bm-color-swatch" data-color="#C0392B" style="background:#C0392B" title="#C0392B"></button>
+                <button type="button" class="bm-color-swatch" data-color="#1F4E79" style="background:#1F4E79" title="#1F4E79"></button>
+                <button type="button" class="bm-color-swatch" data-color="#2B4C7E" style="background:#2B4C7E" title="#2B4C7E"></button>
+                <button type="button" class="bm-color-swatch" data-color="#1E5E4A" style="background:#1E5E4A" title="#1E5E4A"></button>
+                <button type="button" class="bm-color-swatch" data-color="#4A5568" style="background:#4A5568" title="#4A5568"></button>
+                <button type="button" class="bm-color-swatch" data-color="#8C3A5C" style="background:#8C3A5C" title="#8C3A5C"></button>
+                <button type="button" class="bm-color-swatch" data-color="#A8522A" style="background:#A8522A" title="#A8522A"></button>
+                <button type="button" class="bm-color-swatch" data-color="#4A3762" style="background:#4A3762" title="#4A3762"></button>
+                <button type="button" class="bm-color-swatch" data-color="#1A5A66" style="background:#1A5A66" title="#1A5A66"></button>
+                <button type="button" class="bm-color-swatch" data-color="#3A563C" style="background:#3A563C" title="#3A563C"></button>
+                <button type="button" class="bm-color-swatch" data-color="#5C4033" style="background:#5C4033" title="#5C4033"></button>
+              </div>
+            </label>
+          </div>
+
+          <div class="bm-field bm-field--2col">
+            <label>Bemerkungen
+              <textarea id="admin-bm-serie-notizen" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
+            </label>
+          </div>
+
+          <!-- Konflikt-Panel (hidden initially) -->
+          <div id="admin-bm-serie-conflicts" hidden style="width:100%">
+            <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:0.9rem 1rem;color:#664d03">
+              <strong>Konflikte gefunden:</strong>
+              <p id="admin-bm-serie-conflict-text" style="margin:0.4rem 0 0.7rem"></p>
+              <div style="display:flex;gap:0.75rem">
+                <button type="button" class="bm-btn-secondary" style="flex:1" id="admin-bm-serie-retry">Nochmals bearbeiten</button>
+                <button type="button" class="bm-btn-primary" style="flex:1" id="admin-bm-serie-skip">Trotzdem speichern</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="admin-bm-error-serie" class="bm-error" hidden></div>
+        </div>
+      </div>
+      <div class="bm-footer">
+        <button class="bm-btn-secondary" id="admin-bm-cancel-serie">Abbrechen</button>
+        <button class="bm-btn-primary" id="admin-bm-submit-serie">Serientermine erstellen</button>
       </div>
     </div>
 
@@ -304,6 +402,55 @@
         }
     }
 
+    [JSInvokable]
+    public async Task<string> SerienTerminPruefenAsync(string payloadJson)
+    {
+        try
+        {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var payload = JsonSerializer.Deserialize<SeriePayload>(payloadJson, opts);
+            if (payload is null) return JsonSerializer.Serialize(new { error = "Ungültige Daten." });
+
+            var cmd = BuildSerieCommand(payload);
+            var result = await CreateSerie.CheckConflictsAsync(cmd);
+
+            var conflictDates = result.Conflicts.Select(c => new { date = c.Date.ToString("yyyy-MM-dd"), label = c.Label }).ToArray();
+            return JsonSerializer.Serialize(new { occurrenceCount = result.OccurrenceCount, conflicts = conflictDates });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+    }
+
+    [JSInvokable]
+    public async Task<string> SerienTerminAnlegenAsync(string payloadJson, bool skipConflicts)
+    {
+        try
+        {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var payload = JsonSerializer.Deserialize<SeriePayload>(payloadJson, opts);
+            if (payload is null) return Err("Ungültige Daten.");
+
+            var cmd = BuildSerieCommand(payload);
+            var result = await CreateSerie.ExecuteAsync(cmd, AdminUser, skipConflicts);
+
+            return JsonSerializer.Serialize(new { ok = true, created = result.Created, skipped = result.Skipped });
+        }
+        catch (SporthalleWeb.Domain.Reservierung.DomainException ex) { return Err(ex.Message); }
+        catch (Exception ex) { return Err("Fehler: " + ex.Message); }
+    }
+
+    private static SporthalleWeb.Application.Reservierung.SerieCommand BuildSerieCommand(SeriePayload p) => new(
+        p.Titel!.Trim(),
+        (DayOfWeek)p.Wochentag,
+        TimeOnly.Parse(p.StartTime!, CultureInfo.InvariantCulture),
+        TimeOnly.Parse(p.EndTime!, CultureInfo.InvariantCulture),
+        DateOnly.Parse(p.VonDatum!, CultureInfo.InvariantCulture),
+        DateOnly.Parse(p.BisDatum!, CultureInfo.InvariantCulture),
+        string.IsNullOrWhiteSpace(p.Color) ? null : p.Color.Trim(),
+        string.IsNullOrWhiteSpace(p.Notizen) ? null : p.Notizen.Trim());
+
     public async ValueTask DisposeAsync()
     {
         try { await JS.InvokeVoidAsync("SporthalleAdmin.destroyKalender"); } catch { /* component gone */ }
@@ -318,6 +465,18 @@
 
     private static string Err(string message) =>
         JsonSerializer.Serialize(new { ok = false, error = message });
+
+    private sealed class SeriePayload
+    {
+        public string? Titel { get; set; }
+        public int Wochentag { get; set; }
+        public string? StartTime { get; set; }
+        public string? EndTime { get; set; }
+        public string? VonDatum { get; set; }
+        public string? BisDatum { get; set; }
+        public string? Color { get; set; }
+        public string? Notizen { get; set; }
+    }
 
     private sealed class AdminBuchungPayload
     {

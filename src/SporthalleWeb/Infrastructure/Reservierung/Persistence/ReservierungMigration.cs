@@ -17,7 +17,8 @@ public class ReservierungMigrationPlan : MigrationPlan
             .To<CreateBookingSlotsV1>("v1.0.0")
             .To<AddAllReservierungTablesV2>("v1.1.0")
             .To<SimplifyDataModelV3>("v1.2.0")
-            .To<AddHallConfigTableV4>("v1.3.0");
+            .To<AddHallConfigTableV4>("v1.3.0")
+            .To<AddRecurringSlotsV5>("v1.4.0");
     }
 }
 
@@ -88,6 +89,22 @@ public class AddHallConfigTableV4 : AsyncMigrationBase
     {
         if (!TableExists("HallConfig"))
             Create.Table<HallConfigRecord>().Do();
+        return Task.CompletedTask;
+    }
+}
+
+public class AddRecurringSlotsV5 : AsyncMigrationBase
+{
+    public AddRecurringSlotsV5(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (!TableExists("RecurringSlots"))
+            Create.Table<RecurringSlotRecord>().Do();
+
+        if (TableExists("BookingSlots") && !ColumnExists("BookingSlots", "RecurringSlotId"))
+            Alter.Table("BookingSlots").AddColumn("RecurringSlotId").AsInt64().Nullable().Do();
+
         return Task.CompletedTask;
     }
 }

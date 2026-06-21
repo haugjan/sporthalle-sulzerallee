@@ -3,36 +3,43 @@ using Umbraco.Cms.Infrastructure.Persistence.DatabaseAnnotations;
 
 namespace SporthalleWeb.Infrastructure.Reservierung.Persistence.DbRecords;
 
-[TableName("BookingSlots")]
+[TableName("RecurringSlots")]
 [PrimaryKey("Id", AutoIncrement = true)]
 [ExplicitColumns]
-public class BookingSlotRecord
+public class RecurringSlotRecord
 {
     [Column("Id")]
     [PrimaryKeyColumn(AutoIncrement = true, IdentitySeed = 1)]
     public long Id { get; set; }
 
-    [Column("MemberId")]
-    [NullSetting(NullSetting = NullSettings.Null)]
-    public long? MemberId { get; set; }
-
-    [Column("Type")]
-    [NullSetting(NullSetting = NullSettings.NotNull)]
-    [Length(20)]
-    public string Type { get; set; } = "Reserved";
-
-    [Column("StartUtc")]
-    [NullSetting(NullSetting = NullSettings.NotNull)]
-    public DateTime StartUtc { get; set; }
-
-    [Column("EndUtc")]
-    [NullSetting(NullSetting = NullSettings.NotNull)]
-    public DateTime EndUtc { get; set; }
-
     [Column("Title")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
     [Length(200)]
     public string Title { get; set; } = "";
+
+    [Column("Wochentag")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    public int Wochentag { get; set; }
+
+    [Column("StartTime")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    [Length(5)]
+    public string StartTime { get; set; } = "";
+
+    [Column("EndTime")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    [Length(5)]
+    public string EndTime { get; set; } = "";
+
+    [Column("SeriesStart")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    [Length(10)]
+    public string SeriesStart { get; set; } = "";
+
+    [Column("SeriesEnd")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    [Length(10)]
+    public string SeriesEnd { get; set; } = "";
 
     [Column("Color")]
     [NullSetting(NullSetting = NullSettings.Null)]
@@ -44,6 +51,11 @@ public class BookingSlotRecord
     [SpecialDbType(SpecialDbTypes.NVARCHARMAX)]
     public string? Notes { get; set; }
 
+    [Column("CreatedBy")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    [Length(200)]
+    public string CreatedBy { get; set; } = "";
+
     [Column("CreatedAt")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
     public DateTime CreatedAt { get; set; }
@@ -51,13 +63,4 @@ public class BookingSlotRecord
     [Column("UpdatedAt")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
     public DateTime UpdatedAt { get; set; }
-
-    [Column("CreatedBy")]
-    [NullSetting(NullSetting = NullSettings.NotNull)]
-    [Length(200)]
-    public string CreatedBy { get; set; } = "";
-
-    [Column("RecurringSlotId")]
-    [NullSetting(NullSetting = NullSettings.Null)]
-    public long? RecurringSlotId { get; set; }
 }

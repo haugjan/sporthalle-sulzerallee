@@ -138,6 +138,24 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         return records.Select(MapToDomain).ToList();
     }
 
+    public async Task<IReadOnlyList<BookingSlot>> GetActiveOverlapsExcludingSerieAsync(TimeSlot slot, int excludeRecurringSlotId)
+    {
+        using var scope = scopeProvider.CreateScope();
+        var sql = new Sql(
+            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1 AND Type != @2 AND (RecurringSlotId IS NULL OR RecurringSlotId != @3)",
+            slot.EndUtc, slot.StartUtc, SlotType.Rejected.ToString(), excludeRecurringSlotId);
+        var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
+        scope.Complete();
+        return records.Select(MapToDomain).ToList();
+    }
+
+    public async Task DeleteByRecurringSlotIdAsync(int recurringSlotId)
+    {
+        using var scope = scopeProvider.CreateScope();
+        await scope.Database.ExecuteAsync(new Sql("DELETE FROM BookingSlots WHERE RecurringSlotId = @0", recurringSlotId));
+        scope.Complete();
+    }
+
     private static BookingSlot MapToDomain(BookingSlotRecord r) =>
         BookingSlot.FromPersistence(
             id: (int)r.Id,
@@ -150,7 +168,8 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
             notes: r.Notes,
             createdAt: DateTime.SpecifyKind(r.CreatedAt, DateTimeKind.Utc),
             updatedAt: DateTime.SpecifyKind(r.UpdatedAt, DateTimeKind.Utc),
-            createdBy: r.CreatedBy);
+            createdBy: r.CreatedBy,
+            recurringSlotId: r.RecurringSlotId.HasValue ? (int?)r.RecurringSlotId.Value : null);
 
     private static BookingSlotRecord MapToRecord(BookingSlot s) =>
         new()
@@ -164,6 +183,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
             Notes = s.Notes,
             CreatedAt = s.CreatedAt,
             UpdatedAt = s.UpdatedAt,
-            CreatedBy = s.CreatedBy
+            CreatedBy = s.CreatedBy,
+            RecurringSlotId = s.RecurringSlotId
         };
 }
