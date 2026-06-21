@@ -1,4 +1,4 @@
-class ReservationenView extends HTMLElement {
+class BookingView extends HTMLElement {
   connectedCallback() {
     this.style.cssText = 'display:block;width:100%;height:100%;';
 
@@ -14,4 +14,4 @@ class ReservationenView extends HTMLElement {
   }
 }
 
-customElements.define('reservationen-view', ReservationenView);
+customElements.define('booking-view', BookingView);
