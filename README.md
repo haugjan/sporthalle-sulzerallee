@@ -1,28 +1,130 @@
 # Sporthalle Sulzerallee
 
-Umbraco CMS website for Sporthalle Sulzerallee.
+Website for Sporthalle Sulzerallee in Winterthur, Switzerland. Built with Umbraco 17 CMS on .NET 10.
+
+Live site: `https://app-sporthalle-sulzerallee.azurewebsites.net/`
 
 ## Stack
 
-- **CMS:** Umbraco (ASP.NET Core)
-- **Hosting:** Azure App Service B1, Switzerland North
-- **Database:** Azure SQL Database Basic
-- **Media Storage:** Azure Blob Storage
-- **Content Sync:** uSync
-- **CI/CD:** GitHub Actions
+| Layer | Technology |
+|---|---|
+| CMS | Umbraco 17.4.2 |
+| Framework | .NET 10, ASP.NET Core |
+| Local database | SQLite |
+| Production database | Azure SQL |
+| Media (production) | Azure Blob Storage |
+| Email | Brevo REST API |
+| CAPTCHA | Cloudflare Turnstile |
+| Schema sync | uSync |
+| CI/CD | GitHub Actions → Azure ZipDeploy |
+| Hosting | Azure App Service Linux B1 |
+
+## Features
+
+### Hall Booking (Reservierung)
+
+Interactive calendar for booking time slots in the hall. Renters can register and book with Magic Link (passwordless) or password. The admin approves or rejects bookings, manages blockers, and exports CSV reports.
+
+**Public:** `/reservierung` — weekly calendar with available and booked time slots. Clicking a free slot opens a booking form (guest or logged-in).
+
+**Admin:** Umbraco backoffice → "Reservationen" section. Tabs for pending requests, all bookings, blockers, manual booking entry, and hall configuration.
+
+### Passive Membership (Passivmitgliedschaft)
+
+Supporters can symbolically adopt one square metre of the unihockey hall floor and become passive members at CHF 50, 100, or 200 per year.
+
+**Public:** `/passivmitgliedschaft` — interactive SVG floor plan of the hall (300 fields). Clicking a free field opens a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
+
+**Admin:** Umbraco backoffice → "Passivmitglieder" section. Table of all members with payment status, Excel export, and AbaNinja CSV export.
 
 ## Local Development
 
-```bash
-dotnet restore
+**Prerequisites:** .NET 10 SDK
+
+```sh
+cd src/SporthalleWeb
 dotnet run
 ```
 
-Locally the site uses SQLite. Azure connection strings are configured as
-App Service environment variables and are never stored in this repository.
+The app uses SQLite locally. On first boot, Umbraco runs all migrations and ContentSeeder creates 7 pages (takes 2-5 minutes). Subsequent starts are near-instant.
 
-## Content Synchronization
+Local URL: `https://localhost:44343`
+Backoffice login: `admin@localhost.dev` / `Admin1234!`
 
-Content types and schema are managed via [uSync](https://jumoo.co.uk/usync/).
-Exported definitions live in `uSync/`. Run an import after deployment to
-apply schema changes.
+### Secrets (local)
+
+The Brevo API key is NOT in git. Store it via:
+
+```sh
+cd src/SporthalleWeb
+dotnet user-secrets set "Brevo:ApiKey" "<key>"
+```
+
+The Cloudflare Turnstile test keys (always-pass) are already in `appsettings.Development.json`.
+
+## Repository Structure
+
+```
+src/SporthalleWeb/
+  Application/       Business logic: use cases, queries, services
+  Components/        Blazor admin components
+  ContentSeeder.cs   Seeds Umbraco pages on first boot
+  Domain/            Entities, value objects, ports
+  Infrastructure/    Persistence, email, CAPTCHA adapters
+  Presentation/      MVC controllers and DTOs
+  Views/             Razor templates
+  uSync/             Content type XML (committed, imported on startup)
+  wwwroot/           CSS, JS, media files
+  Program.cs         App entry point
+  appsettings.json   Base config (secrets empty)
+  appsettings.Development.json  SQLite + dev overrides
+```
+
+## Deployment
+
+Push to `main` triggers GitHub Actions:
+1. `dotnet publish` with Release configuration
+2. ZipDeploy to Azure App Service via Kudu API
+
+`appsettings.Production.json` is injected from a GitHub Actions secret at deploy time and is never in git.
+
+**Required Azure App Service environment variables:**
+
+```
+Brevo__ApiKey
+Turnstile__SiteKey
+Turnstile__SecretKey
+ConnectionStrings__umbracoDbDSN        (Azure SQL connection string)
+ConnectionStrings__umbracoDbDSN_ProviderName  (Microsoft.Data.SqlClient)
+```
+
+## Content Types
+
+| Alias | Description |
+|---|---|
+| `homePage` | Root page (only one, auto-seeded) |
+| `contentPage` | Standard content page with heading and body |
+| `reservierung` | Hall booking page with calendar |
+| `passivMitgliedschaft` | Passive membership page with floor plan |
+| `reservierungKonfiguration` | Admin-only config node for booking settings |
+
+Content types are managed via uSync and are imported automatically on startup.
+
+## Architecture Notes
+
+The codebase follows a hexagonal (ports and adapters) architecture for the two main features:
+
+```
+Domain (no dependencies)
+  └── Ports (interfaces)
+Application (depends on Domain)
+  └── Use cases and queries
+Infrastructure (depends on Domain)
+  └── Adapters implementing ports
+Presentation (depends on Application)
+  └── Controllers and Razor views
+```
+
+Database access uses **NPoco** (Umbraco's built-in ORM) via `IScopeProvider` from `Umbraco.Cms.Infrastructure.Scoping`. Schema migrations run automatically on startup.
+
+Hall renters are stored as **Umbraco Members** (member type `hallMember`) and authenticated via ASP.NET Core Identity with optional Magic Link (SHA-256 hashed, single-use, 20-minute TTL).
