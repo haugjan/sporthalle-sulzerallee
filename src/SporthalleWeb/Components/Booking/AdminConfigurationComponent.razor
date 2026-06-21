@@ -17,12 +17,12 @@ else
                 <div class="row g-3">
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Beginn)</label>
-                        <input type="time" class="form-control" value="@_kalenderBeginnTime" step="3600"
+                        <input type="text" class="form-control" value="@_kalenderBeginnTime" placeholder="HH:mm" maxlength="5"
                                @onchange="e => _kalenderBeginnTime = e.Value?.ToString() ?? string.Empty" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Ende)</label>
-                        <input type="time" class="form-control" value="@_kalenderEndeTime" step="3600"
+                        <input type="text" class="form-control" value="@_kalenderEndeTime" placeholder="HH:mm" maxlength="5"
                                @onchange="e => _kalenderEndeTime = e.Value?.ToString() ?? string.Empty" />
                     </div>
                 </div>
@@ -40,10 +40,10 @@ else
                         <div class="form-text">Mindestvorlauf in Tagen. Kürzere Anfragen verweisen auf E-Mail.</div>
                     </div>
                     <div class="col-sm-4">
-                        <label class="form-label fw-semibold">Buchungen möglich bis</label>
-                        <input type="date" class="form-control"
-                               @bind="_buchungenBisDatum" @bind:format="yyyy-MM-dd" />
-                        <div class="form-text">Online-Buchungen bis einschliesslich dieses Datums. Leer lassen für unbegrenzt.</div>
+                        <label class="form-label fw-semibold">Buchungen möglich bis und mit</label>
+                        <input type="text" class="form-control"
+                               @bind="_buchungenBisDatumStr" placeholder="dd.MM.yyyy" maxlength="10" />
+                        <div class="form-text">Online-Buchungen bis und mit diesem Datum. Leer lassen für unbegrenzt.</div>
                     </div>
                 </div>
             </div>
@@ -114,7 +114,7 @@ else
     private string _kalenderBeginnTime = "07:00";
     private string _kalenderEndeTime = "23:00";
     private int _vorlaufzeitTage = 3;
-    private DateOnly? _buchungenBisDatum;
+    private string _buchungenBisDatumStr = "";
     private string _mailReservationAdresse = "";
     private string _mailReservationText = "";
     private string _mailBestaetigungAdresse = "";
@@ -127,7 +127,8 @@ else
         _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
         _vorlaufzeitTage         = Parse(cfg, "vorlaufzeit_tage", 3);
         var bisDatumRaw          = cfg.GetValueOrDefault("buchungen_bis_datum");
-        _buchungenBisDatum       = DateOnly.TryParse(bisDatumRaw, out var d) ? d : null;
+        if (DateOnly.TryParse(bisDatumRaw, out var d))
+            _buchungenBisDatumStr = d.ToString("dd.MM.yyyy");
         _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
         _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
@@ -139,6 +140,19 @@ else
     {
         _saved = false;
         _saveError = null;
+        string? bisDatumSave = null;
+        if (!string.IsNullOrWhiteSpace(_buchungenBisDatumStr))
+        {
+            if (DateOnly.TryParseExact(_buchungenBisDatumStr.Trim(), "dd.MM.yyyy",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var parsedDate))
+                bisDatumSave = parsedDate.ToString("yyyy-MM-dd");
+            else
+            {
+                _saveError = "Datum «Buchungen möglich bis und mit» muss im Format dd.MM.yyyy angegeben werden.";
+                return;
+            }
+        }
         try
         {
             await Config.SetManyAsync(new Dictionary<string, string?>
@@ -146,7 +160,7 @@ else
                 ["kalender_beginn"]           = TimeToInt(_kalenderBeginnTime).ToString(),
                 ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _vorlaufzeitTage.ToString(),
-                ["buchungen_bis_datum"]       = _buchungenBisDatum?.ToString("yyyy-MM-dd"),
+                ["buchungen_bis_datum"]       = bisDatumSave,
                 ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
                 ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),

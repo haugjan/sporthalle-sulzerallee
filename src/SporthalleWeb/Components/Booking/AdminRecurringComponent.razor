@@ -12,7 +12,7 @@
         <button type="button" class="btn-close" @onclick="() => _successMsg = null"></button>
     </div>
 }
-@if (_error is not null)
+@if (_error is not null && !_showForm)
 {
     <div class="alert alert-danger alert-dismissible">
         @_error
@@ -28,100 +28,106 @@
     <button class="btn btn-sm btn-primary ms-auto" @onclick="StartCreate">+ Neue Serie</button>
 </div>
 
-<!-- Formular: Erstellen oder Bearbeiten -->
 @if (_showForm)
 {
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <strong>@(_editingId.HasValue ? "Serie bearbeiten" : "Neue Serie erstellen")</strong>
-            @if (_editingId.HasValue)
-            {
-                <span class="badge bg-warning text-dark" style="font-size:0.8rem">
-                    Speichern löscht alle bestehenden Einzeltermine und legt sie neu an.
-                </span>
-            }
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-sm-8">
-                    <label class="form-label fw-semibold">Bezeichnung *</label>
-                    <input class="form-control" @bind="_fTitel" placeholder="z.B. Schulsport Klasse 3a" />
-                </div>
-                <div class="col-sm-4">
-                    <label class="form-label fw-semibold">Wochentag *</label>
-                    <select class="form-select" @bind="_fWochentag">
-                        <option value="1">Montag</option>
-                        <option value="2">Dienstag</option>
-                        <option value="3">Mittwoch</option>
-                        <option value="4">Donnerstag</option>
-                        <option value="5">Freitag</option>
-                        <option value="6">Samstag</option>
-                        <option value="0">Sonntag</option>
-                    </select>
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label fw-semibold">Von (Zeit) *</label>
-                    <input type="time" class="form-control" step="1800" @bind="_fStartTime" />
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label fw-semibold">Bis (Zeit) *</label>
-                    <input type="time" class="form-control" step="1800" @bind="_fEndTime" />
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label fw-semibold">Serie von *</label>
-                    <input type="date" class="form-control" @bind="_fSeriesStart" />
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label fw-semibold">Serie bis *</label>
-                    <input type="date" class="form-control" @bind="_fSeriesEnd" />
-                </div>
-                <div class="col-12">
-                    <label class="form-label fw-semibold">Farbe</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        @foreach (var c in Colors)
-                        {
-                            <button type="button"
-                                    style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_fColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
-                                    @onclick="() => _fColor = c"
-                                    title="@c"></button>
-                        }
-                    </div>
-                </div>
-                <div class="col-12">
-                    <label class="form-label fw-semibold">Bemerkungen</label>
-                    <textarea class="form-control" @bind="_fNotes" rows="2"></textarea>
-                </div>
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1050;display:flex;align-items:center;justify-content:center">
+        <div class="card" style="min-width:540px;max-width:700px;width:90vw;max-height:90vh;overflow-y:auto">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>@(_editingId.HasValue ? "Serie bearbeiten" : "Neue Serie erstellen")</strong>
+                @if (_editingId.HasValue)
+                {
+                    <span class="badge bg-warning text-dark" style="font-size:0.8rem">
+                        Speichern löscht alle bestehenden Einzeltermine und legt sie neu an.
+                    </span>
+                }
             </div>
-
-            @if (_conflictDates.Count > 0)
-            {
-                <div class="alert alert-warning mt-3 mb-0">
-                    <strong>@_conflictDates.Count Konflikt(e) gefunden:</strong>
-                    <ul class="mb-2 mt-1">
-                        @foreach (var d in _conflictDates.Take(3))
-                        {
-                            <li>@d</li>
-                        }
-                        @if (_conflictDates.Count > 3)
-                        {
-                            <li>… und @(_conflictDates.Count - 3) weitere</li>
-                        }
-                    </ul>
-                    <p class="mb-2 small">Diese Termine überschneiden sich mit bestehenden Buchungen. Sie können die Serie anpassen oder nur die konfliktfreien Termine anlegen.</p>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="DismissConflicts">Nochmals bearbeiten</button>
-                        <button class="btn btn-sm btn-warning" @onclick="() => ExecuteAsync(skipConflicts: true)" disabled="@_saving">
-                            Trotzdem speichern (Konflikte überspringen)
-                        </button>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-8">
+                        <label class="form-label fw-semibold">Bezeichnung *</label>
+                        <input class="form-control" @bind="_fTitel" placeholder="z.B. Schulsport Klasse 3a" />
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label fw-semibold">Wochentag *</label>
+                        <select class="form-select" @bind="_fWochentag">
+                            <option value="1">Montag</option>
+                            <option value="2">Dienstag</option>
+                            <option value="3">Mittwoch</option>
+                            <option value="4">Donnerstag</option>
+                            <option value="5">Freitag</option>
+                            <option value="6">Samstag</option>
+                            <option value="0">Sonntag</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label fw-semibold">Von (Zeit) *</label>
+                        <input type="text" class="form-control" @bind="_fStartTimeStr" placeholder="HH:mm" maxlength="5" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label fw-semibold">Bis (Zeit) *</label>
+                        <input type="text" class="form-control" @bind="_fEndTimeStr" placeholder="HH:mm" maxlength="5" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label fw-semibold">Serie von *</label>
+                        <input type="text" class="form-control" @bind="_fSeriesStartStr" placeholder="dd.MM.yyyy" maxlength="10" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label fw-semibold">Serie bis *</label>
+                        <input type="text" class="form-control" @bind="_fSeriesEndStr" placeholder="dd.MM.yyyy" maxlength="10" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Farbe</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var c in Colors)
+                            {
+                                <button type="button"
+                                        style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_fColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
+                                        @onclick="() => _fColor = c"
+                                        title="@c"></button>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Bemerkungen</label>
+                        <textarea class="form-control" @bind="_fNotes" rows="2"></textarea>
                     </div>
                 </div>
-            }
-        </div>
-        <div class="card-footer d-flex gap-2 justify-content-end">
-            <button class="btn btn-secondary" @onclick="CancelForm">Abbrechen</button>
-            <button class="btn btn-primary" @onclick="SubmitAsync" disabled="@(_saving || _conflictDates.Count > 0)">
-                @(_saving ? "Bitte warten…" : (_editingId.HasValue ? "Speichern" : "Erstellen"))
-            </button>
+
+                @if (_conflictDates.Count > 0)
+                {
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <strong>@_conflictDates.Count Konflikt(e) gefunden:</strong>
+                        <ul class="mb-2 mt-1">
+                            @foreach (var d in _conflictDates.Take(3))
+                            {
+                                <li>@d</li>
+                            }
+                            @if (_conflictDates.Count > 3)
+                            {
+                                <li>… und @(_conflictDates.Count - 3) weitere</li>
+                            }
+                        </ul>
+                        <p class="mb-2 small">Diese Termine überschneiden sich mit bestehenden Buchungen. Sie können die Serie anpassen oder nur die konfliktfreien Termine anlegen.</p>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="DismissConflicts">Nochmals bearbeiten</button>
+                            <button class="btn btn-sm btn-warning" @onclick="() => ExecuteAsync(skipConflicts: true)" disabled="@_saving">
+                                Trotzdem speichern (Konflikte überspringen)
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                @if (_error is not null)
+                {
+                    <div class="alert alert-danger mt-3 mb-0">@_error</div>
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelForm">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="SubmitAsync" disabled="@(_saving || _conflictDates.Count > 0)">
+                    @(_saving ? "Bitte warten…" : (_editingId.HasValue ? "Speichern" : "Erstellen"))
+                </button>
+            </div>
         </div>
     </div>
 }
@@ -237,10 +243,10 @@ else
     private int? _editingId;
     private string _fTitel = "";
     private int _fWochentag = 1;
-    private TimeOnly _fStartTime = new(8, 0);
-    private TimeOnly _fEndTime = new(10, 0);
-    private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
-    private DateOnly _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private string _fStartTimeStr = "08:00";
+    private string _fEndTimeStr = "10:00";
+    private string _fSeriesStartStr = "";
+    private string _fSeriesEndStr = "";
     private string? _fColor = "#F1C40F";
     private string _fNotes = "";
 
@@ -269,10 +275,10 @@ else
         _editingId = null;
         _fTitel = "";
         _fWochentag = 1;
-        _fStartTime = new TimeOnly(8, 0);
-        _fEndTime = new TimeOnly(10, 0);
-        _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
-        _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+        _fStartTimeStr = "08:00";
+        _fEndTimeStr = "10:00";
+        _fSeriesStartStr = DateOnly.FromDateTime(DateTime.Today).ToString("dd.MM.yyyy");
+        _fSeriesEndStr = DateOnly.FromDateTime(DateTime.Today).AddMonths(6).ToString("dd.MM.yyyy");
         _fColor = "#F1C40F";
         _fNotes = "";
         _conflictDates = [];
@@ -286,10 +292,10 @@ else
         _editingId = s.Id;
         _fTitel = s.Title;
         _fWochentag = (int)s.Wochentag;
-        _fStartTime = s.StartTime;
-        _fEndTime = s.EndTime;
-        _fSeriesStart = s.SeriesStart;
-        _fSeriesEnd = s.SeriesEnd;
+        _fStartTimeStr = s.StartTime.ToString("HH:mm");
+        _fEndTimeStr = s.EndTime.ToString("HH:mm");
+        _fSeriesStartStr = s.SeriesStart.ToString("dd.MM.yyyy");
+        _fSeriesEndStr = s.SeriesEnd.ToString("dd.MM.yyyy");
         _fColor = s.Color ?? "#F1C40F";
         _fNotes = s.Notes ?? "";
         _conflictDates = [];
@@ -315,8 +321,19 @@ else
     private async Task SubmitAsync()
     {
         if (string.IsNullOrWhiteSpace(_fTitel)) { _error = "Bezeichnung ist erforderlich."; return; }
-        if (_fEndTime <= _fStartTime) { _error = "Endzeit muss nach Startzeit liegen."; return; }
-        if (_fSeriesEnd < _fSeriesStart) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
+
+        var ic = System.Globalization.CultureInfo.InvariantCulture;
+        if (!TimeOnly.TryParseExact(_fStartTimeStr.Trim(), "HH:mm", ic, System.Globalization.DateTimeStyles.None, out var st))
+        { _error = "Von (Zeit) muss im Format HH:mm angegeben werden."; return; }
+        if (!TimeOnly.TryParseExact(_fEndTimeStr.Trim(), "HH:mm", ic, System.Globalization.DateTimeStyles.None, out var et))
+        { _error = "Bis (Zeit) muss im Format HH:mm angegeben werden."; return; }
+        if (et <= st) { _error = "Endzeit muss nach Startzeit liegen."; return; }
+
+        if (!DateOnly.TryParseExact(_fSeriesStartStr.Trim(), "dd.MM.yyyy", ic, System.Globalization.DateTimeStyles.None, out var ss))
+        { _error = "Serie von muss im Format dd.MM.yyyy angegeben werden."; return; }
+        if (!DateOnly.TryParseExact(_fSeriesEndStr.Trim(), "dd.MM.yyyy", ic, System.Globalization.DateTimeStyles.None, out var se))
+        { _error = "Serie bis muss im Format dd.MM.yyyy angegeben werden."; return; }
+        if (se < ss) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
 
         _error = null;
         _conflictDates = [];
@@ -390,15 +407,19 @@ else
         finally { _saving = false; }
     }
 
-    private SporthalleWeb.Application.Booking.RecurringSlotCommand BuildCommand() => new(
-        _fTitel.Trim(),
-        (DayOfWeek)_fWochentag,
-        _fStartTime,
-        _fEndTime,
-        _fSeriesStart,
-        _fSeriesEnd,
-        _fColor,
-        string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim());
+    private SporthalleWeb.Application.Booking.RecurringSlotCommand BuildCommand()
+    {
+        var ic = System.Globalization.CultureInfo.InvariantCulture;
+        return new(
+            _fTitel.Trim(),
+            (DayOfWeek)_fWochentag,
+            TimeOnly.ParseExact(_fStartTimeStr.Trim(), "HH:mm", ic),
+            TimeOnly.ParseExact(_fEndTimeStr.Trim(), "HH:mm", ic),
+            DateOnly.ParseExact(_fSeriesStartStr.Trim(), "dd.MM.yyyy", ic),
+            DateOnly.ParseExact(_fSeriesEndStr.Trim(), "dd.MM.yyyy", ic),
+            _fColor,
+            string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim());
+    }
 
     private static string WochentagName(DayOfWeek d) => d switch
     {

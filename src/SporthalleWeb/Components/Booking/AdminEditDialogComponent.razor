@@ -8,37 +8,119 @@
 {
     <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
          style="background:rgba(0,0,0,.5);z-index:1050">
-        <div class="card" style="min-width:540px;max-width:700px;max-height:90vh;overflow-y:auto">
+        <div class="card" style="min-width:900px;max-width:1100px;width:90vw;max-height:90vh;display:flex;flex-direction:column">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Blocker bearbeiten" : "Buchung bearbeiten")</strong>
                 <span class="badge @TypeBadge(_editSlotType.ToString())">@TypeLabel(_editSlotType)</span>
             </div>
-            <div class="card-body">
-                @if (_editLoading)
-                {
-                    <p>Lade…</p>
-                }
-                else
-                {
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tag</label>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <input type="date" class="form-control" style="max-width:175px"
-                                   value="@_editStartDate"
-                                   @onchange="OnEditDayChangedAsync" />
-                            @if (DateOnly.TryParse(_editStartDate, out var editDayLabel))
-                            {
-                                <span class="text-muted">@editDayLabel.ToString("dddd, d. MMMM yyyy", DeCh)</span>
-                            }
+            @if (_editLoading)
+            {
+                <div class="card-body"><p>Lade…</p></div>
+            }
+            else
+            {
+                <div style="display:flex;flex:1;overflow:hidden;min-height:0">
+
+                    <!-- Left: all form details -->
+                    <div style="flex:0 0 42%;overflow-y:auto;padding:1rem;border-right:1px solid #dee2e6">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tag</label>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <input type="date" class="form-control" style="max-width:175px"
+                                       value="@_editStartDate"
+                                       @onchange="OnEditDayChangedAsync" />
+                                @if (DateOnly.TryParse(_editStartDate, out var editDayLabel))
+                                {
+                                    <span class="text-muted">@editDayLabel.ToString("dddd, d. MMMM yyyy", DeCh)</span>
+                                }
+                            </div>
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
+                            <input class="form-control" @bind="_editTitle" />
+                        </div>
+
+                        @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Farbe</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var c in new[] { "#F1C40F","#C0392B","#1F4E79","#2B4C7E","#1E5E4A","#4A5568","#8C3A5C","#A8522A","#4A3762","#1A5A66","#3A563C","#5C4033" })
+                                    {
+                                        <button type="button"
+                                                style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
+                                                @onclick="() => _editColor = c"
+                                                title="@c"></button>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Bemerkungen</label>
+                            <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
+                        </div>
+
+                        @if (_editHasMember)
+                        {
+                            <hr />
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">E-Mail</label>
+                                <input class="form-control" value="@_editEmail" readonly />
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-8">
+                                    <label class="form-label fw-semibold">Kontaktperson</label>
+                                    <input class="form-control" @bind="_editContactPerson" />
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label fw-semibold">Telefon</label>
+                                    <input class="form-control" @bind="_editPhone" type="tel" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Mietertyp</label>
+                                <select class="form-select" @bind="_editRenterType">
+                                    <option value="Privatperson">Privatperson</option>
+                                    <option value="Verein">Verein</option>
+                                    <option value="Firma">Firma</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Rechnungsname</label>
+                                <input class="form-control" @bind="_editBillingName" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Rechnungsadresse</label>
+                                <input class="form-control" @bind="_editBillingAddress" />
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-4">
+                                    <label class="form-label fw-semibold">PLZ</label>
+                                    <input class="form-control" @bind="_editBillingPostalCode" />
+                                </div>
+                                <div class="col-sm-8">
+                                    <label class="form-label fw-semibold">Ort</label>
+                                    <input class="form-control" @bind="_editBillingCity" />
+                                </div>
+                            </div>
+                        }
+
+                        @if (_editError is not null)
+                        {
+                            <div class="alert alert-danger mb-0 mt-2">@_editError</div>
+                        }
                     </div>
 
-                    <div class="mb-3">
+                    <!-- Right: time picker -->
+                    <div style="flex:1;overflow-y:auto;padding:1rem">
                         <label class="form-label fw-semibold">
                             Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
                         </label>
                         <div id="ec-@_editSlotId"
-                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;max-height:420px;user-select:none;cursor:crosshair">
+                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;user-select:none;cursor:crosshair">
                             @{
                                 var calSlotCount = (_calEnd - _calStart) * 2;
                                 var loSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Min(_editSelStart, _editSelEnd) : -1;
@@ -89,83 +171,8 @@
                         }
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
-                        <input class="form-control" @bind="_editTitle" />
-                    </div>
-
-                    @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Farbe</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach (var c in new[] { "#F1C40F","#C0392B","#1F4E79","#2B4C7E","#1E5E4A","#4A5568","#8C3A5C","#A8522A","#4A3762","#1A5A66","#3A563C","#5C4033" })
-                                {
-                                    <button type="button"
-                                            style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
-                                            @onclick="() => _editColor = c"
-                                            title="@c"></button>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Bemerkungen</label>
-                        <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
-                    </div>
-
-                    @if (_editHasMember)
-                    {
-                        <hr />
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">E-Mail</label>
-                            <input class="form-control" value="@_editEmail" readonly />
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-sm-8">
-                                <label class="form-label fw-semibold">Kontaktperson</label>
-                                <input class="form-control" @bind="_editContactPerson" />
-                            </div>
-                            <div class="col-sm-4">
-                                <label class="form-label fw-semibold">Telefon</label>
-                                <input class="form-control" @bind="_editPhone" type="tel" />
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Mietertyp</label>
-                            <select class="form-select" @bind="_editRenterType">
-                                <option value="Privatperson">Privatperson</option>
-                                <option value="Verein">Verein</option>
-                                <option value="Firma">Firma</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Rechnungsname</label>
-                            <input class="form-control" @bind="_editBillingName" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Rechnungsadresse</label>
-                            <input class="form-control" @bind="_editBillingAddress" />
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-sm-4">
-                                <label class="form-label fw-semibold">PLZ</label>
-                                <input class="form-control" @bind="_editBillingPostalCode" />
-                            </div>
-                            <div class="col-sm-8">
-                                <label class="form-label fw-semibold">Ort</label>
-                                <input class="form-control" @bind="_editBillingCity" />
-                            </div>
-                        </div>
-                    }
-
-                    @if (_editError is not null)
-                    {
-                        <div class="alert alert-danger mb-0 mt-2">@_editError</div>
-                    }
-                }
-            </div>
+                </div>
+            }
             <div class="card-footer d-flex gap-2 justify-content-end">
                 <button class="btn btn-secondary" @onclick="CancelEdit">Abbrechen</button>
                 <button class="btn btn-primary" @onclick="SaveEditAsync"
