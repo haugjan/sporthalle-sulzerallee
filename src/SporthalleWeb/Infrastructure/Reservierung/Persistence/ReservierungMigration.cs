@@ -103,7 +103,7 @@ public class AddRecurringSlotsV5 : AsyncMigrationBase
             Create.Table<RecurringSlotRecord>().Do();
 
         if (TableExists("BookingSlots") && !ColumnExists("BookingSlots", "RecurringSlotId"))
-            Alter.Table("BookingSlots").AddColumn("RecurringSlotId").AsInt64().Nullable().Do();
+            Execute.Sql("ALTER TABLE \"BookingSlots\" ADD COLUMN \"RecurringSlotId\" INTEGER NULL").Do();
 
         return Task.CompletedTask;
     }
