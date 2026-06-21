@@ -26,14 +26,19 @@ if (builder.Configuration[sqliteProviderKey] == "Microsoft.Data.Sqlite")
         var resolved = $"Data Source={absDataSource};Foreign Keys=True;Pooling=True";
         builder.Configuration[connKey] = resolved;
 
-        // Pre-create the SQLite file so Umbraco's availability check can open it.
-        // Without this the check fails with SQLITE_CANTOPEN because the file doesn't
-        // exist yet and the check opens with ReadWrite (no-create) mode.
+        // Pre-create the SQLite file and enable WAL mode before Umbraco boots.
+        // WAL (Write-Ahead Logging) prevents SQLITE_BUSY (error 5) that occurs when
+        // Umbraco's schema migrator, OpenIddict/EF Core, and NPoco repositories all
+        // open the same SQLite file concurrently at startup. WAL mode is stored in the
+        // DB file itself, so this only needs to run once — but running it every startup
+        // is safe and ensures the setting survives if the DB is replaced.
         Directory.CreateDirectory(Path.GetDirectoryName(absDataSource)!);
-        if (!File.Exists(absDataSource))
+        using (var init = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={absDataSource}"))
         {
-            using var init = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={absDataSource}");
             init.Open();
+            using var wal = init.CreateCommand();
+            wal.CommandText = "PRAGMA journal_mode=WAL;";
+            wal.ExecuteNonQuery();
         }
     }
 }
