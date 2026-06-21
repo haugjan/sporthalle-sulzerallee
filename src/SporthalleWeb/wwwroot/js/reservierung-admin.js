@@ -14,6 +14,7 @@ window.SporthalleAdmin = (function () {
   // State
   var _dotNet = null;
   var _handlers = [];
+  var _docEditMouseUp = null;
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -797,6 +798,103 @@ window.SporthalleAdmin = (function () {
       selectionEl = null;
       selectedSlot = null;
       isDragging = false;
+    },
+
+    // ── Edit-Dialog Tageskalender ────────────────────────────────────────────────
+    // Drag-to-select für den Bearbeiten-Dialog. Gibt Start/End-Slot-Index via
+    // DotNet-Callback zurück; Blazor prüft Konflikte und aktualisiert die Farben.
+
+    initEditCalendar: function (containerId, dotNetRef) {
+      // Alten Document-Listener vom vorherigen Edit-Dialog entfernen
+      if (_docEditMouseUp) {
+        document.removeEventListener('mouseup', _docEditMouseUp);
+        _docEditMouseUp = null;
+      }
+
+      var el = document.getElementById(containerId);
+      if (!el) return;
+
+      var dragging = false;
+      var startIdx = -1;
+      var endIdx = -1;
+
+      function getCells() { return Array.from(el.querySelectorAll('[data-slot-idx]')); }
+
+      function highlight(lo, hi) {
+        getCells().forEach(function (c) {
+          var i = parseInt(c.dataset.slotIdx, 10);
+          c.classList.toggle('ec-drag', i >= lo && i <= hi);
+        });
+      }
+
+      el.addEventListener('mousedown', function (e) {
+        var cell = e.target.closest('[data-slot-idx]');
+        if (!cell || cell.dataset.booked === '1') return;
+        dragging = true;
+        startIdx = parseInt(cell.dataset.slotIdx, 10);
+        endIdx = startIdx;
+        highlight(startIdx, startIdx);
+        e.preventDefault();
+      });
+
+      el.addEventListener('mouseover', function (e) {
+        if (!dragging) return;
+        var cell = e.target.closest('[data-slot-idx]');
+        if (!cell) return;
+        endIdx = parseInt(cell.dataset.slotIdx, 10);
+        highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
+      });
+
+      function finishDrag() {
+        if (!dragging) return;
+        dragging = false;
+        getCells().forEach(function (c) { c.classList.remove('ec-drag'); });
+        var lo = Math.min(startIdx, endIdx);
+        var hi = Math.max(startIdx, endIdx);
+        dotNetRef.invokeMethodAsync('OnCalendarDragEnd', lo, hi);
+      }
+
+      _docEditMouseUp = finishDrag;
+      document.addEventListener('mouseup', _docEditMouseUp);
+
+      // Touch-Support
+      el.addEventListener('touchstart', function (e) {
+        var t = e.touches[0];
+        var under = document.elementFromPoint(t.clientX, t.clientY);
+        var cell = under ? under.closest('[data-slot-idx]') : null;
+        if (!cell || cell.dataset.booked === '1') return;
+        dragging = true;
+        startIdx = parseInt(cell.dataset.slotIdx, 10);
+        endIdx = startIdx;
+        highlight(startIdx, startIdx);
+      }, { passive: true });
+
+      el.addEventListener('touchmove', function (e) {
+        if (!dragging) return;
+        var t = e.touches[0];
+        var under = document.elementFromPoint(t.clientX, t.clientY);
+        var cell = under ? under.closest('[data-slot-idx]') : null;
+        if (!cell) return;
+        endIdx = parseInt(cell.dataset.slotIdx, 10);
+        highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
+      }, { passive: true });
+
+      el.addEventListener('touchend', finishDrag);
+
+      // Nach Init: auf die aktuelle Selektion scrollen
+      setTimeout(function () {
+        var firstSel = el.querySelector('.ec-slot-selected');
+        if (firstSel) {
+          firstSel.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      }, 0);
+    },
+
+    destroyEditCalendar: function () {
+      if (_docEditMouseUp) {
+        document.removeEventListener('mouseup', _docEditMouseUp);
+        _docEditMouseUp = null;
+      }
     }
   };
 })();

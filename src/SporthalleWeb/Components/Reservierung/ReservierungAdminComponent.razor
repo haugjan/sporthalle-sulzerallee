@@ -1,7 +1,10 @@
+@using Microsoft.JSInterop
 @inject SporthalleWeb.Application.Reservierung.BookingAdminService AdminService
 @inject SporthalleWeb.Application.Reservierung.ConfirmBookingUseCase ConfirmUseCase
 @inject SporthalleWeb.Application.Reservierung.RejectBookingUseCase RejectUseCase
 @inject SporthalleWeb.Application.Reservierung.HallConfigService Config
+@inject IJSRuntime JS
+@implements IDisposable
 
 <style>
     .reservierung-admin { height: 100%; display: flex; flex-direction: column; }
@@ -31,6 +34,12 @@
     .subnav-btn.active { color: #fff; border-bottom-color: #5dade2; }
 
     .admin-content { padding: 1.5rem; flex: 1; overflow-y: auto; }
+
+    /* Edit-Dialog Tageskalender */
+    .ec-slot-selected { background: rgba(37, 99, 235, 0.15); }
+    .ec-slot-conflict  { background: rgba(220, 38, 38, 0.2); cursor: not-allowed !important; }
+    .ec-slot-booked    { background: rgba(100, 100, 100, 0.12); cursor: not-allowed !important; }
+    .ec-drag           { background: rgba(37, 99, 235, 0.3) !important; }
 </style>
 
 <div class="reservierung-admin">
@@ -472,9 +481,9 @@
 {
     <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
          style="background:rgba(0,0,0,.5);z-index:1050">
-        <div class="card" style="min-width:380px;max-width:540px;max-height:90vh;overflow-y:auto">
+        <div class="card" style="min-width:540px;max-width:700px;max-height:90vh;overflow-y:auto">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <strong>Buchung bearbeiten</strong>
+                <strong>@(_editSlotType == SporthalleWeb.Domain.Reservierung.SlotType.Blocker ? "Blocker bearbeiten" : "Buchung bearbeiten")</strong>
                 <span class="badge @TypeBadge(_editSlotType.ToString())">@TypeLabel(_editSlotType)</span>
             </div>
             <div class="card-body">
@@ -484,25 +493,76 @@
                 }
                 else
                 {
-                    <div class="row g-3 mb-3">
-                        <div class="col-sm-6">
-                            <label class="form-label fw-semibold">Datum von</label>
-                            <div class="input-group">
-                                <input type="date" class="form-control" value="@_editStartDate"
-                                       @onchange="e => _editStartDate = e.Value?.ToString() ?? string.Empty" />
-                                <input type="time" class="form-control" value="@_editStartTime" step="1800"
-                                       @onchange="e => _editStartTime = e.Value?.ToString() ?? string.Empty" />
-                            </div>
+                    <!-- Tag-Picker (Schweizer Datumsformat als Label) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tag</label>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="date" class="form-control" style="max-width:175px"
+                                   value="@_editStartDate"
+                                   @onchange="OnEditDayChangedAsync" />
+                            @if (DateOnly.TryParse(_editStartDate, out var editDayLabel))
+                            {
+                                <span class="text-muted">@editDayLabel.ToString("dddd, d. MMMM yyyy", DeCh)</span>
+                            }
                         </div>
-                        <div class="col-sm-6">
-                            <label class="form-label fw-semibold">Datum bis</label>
-                            <div class="input-group">
-                                <input type="date" class="form-control" value="@_editEndDate"
-                                       @onchange="e => _editEndDate = e.Value?.ToString() ?? string.Empty" />
-                                <input type="time" class="form-control" value="@_editEndTime" step="1800"
-                                       @onchange="e => _editEndTime = e.Value?.ToString() ?? string.Empty" />
-                            </div>
+                    </div>
+
+                    <!-- Tageskalender: Uhrzeit via aufziehen wählen -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
+                        </label>
+                        <div id="ec-@_editSlotId"
+                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;max-height:420px;user-select:none;cursor:crosshair">
+                            @{
+                                var calSlotCount = (_calEnd - _calStart) * 2;
+                                var loSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Min(_editSelStart, _editSelEnd) : -1;
+                                var hiSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Max(_editSelStart, _editSelEnd) : -1;
+                            }
+                            @for (int si = 0; si < calSlotCount; si++)
+                            {
+                                var slotIdx = si;
+                                var slotH = _calStart + slotIdx / 2;
+                                var slotM = (slotIdx % 2) * 30;
+                                var isHour = slotM == 0;
+                                var inSel = loSel >= 0 && slotIdx >= loSel && slotIdx <= hiSel;
+                                var otherBooking = GetExistingBookingAtSlot(slotIdx);
+                                var cellClass = GetSlotCssClass(inSel, otherBooking);
+
+                                <div data-slot-idx="@slotIdx"
+                                     data-booked="@(otherBooking != null ? "1" : "0")"
+                                     class="@cellClass"
+                                     style="display:flex;height:22px;@(isHour ? "border-top:1px solid #dee2e6;" : "border-top:1px dotted #f0f0f0;")">
+                                    <div style="width:46px;flex-shrink:0;font-size:0.68rem;line-height:22px;
+                                                color:#adb5bd;text-align:right;padding-right:6px;
+                                                border-right:1px solid #dee2e6;background:#f8f9fa">
+                                        @(isHour ? $"{slotH:00}:00" : "")
+                                    </div>
+                                    <div style="flex:1;padding-left:6px;line-height:22px;font-size:0.7rem;overflow:hidden;white-space:nowrap">
+                                        @if (otherBooking is not null && isHour)
+                                        {
+                                            <span class="text-muted">@otherBooking.Title</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
                         </div>
+
+                        <!-- Gewählte Zeit + Verfügbarkeitsstatus -->
+                        @if (_editSelStart >= 0 && _editSelEnd >= 0)
+                        {
+                            <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold">@_editStartTime – @_editEndTime Uhr</span>
+                                @if (_editConflict)
+                                {
+                                    <span class="badge bg-danger">Zeitraum belegt</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Verfügbar</span>
+                                }
+                            </div>
+                        }
                     </div>
 
                     <div class="mb-3">
@@ -579,7 +639,8 @@
             </div>
             <div class="card-footer d-flex gap-2 justify-content-end">
                 <button class="btn btn-secondary" @onclick="CancelEdit">Abbrechen</button>
-                <button class="btn btn-primary" @onclick="SaveEditAsync" disabled="@_editLoading">Speichern</button>
+                <button class="btn btn-primary" @onclick="SaveEditAsync"
+                        disabled="@(_editLoading || _editConflict)">Speichern</button>
             </div>
         </div>
     </div>
@@ -709,6 +770,16 @@
     private string _editEndDate = "";
     private string _editEndTime = "";
     private bool _editLoading;
+
+    // ── Edit-Dialog Tageskalender ─────────────────────────────────────────────
+    private int _editSelStart = -1;
+    private int _editSelEnd   = -1;
+    private bool _editConflict;
+    private IReadOnlyList<SporthalleWeb.Domain.Reservierung.BookingSlot> _calendarSlotsForDay = [];
+    private int _calStart = 7;
+    private int _calEnd   = 23;
+    private DotNetObjectReference<ReservierungAdminComponent>? _dotNetRef;
+    private int? _calInitializedForSlotId;
 
     protected override async Task OnInitializedAsync() => await LoadPendingAsync();
 
@@ -942,16 +1013,55 @@
         var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
         _editStartDate = startLocal.ToString("yyyy-MM-dd");
         _editStartTime = startLocal.ToString("HH:mm");
-        _editEndDate   = endLocal.ToString("yyyy-MM-dd");
+        _editEndDate   = _editStartDate; // Tageskalender: immer gleicher Tag
         _editEndTime   = endLocal.ToString("HH:mm");
-        _editLoading   = false;
+
+        // Kalender-Konfiguration laden
+        var cfgStart = await Config.GetAsync("kalender_beginn");
+        var cfgEnd   = await Config.GetAsync("kalender_ende");
+        _calStart = int.TryParse(cfgStart, out var cs) ? cs : 7;
+        _calEnd   = int.TryParse(cfgEnd,   out var ce) ? ce : 23;
+
+        // Bestehende Selektion aus Slot-Zeiten initialisieren
+        _editSelStart = -1;
+        _editSelEnd   = -1;
+        _editConflict = false;
+        _calInitializedForSlotId = null;
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+        var stMin = startLocal.Hour * 60 + startLocal.Minute;
+        var etMin = endLocal.Hour * 60 + endLocal.Minute;
+        var slotCount = (_calEnd - _calStart) * 2;
+        var selStart = (stMin - _calStart * 60) / 30;
+        var selEnd   = (etMin - _calStart * 60) / 30 - 1;
+        if (selStart >= 0 && selStart < slotCount && selEnd >= selStart && selEnd < slotCount)
+        {
+            _editSelStart = selStart;
+            _editSelEnd   = selEnd;
+        }
+
+        // Bestehende Buchungen für diesen Tag laden
+        await LoadCalendarSlotsAsync();
+        CheckConflicts();
+        _editLoading = false;
     }
 
-    private void CancelEdit() { _editSlotId = null; }
+    private void CancelEdit()
+    {
+        _editSlotId = null;
+        _calInitializedForSlotId = null;
+        _editSelStart = -1;
+        _editSelEnd   = -1;
+        _editConflict = false;
+    }
 
     private async Task SaveEditAsync()
     {
         if (_editSlotId is null) return;
+        if (_editConflict)
+        {
+            _error = "Der gewählte Zeitraum ist nicht verfügbar. Bitte einen anderen Zeitraum wählen.";
+            return;
+        }
         ClearMessages();
         try
         {
@@ -1007,5 +1117,101 @@
     {
         var cal = System.Globalization.CultureInfo.GetCultureInfo("de-CH").Calendar;
         return cal.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+    }
+
+    // ── Tageskalender-Logik ───────────────────────────────────────────────────
+
+    public void Dispose() => _dotNetRef?.Dispose();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_editSlotId is not null && !_editLoading
+            && _dotNetRef is not null
+            && _calInitializedForSlotId != _editSlotId)
+        {
+            _calInitializedForSlotId = _editSlotId;
+            await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendar",
+                $"ec-{_editSlotId}", _dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCalendarDragEnd(int startIdx, int endIdx)
+    {
+        _editSelStart = Math.Min(startIdx, endIdx);
+        _editSelEnd   = Math.Max(startIdx, endIdx);
+        SyncTimesFromSelection();
+        CheckConflicts();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncTimesFromSelection()
+    {
+        if (_editSelStart < 0 || _editSelEnd < 0) return;
+        _editStartTime = SlotIdxToTime(_editSelStart);
+        _editEndTime   = SlotIdxToTime(_editSelEnd + 1);
+    }
+
+    private string SlotIdxToTime(int idx)
+    {
+        var totalMin = _calStart * 60 + idx * 30;
+        return $"{totalMin / 60:00}:{totalMin % 60:00}";
+    }
+
+    private void CheckConflicts()
+    {
+        if (_editSelStart < 0 || _editSelEnd < 0
+            || !DateOnly.TryParse(_editStartDate, out var day))
+        {
+            _editConflict = false;
+            return;
+        }
+        var selStartUtc = SlotIdxToUtc(day, _editSelStart);
+        var selEndUtc   = SlotIdxToUtc(day, _editSelEnd + 1);
+        _editConflict = _calendarSlotsForDay.Any(s =>
+            s.Id != _editSlotId &&
+            s.Slot.StartUtc < selEndUtc &&
+            s.Slot.EndUtc   > selStartUtc);
+    }
+
+    private DateTime SlotIdxToUtc(DateOnly day, int idx)
+    {
+        var totalMin = _calStart * 60 + idx * 30;
+        var local = new DateTime(day.Year, day.Month, day.Day,
+            totalMin / 60, totalMin % 60, 0, DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(local, Zurich);
+    }
+
+    private SporthalleWeb.Domain.Reservierung.BookingSlot? GetExistingBookingAtSlot(int idx)
+    {
+        if (!DateOnly.TryParse(_editStartDate, out var day)) return null;
+        var startUtc = SlotIdxToUtc(day, idx);
+        var endUtc   = SlotIdxToUtc(day, idx + 1);
+        return _calendarSlotsForDay.FirstOrDefault(s =>
+            s.Id != _editSlotId &&
+            s.Slot.StartUtc < endUtc &&
+            s.Slot.EndUtc   > startUtc);
+    }
+
+    private string GetSlotCssClass(bool inSel, SporthalleWeb.Domain.Reservierung.BookingSlot? other)
+    {
+        if (inSel && other is not null) return "ec-slot-conflict";
+        if (inSel) return "ec-slot-selected";
+        if (other is not null) return "ec-slot-booked";
+        return "";
+    }
+
+    private async Task LoadCalendarSlotsAsync()
+    {
+        if (!DateOnly.TryParse(_editStartDate, out var day)) return;
+        _calendarSlotsForDay = await AdminService.GetSlotsForPeriodAsync(day, day, includeRejected: false);
+    }
+
+    private async Task OnEditDayChangedAsync(ChangeEventArgs e)
+    {
+        _editStartDate = e.Value?.ToString() ?? _editStartDate;
+        _editEndDate   = _editStartDate;
+        await LoadCalendarSlotsAsync();
+        CheckConflicts();
     }
 }
