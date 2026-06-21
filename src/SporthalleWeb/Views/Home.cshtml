@@ -1,10 +1,12 @@
-@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @using Umbraco.Extensions
+@using Umbraco.Cms.Core.Models
+@using Umbraco.Cms.Core.PropertyEditors.ValueConverters
 @{
     Layout = null;
 
-    var heroImage    = Model.Value<string>("heroImage")    ?? "/img/halle.jpg";
-    var logoSvg      = Model.Value<string>("logoSvg")      ?? "/img/logo-dust.svg";
+    var heroImage = Model.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "/img/halle.jpg";
+    var logoSvg   = Model.Value<IEnumerable<MediaWithCrops>>("logoSvg")?.FirstOrDefault()?.Url()   ?? "/img/logo-dust.svg";
     var schlagwoerter = (Model.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                           .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -16,18 +18,18 @@
     var t1Label = Model.Value<string>("teaser1Label") ?? "";
     var t1Titel = Model.Value<string>("teaser1Titel") ?? "";
     var t1Text  = Model.Value<string>("teaser1Text")  ?? "";
-    var t1Link  = Model.Value<string>("teaser1Link")  ?? "#";
-    var t1Bild  = Model.Value<string>("teaser1Bild")  ?? "";
+    var t1Link  = Model.Value<IEnumerable<Link>>("teaser1Link")?.FirstOrDefault()?.Url ?? "#";
+    var t1Bild  = Model.Value<IEnumerable<MediaWithCrops>>("teaser1Bild")?.FirstOrDefault()?.Url() ?? "";
 
     var t2Label = Model.Value<string>("teaser2Label") ?? "";
     var t2Titel = Model.Value<string>("teaser2Titel") ?? "";
     var t2Text  = Model.Value<string>("teaser2Text")  ?? "";
-    var t2Link  = Model.Value<string>("teaser2Link")  ?? "#";
+    var t2Link  = Model.Value<IEnumerable<Link>>("teaser2Link")?.FirstOrDefault()?.Url ?? "#";
 
     var t3Label = Model.Value<string>("teaser3Label") ?? "";
     var t3Titel = Model.Value<string>("teaser3Titel") ?? "";
     var t3Text  = Model.Value<string>("teaser3Text")  ?? "";
-    var t3Link  = Model.Value<string>("teaser3Link")  ?? "#";
+    var t3Link  = Model.Value<IEnumerable<Link>>("teaser3Link")?.FirstOrDefault()?.Url ?? "#";
 
     var children = Model.Children().ToList();
     var dasProject    = children.FirstOrDefault(c => c.ContentType.Alias == "contentPage" && c.UrlSegment() == "das-projekt");
