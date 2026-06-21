@@ -18,7 +18,8 @@ public class BookingMigrationPlan : MigrationPlan
             .To<AddAllBookingTablesV2>("v1.1.0")
             .To<SimplifyDataModelV3>("v1.2.0")
             .To<AddHallConfigTableV4>("v1.3.0")
-            .To<AddRecurringSlotsV5>("v1.4.0");
+            .To<AddRecurringSlotsV5>("v1.4.0")
+            .To<RenameSerieToRecurringV6>("v1.5.0");
     }
 }
 
@@ -105,6 +106,18 @@ public class AddRecurringSlotsV5 : AsyncMigrationBase
         if (TableExists("BookingSlots") && !ColumnExists("BookingSlots", "RecurringSlotId"))
             Execute.Sql("ALTER TABLE \"BookingSlots\" ADD COLUMN \"RecurringSlotId\" INTEGER NULL").Do();
 
+        return Task.CompletedTask;
+    }
+}
+
+// v1.5.0 — SlotType.Serie was renamed to SlotType.Recurring; update existing DB rows.
+public class RenameSerieToRecurringV6 : AsyncMigrationBase
+{
+    public RenameSerieToRecurringV6(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        Execute.Sql("UPDATE \"BookingSlots\" SET \"Type\" = 'Recurring' WHERE \"Type\" = 'Serie'").Do();
         return Task.CompletedTask;
     }
 }
