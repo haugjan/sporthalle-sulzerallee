@@ -61,19 +61,23 @@
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold">Von (Zeit) *</label>
-                        <input type="text" class="form-control" @bind="_fStartTimeStr" placeholder="HH:mm" maxlength="5" />
+                        <input type="text" class="form-control" value="@_fStartTime.ToString("HH:mm")"
+                               placeholder="HH:mm" maxlength="5" @onchange="OnStartTimeChanged" />
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold">Bis (Zeit) *</label>
-                        <input type="text" class="form-control" @bind="_fEndTimeStr" placeholder="HH:mm" maxlength="5" />
+                        <input type="text" class="form-control" value="@_fEndTime.ToString("HH:mm")"
+                               placeholder="HH:mm" maxlength="5" @onchange="OnEndTimeChanged" />
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold">Serie von *</label>
-                        <input type="text" class="form-control" @bind="_fSeriesStartStr" placeholder="dd.MM.yyyy" maxlength="10" />
+                        <input type="text" class="form-control" value="@_fSeriesStart.ToString("dd.MM.yyyy")"
+                               placeholder="dd.MM.yyyy" maxlength="10" @onchange="OnSeriesStartChanged" />
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold">Serie bis *</label>
-                        <input type="text" class="form-control" @bind="_fSeriesEndStr" placeholder="dd.MM.yyyy" maxlength="10" />
+                        <input type="text" class="form-control" value="@_fSeriesEnd.ToString("dd.MM.yyyy")"
+                               placeholder="dd.MM.yyyy" maxlength="10" @onchange="OnSeriesEndChanged" />
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold">Farbe</label>
@@ -243,10 +247,10 @@ else
     private int? _editingId;
     private string _fTitel = "";
     private int _fWochentag = 1;
-    private string _fStartTimeStr = "08:00";
-    private string _fEndTimeStr = "10:00";
-    private string _fSeriesStartStr = "";
-    private string _fSeriesEndStr = "";
+    private TimeOnly _fStartTime = new(8, 0);
+    private TimeOnly _fEndTime = new(10, 0);
+    private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
     private string? _fColor = "#F1C40F";
     private string _fNotes = "";
 
@@ -275,10 +279,10 @@ else
         _editingId = null;
         _fTitel = "";
         _fWochentag = 1;
-        _fStartTimeStr = "08:00";
-        _fEndTimeStr = "10:00";
-        _fSeriesStartStr = DateOnly.FromDateTime(DateTime.Today).ToString("dd.MM.yyyy");
-        _fSeriesEndStr = DateOnly.FromDateTime(DateTime.Today).AddMonths(6).ToString("dd.MM.yyyy");
+        _fStartTime = new TimeOnly(8, 0);
+        _fEndTime = new TimeOnly(10, 0);
+        _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
+        _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
         _fColor = "#F1C40F";
         _fNotes = "";
         _conflictDates = [];
@@ -292,10 +296,10 @@ else
         _editingId = s.Id;
         _fTitel = s.Title;
         _fWochentag = (int)s.Wochentag;
-        _fStartTimeStr = s.StartTime.ToString("HH:mm");
-        _fEndTimeStr = s.EndTime.ToString("HH:mm");
-        _fSeriesStartStr = s.SeriesStart.ToString("dd.MM.yyyy");
-        _fSeriesEndStr = s.SeriesEnd.ToString("dd.MM.yyyy");
+        _fStartTime = s.StartTime;
+        _fEndTime = s.EndTime;
+        _fSeriesStart = s.SeriesStart;
+        _fSeriesEnd = s.SeriesEnd;
         _fColor = s.Color ?? "#F1C40F";
         _fNotes = s.Notes ?? "";
         _conflictDates = [];
@@ -321,19 +325,8 @@ else
     private async Task SubmitAsync()
     {
         if (string.IsNullOrWhiteSpace(_fTitel)) { _error = "Bezeichnung ist erforderlich."; return; }
-
-        var ic = System.Globalization.CultureInfo.InvariantCulture;
-        if (!TimeOnly.TryParseExact(_fStartTimeStr.Trim(), "HH:mm", ic, System.Globalization.DateTimeStyles.None, out var st))
-        { _error = "Von (Zeit) muss im Format HH:mm angegeben werden."; return; }
-        if (!TimeOnly.TryParseExact(_fEndTimeStr.Trim(), "HH:mm", ic, System.Globalization.DateTimeStyles.None, out var et))
-        { _error = "Bis (Zeit) muss im Format HH:mm angegeben werden."; return; }
-        if (et <= st) { _error = "Endzeit muss nach Startzeit liegen."; return; }
-
-        if (!DateOnly.TryParseExact(_fSeriesStartStr.Trim(), "dd.MM.yyyy", ic, System.Globalization.DateTimeStyles.None, out var ss))
-        { _error = "Serie von muss im Format dd.MM.yyyy angegeben werden."; return; }
-        if (!DateOnly.TryParseExact(_fSeriesEndStr.Trim(), "dd.MM.yyyy", ic, System.Globalization.DateTimeStyles.None, out var se))
-        { _error = "Serie bis muss im Format dd.MM.yyyy angegeben werden."; return; }
-        if (se < ss) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
+        if (_fEndTime <= _fStartTime) { _error = "Endzeit muss nach Startzeit liegen."; return; }
+        if (_fSeriesEnd < _fSeriesStart) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
 
         _error = null;
         _conflictDates = [];
@@ -407,18 +400,44 @@ else
         finally { _saving = false; }
     }
 
-    private SporthalleWeb.Application.Booking.RecurringSlotCommand BuildCommand()
+    private SporthalleWeb.Application.Booking.RecurringSlotCommand BuildCommand() => new(
+        _fTitel.Trim(),
+        (DayOfWeek)_fWochentag,
+        _fStartTime,
+        _fEndTime,
+        _fSeriesStart,
+        _fSeriesEnd,
+        _fColor,
+        string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim());
+
+    private static readonly System.Globalization.CultureInfo Ic = System.Globalization.CultureInfo.InvariantCulture;
+
+    private void OnStartTimeChanged(ChangeEventArgs e)
     {
-        var ic = System.Globalization.CultureInfo.InvariantCulture;
-        return new(
-            _fTitel.Trim(),
-            (DayOfWeek)_fWochentag,
-            TimeOnly.ParseExact(_fStartTimeStr.Trim(), "HH:mm", ic),
-            TimeOnly.ParseExact(_fEndTimeStr.Trim(), "HH:mm", ic),
-            DateOnly.ParseExact(_fSeriesStartStr.Trim(), "dd.MM.yyyy", ic),
-            DateOnly.ParseExact(_fSeriesEndStr.Trim(), "dd.MM.yyyy", ic),
-            _fColor,
-            string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim());
+        if (TimeOnly.TryParseExact(e.Value?.ToString()?.Trim() ?? string.Empty, "HH:mm", Ic,
+                System.Globalization.DateTimeStyles.None, out var t))
+            _fStartTime = t;
+    }
+
+    private void OnEndTimeChanged(ChangeEventArgs e)
+    {
+        if (TimeOnly.TryParseExact(e.Value?.ToString()?.Trim() ?? string.Empty, "HH:mm", Ic,
+                System.Globalization.DateTimeStyles.None, out var t))
+            _fEndTime = t;
+    }
+
+    private void OnSeriesStartChanged(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParseExact(e.Value?.ToString()?.Trim() ?? string.Empty, "dd.MM.yyyy", Ic,
+                System.Globalization.DateTimeStyles.None, out var d))
+            _fSeriesStart = d;
+    }
+
+    private void OnSeriesEndChanged(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParseExact(e.Value?.ToString()?.Trim() ?? string.Empty, "dd.MM.yyyy", Ic,
+                System.Globalization.DateTimeStyles.None, out var d))
+            _fSeriesEnd = d;
     }
 
     private static string WochentagName(DayOfWeek d) => d switch

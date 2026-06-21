@@ -41,8 +41,9 @@ else
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Buchungen möglich bis und mit</label>
-                        <input type="text" class="form-control"
-                               @bind="_buchungenBisDatumStr" placeholder="dd.MM.yyyy" maxlength="10" />
+                        <input type="text" class="form-control" placeholder="dd.MM.yyyy" maxlength="10"
+                               value="@(_buchungenBisDatum?.ToString("dd.MM.yyyy") ?? string.Empty)"
+                               @onchange="OnBisDatumChanged" />
                         <div class="form-text">Online-Buchungen bis und mit diesem Datum. Leer lassen für unbegrenzt.</div>
                     </div>
                 </div>
@@ -114,7 +115,7 @@ else
     private string _kalenderBeginnTime = "07:00";
     private string _kalenderEndeTime = "23:00";
     private int _vorlaufzeitTage = 3;
-    private string _buchungenBisDatumStr = "";
+    private DateOnly? _buchungenBisDatum;
     private string _mailReservationAdresse = "";
     private string _mailReservationText = "";
     private string _mailBestaetigungAdresse = "";
@@ -127,8 +128,7 @@ else
         _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
         _vorlaufzeitTage         = Parse(cfg, "vorlaufzeit_tage", 3);
         var bisDatumRaw          = cfg.GetValueOrDefault("buchungen_bis_datum");
-        if (DateOnly.TryParse(bisDatumRaw, out var d))
-            _buchungenBisDatumStr = d.ToString("dd.MM.yyyy");
+        _buchungenBisDatum       = DateOnly.TryParse(bisDatumRaw, out var d) ? d : null;
         _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
         _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
@@ -140,19 +140,6 @@ else
     {
         _saved = false;
         _saveError = null;
-        string? bisDatumSave = null;
-        if (!string.IsNullOrWhiteSpace(_buchungenBisDatumStr))
-        {
-            if (DateOnly.TryParseExact(_buchungenBisDatumStr.Trim(), "dd.MM.yyyy",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None, out var parsedDate))
-                bisDatumSave = parsedDate.ToString("yyyy-MM-dd");
-            else
-            {
-                _saveError = "Datum «Buchungen möglich bis und mit» muss im Format dd.MM.yyyy angegeben werden.";
-                return;
-            }
-        }
         try
         {
             await Config.SetManyAsync(new Dictionary<string, string?>
@@ -160,7 +147,7 @@ else
                 ["kalender_beginn"]           = TimeToInt(_kalenderBeginnTime).ToString(),
                 ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _vorlaufzeitTage.ToString(),
-                ["buchungen_bis_datum"]       = bisDatumSave,
+                ["buchungen_bis_datum"]       = _buchungenBisDatum?.ToString("yyyy-MM-dd"),
                 ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
                 ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),
@@ -172,6 +159,17 @@ else
         {
             _saveError = "Fehler beim Speichern: " + ex.Message;
         }
+    }
+
+    private void OnBisDatumChanged(ChangeEventArgs e)
+    {
+        var s = e.Value?.ToString()?.Trim();
+        if (string.IsNullOrEmpty(s))
+            _buchungenBisDatum = null;
+        else if (DateOnly.TryParseExact(s, "dd.MM.yyyy",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var d))
+            _buchungenBisDatum = d;
     }
 
     private static string IntToTime(int hour) => $"{hour:00}:00";
