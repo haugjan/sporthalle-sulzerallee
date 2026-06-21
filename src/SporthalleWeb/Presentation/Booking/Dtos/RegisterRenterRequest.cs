@@ -1,11 +1,13 @@
-﻿namespace SporthalleWeb.Presentation.Booking.Dtos;
+namespace SporthalleWeb.Presentation.Booking.Dtos;
 
 public sealed record RegisterRenterRequest(
     string Email,
-    string ContactPerson,
     string RenterType,
-    string BillingName,
+    string? Name,
+    string ContactFirstName,
+    string ContactLastName,
     string BillingAddress,
+    string? AddressLine2,
     string BillingPostalCode,
     string BillingCity,
     string BillingCountry,

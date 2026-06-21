@@ -61,11 +61,11 @@ else
                         <td>
                             @if (member is not null)
                             {
-                                <strong>@member.ContactPerson</strong>
+                                <strong>@($"{member.ContactFirstName} {member.ContactLastName}".Trim())</strong>
                                 <br /><small class="text-muted">@member.RenterType.Value</small>
-                                @if (!string.IsNullOrEmpty(member.BillingName) && member.BillingName != member.ContactPerson)
+                                @if (member.Name is not null)
                                 {
-                                    <br /><small class="text-muted">@member.BillingName</small>
+                                    <br /><small class="text-muted">@member.Name</small>
                                 }
                                 @if (member.HasKey)
                                 {
@@ -229,7 +229,7 @@ else
             if (!string.IsNullOrWhiteSpace(configuredText))
             {
                 _confirmEmailText = configuredText
-                    .Replace("{Name}", member.ContactPerson)
+                    .Replace("{Name}", $"{member.ContactFirstName} {member.ContactLastName}".Trim())
                     .Replace("{Anlass}", slot.Title ?? "")
                     .Replace("{Datum}", start.ToString("dddd, d. MMMM yyyy", DeCh))
                     .Replace("{Von}", start.ToString("HH:mm"))

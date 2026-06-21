@@ -25,7 +25,6 @@
     <button class="btn btn-sm btn-outline-secondary" @onclick="PrevYear">‹ @(_year - 1)</button>
     <strong>@_year</strong>
     <button class="btn btn-sm btn-outline-secondary" @onclick="NextYear">@(_year + 1) ›</button>
-    <button class="btn btn-sm btn-primary ms-auto" @onclick="StartCreate">+ Neue Serie</button>
 </div>
 
 @if (_showForm)
@@ -156,7 +155,6 @@ else
                     <th style="white-space:nowrap">Zeit</th>
                     <th style="white-space:nowrap">Serie von – bis</th>
                     <th>Termine @_year</th>
-                    <th>Farbe</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -166,6 +164,10 @@ else
                     var s = item.Slot;
                     <tr>
                         <td>
+                            @if (!string.IsNullOrEmpty(s.Color))
+                            {
+                                <span style="display:block;width:28px;height:5px;background:@s.Color;border-radius:2px;margin-bottom:3px"></span>
+                            }
                             <strong>@s.Title</strong>
                             @if (!string.IsNullOrEmpty(s.Notes))
                             {
@@ -179,16 +181,6 @@ else
                             <small class="text-muted">bis @s.SeriesEnd.ToString("d. MMM yyyy", DeCh)</small>
                         </td>
                         <td>@item.OccurrencesThisYear</td>
-                        <td>
-                            @if (!string.IsNullOrEmpty(s.Color))
-                            {
-                                <span style="display:inline-block;width:20px;height:20px;background:@s.Color;border-radius:3px;border:1px solid #ccc"></span>
-                            }
-                            else
-                            {
-                                <span class="text-muted">–</span>
-                            }
-                        </td>
                         <td style="white-space:nowrap">
                             <button class="btn btn-sm btn-outline-secondary me-1"
                                     @onclick="() => StartEdit(s)">Bearbeiten</button>
@@ -230,8 +222,7 @@ else
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
     private static readonly string[] Colors = [
-        "#F1C40F","#C0392B","#1F4E79","#2B4C7E","#1E5E4A","#4A5568",
-        "#8C3A5C","#A8522A","#4A3762","#1A5A66","#3A563C","#5C4033"
+        "#C62828","#FFD54F","#1A1A1A","#2B6CB0","#2F855A","#702459","#D97706","#0E7490"
     ];
 
     private int _year = DateTime.Today.Year;

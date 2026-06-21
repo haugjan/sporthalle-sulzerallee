@@ -55,7 +55,6 @@ else
                     <th style="white-space:nowrap">Eingegangen</th>
                     <th style="white-space:nowrap">Termin</th>
                     <th>Anlass</th>
-                    <th>Farbe</th>
                     <th>Typ</th>
                     <th>Mieter</th>
                     <th>Rechnungsadresse</th>
@@ -79,23 +78,22 @@ else
                             @FormatSlot(s.Slot.StartUtc, s.Slot.EndUtc)<br />
                             <small class="text-muted">@((int)(s.Slot.EndUtc - s.Slot.StartUtc).TotalMinutes) min</small>
                         </td>
-                        <td>@(s.Title ?? "–")</td>
                         <td>
                             @if (!string.IsNullOrEmpty(s.Color))
                             {
-                                <span style="display:inline-block;width:20px;height:20px;background:@s.Color;border-radius:3px;border:1px solid #ccc"></span>
+                                <span style="display:block;width:28px;height:5px;background:@s.Color;border-radius:2px;margin-bottom:3px"></span>
                             }
-                            else { <span class="text-muted">–</span> }
+                            @(s.Title ?? "–")
                         </td>
                         <td><span class="badge @TypeBadge(s.Type.ToString())">@TypeLabel(s.Type)</span></td>
                         <td>
                             @if (m is not null)
                             {
-                                <strong>@m.ContactPerson</strong>
+                                <strong>@($"{m.ContactFirstName} {m.ContactLastName}".Trim())</strong>
                                 <br /><small class="text-muted">@m.RenterType.Value</small>
-                                @if (!string.IsNullOrEmpty(m.BillingName) && m.BillingName != m.ContactPerson)
+                                @if (m.Name is not null)
                                 {
-                                    <br /><small class="text-muted">@m.BillingName</small>
+                                    <br /><small class="text-muted">@m.Name</small>
                                 }
                                 @if (m.HasKey)
                                 {
@@ -174,7 +172,7 @@ else
     private static readonly System.Globalization.CultureInfo DeCh =
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
-    private string _viewMode = "Monat";
+    private string _viewMode = "Woche";
     private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
     private IReadOnlyList<(SporthalleWeb.Domain.Booking.BookingSlot Slot, SporthalleWeb.Domain.Booking.HallMember? Member)> _periodSlots = [];
     private bool _loadingPeriod;

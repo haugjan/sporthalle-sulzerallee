@@ -17,13 +17,15 @@ else
                 <div class="row g-3">
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Beginn)</label>
-                        <input type="text" class="form-control" value="@_kalenderBeginnTime" placeholder="HH:mm" maxlength="5"
-                               @onchange="e => _kalenderBeginnTime = e.Value?.ToString() ?? string.Empty" />
+                        <input type="time" class="form-control"
+                               value="@_kalenderBeginnTime"
+                               @onchange="@(e => _kalenderBeginnTime = e.Value?.ToString() ?? "07:00")" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Ende)</label>
-                        <input type="text" class="form-control" value="@_kalenderEndeTime" placeholder="HH:mm" maxlength="5"
-                               @onchange="e => _kalenderEndeTime = e.Value?.ToString() ?? string.Empty" />
+                        <input type="time" class="form-control"
+                               value="@_kalenderEndeTime"
+                               @onchange="@(e => _kalenderEndeTime = e.Value?.ToString() ?? "23:00")" />
                     </div>
                 </div>
             </div>
@@ -40,11 +42,9 @@ else
                         <div class="form-text">Mindestvorlauf in Tagen. Kürzere Anfragen verweisen auf E-Mail.</div>
                     </div>
                     <div class="col-sm-4">
-                        <label class="form-label fw-semibold">Buchungen möglich bis und mit</label>
-                        <input type="text" class="form-control" placeholder="dd.MM.yyyy" maxlength="10"
-                               value="@(_buchungenBisDatum?.ToString("dd.MM.yyyy") ?? string.Empty)"
-                               @onchange="OnBisDatumChanged" />
-                        <div class="form-text">Online-Buchungen bis und mit diesem Datum. Leer lassen für unbegrenzt.</div>
+                        <label class="form-label fw-semibold">Maximaler Vorlauf (Tage)</label>
+                        <input type="number" class="form-control" @bind="_buchungenMaxTage" min="0" max="3650" />
+                        <div class="form-text">Online-Buchungen bis maximal X Tage im Voraus. 0 = unbegrenzt.</div>
                     </div>
                 </div>
             </div>
@@ -115,7 +115,7 @@ else
     private string _kalenderBeginnTime = "07:00";
     private string _kalenderEndeTime = "23:00";
     private int _vorlaufzeitTage = 3;
-    private DateOnly? _buchungenBisDatum;
+    private int _buchungenMaxTage = 0;
     private string _mailReservationAdresse = "";
     private string _mailReservationText = "";
     private string _mailBestaetigungAdresse = "";
@@ -127,8 +127,7 @@ else
         _kalenderBeginnTime      = IntToTime(Parse(cfg, "kalender_beginn", 7));
         _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
         _vorlaufzeitTage         = Parse(cfg, "vorlaufzeit_tage", 3);
-        var bisDatumRaw          = cfg.GetValueOrDefault("buchungen_bis_datum");
-        _buchungenBisDatum       = DateOnly.TryParse(bisDatumRaw, out var d) ? d : null;
+        _buchungenMaxTage        = Parse(cfg, "buchungen_max_tage", 0);
         _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
         _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
@@ -140,6 +139,11 @@ else
     {
         _saved = false;
         _saveError = null;
+        if (TimeToInt(_kalenderBeginnTime) >= TimeToInt(_kalenderEndeTime))
+        {
+            _saveError = "Öffnungszeit (Beginn) muss vor Öffnungszeit (Ende) liegen.";
+            return;
+        }
         try
         {
             await Config.SetManyAsync(new Dictionary<string, string?>
@@ -147,7 +151,7 @@ else
                 ["kalender_beginn"]           = TimeToInt(_kalenderBeginnTime).ToString(),
                 ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _vorlaufzeitTage.ToString(),
-                ["buchungen_bis_datum"]       = _buchungenBisDatum?.ToString("yyyy-MM-dd"),
+                ["buchungen_max_tage"]        = _buchungenMaxTage > 0 ? _buchungenMaxTage.ToString() : null,
                 ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
                 ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),
@@ -159,17 +163,6 @@ else
         {
             _saveError = "Fehler beim Speichern: " + ex.Message;
         }
-    }
-
-    private void OnBisDatumChanged(ChangeEventArgs e)
-    {
-        var s = e.Value?.ToString()?.Trim();
-        if (string.IsNullOrEmpty(s))
-            _buchungenBisDatum = null;
-        else if (DateOnly.TryParseExact(s, "dd.MM.yyyy",
-            System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.None, out var d))
-            _buchungenBisDatum = d;
     }
 
     private static string IntToTime(int hour) => $"{hour:00}:00";

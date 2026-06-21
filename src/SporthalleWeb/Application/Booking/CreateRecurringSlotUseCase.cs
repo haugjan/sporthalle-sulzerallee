@@ -12,7 +12,8 @@ public sealed record RecurringSlotCommand(
     DateOnly SeriesStart,
     DateOnly SeriesEnd,
     string? Color,
-    string? Notes);
+    string? Notes,
+    bool IsBlocker = false);
 
 public sealed record RecurringSlotConflictDate(DateOnly Date, string Label);
 public sealed record RecurringSlotCheckResult(int OccurrenceCount, IReadOnlyList<RecurringSlotConflictDate> Conflicts);
@@ -56,7 +57,8 @@ public sealed class CreateRecurringSlotUseCase(
                 var overlaps = await slotRepo.GetActiveOverlapsAsync(timeSlot);
                 if (overlaps.Count > 0) { skipped++; continue; }
             }
-            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, createdBy, serieId);
+            var slotType = cmd.IsBlocker ? SlotType.Blocker : SlotType.Recurring;
+            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, createdBy, serieId, slotType);
             await slotRepo.SaveAsync(booking);
             created++;
         }

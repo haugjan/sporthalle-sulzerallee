@@ -26,15 +26,10 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Tag</label>
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <input type="date" class="form-control" style="max-width:175px"
-                                       value="@_editStartDate"
-                                       @onchange="OnEditDayChangedAsync" />
-                                @if (DateOnly.TryParse(_editStartDate, out var editDayLabel))
-                                {
-                                    <span class="text-muted">@editDayLabel.ToString("dddd, d. MMMM yyyy", DeCh)</span>
-                                }
-                            </div>
+                            <input type="text" class="form-control" style="max-width:140px"
+                                   value="@FormatDateDisplay(_editStartDate)"
+                                   placeholder="TT.MM.JJJJ" maxlength="10"
+                                   @onchange="OnEditDayChangedAsync" />
                         </div>
 
                         <div class="mb-3">
@@ -47,7 +42,7 @@
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Farbe</label>
                                 <div class="d-flex flex-wrap gap-2">
-                                    @foreach (var c in new[] { "#F1C40F","#C0392B","#1F4E79","#2B4C7E","#1E5E4A","#4A5568","#8C3A5C","#A8522A","#4A3762","#1A5A66","#3A563C","#5C4033" })
+                                    @foreach (var c in new[] { "#C62828","#FFD54F","#1A1A1A","#2B6CB0","#2F855A","#702459","#D97706","#0E7490" })
                                     {
                                         <button type="button"
                                                 style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
@@ -66,45 +61,13 @@
                         @if (_editHasMember)
                         {
                             <hr />
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">E-Mail</label>
-                                <input class="form-control" value="@_editEmail" readonly />
-                            </div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-sm-8">
-                                    <label class="form-label fw-semibold">Kontaktperson</label>
-                                    <input class="form-control" @bind="_editContactPerson" />
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold">Mieter</label>
+                                <div class="d-flex flex-column gap-1">
+                                    <span>@_editMemberName</span>
+                                    <small class="text-muted">@_editEmail</small>
                                 </div>
-                                <div class="col-sm-4">
-                                    <label class="form-label fw-semibold">Telefon</label>
-                                    <input class="form-control" @bind="_editPhone" type="tel" />
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Mietertyp</label>
-                                <select class="form-select" @bind="_editRenterType">
-                                    <option value="Privatperson">Privatperson</option>
-                                    <option value="Verein">Verein</option>
-                                    <option value="Firma">Firma</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Rechnungsname</label>
-                                <input class="form-control" @bind="_editBillingName" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Rechnungsadresse</label>
-                                <input class="form-control" @bind="_editBillingAddress" />
-                            </div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-sm-4">
-                                    <label class="form-label fw-semibold">PLZ</label>
-                                    <input class="form-control" @bind="_editBillingPostalCode" />
-                                </div>
-                                <div class="col-sm-8">
-                                    <label class="form-label fw-semibold">Ort</label>
-                                    <input class="form-control" @bind="_editBillingCity" />
-                                </div>
+                                <small class="text-muted">Mieterdaten können im Umbraco Members-Bereich bearbeitet werden.</small>
                             </div>
                         }
 
@@ -120,39 +83,7 @@
                             Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
                         </label>
                         <div id="ec-@_editSlotId"
-                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;user-select:none;cursor:crosshair">
-                            @{
-                                var calSlotCount = (_calEnd - _calStart) * 2;
-                                var loSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Min(_editSelStart, _editSelEnd) : -1;
-                                var hiSel = (_editSelStart >= 0 && _editSelEnd >= 0) ? Math.Max(_editSelStart, _editSelEnd) : -1;
-                            }
-                            @for (int si = 0; si < calSlotCount; si++)
-                            {
-                                var slotIdx = si;
-                                var slotH = _calStart + slotIdx / 2;
-                                var slotM = (slotIdx % 2) * 30;
-                                var isHour = slotM == 0;
-                                var inSel = loSel >= 0 && slotIdx >= loSel && slotIdx <= hiSel;
-                                var otherBooking = GetExistingBookingAtSlot(slotIdx);
-                                var cellClass = GetSlotCssClass(inSel, otherBooking);
-
-                                <div data-slot-idx="@slotIdx"
-                                     data-booked="@(otherBooking != null ? "1" : "0")"
-                                     class="@cellClass"
-                                     style="display:flex;height:22px;@(isHour ? "border-top:1px solid #dee2e6;" : "border-top:1px dotted #f0f0f0;")">
-                                    <div style="width:46px;flex-shrink:0;font-size:0.68rem;line-height:22px;
-                                                color:#adb5bd;text-align:right;padding-right:6px;
-                                                border-right:1px solid #dee2e6;background:#f8f9fa">
-                                        @(isHour ? $"{slotH:00}:00" : "")
-                                    </div>
-                                    <div style="flex:1;padding-left:6px;line-height:22px;font-size:0.7rem;overflow:hidden;white-space:nowrap">
-                                        @if (otherBooking is not null && isHour)
-                                        {
-                                            <span class="text-muted">@otherBooking.Title</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
+                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;user-select:none;min-height:300px">
                         </div>
 
                         @if (_editSelStart >= 0 && _editSelEnd >= 0)
@@ -199,13 +130,7 @@
     private bool _editHasMember;
     private int? _editMemberId;
     private string _editEmail = "";
-    private string _editContactPerson = "";
-    private string _editPhone = "";
-    private string _editRenterType = "";
-    private string _editBillingName = "";
-    private string _editBillingAddress = "";
-    private string _editBillingPostalCode = "";
-    private string _editBillingCity = "";
+    private string _editMemberName = "";
     private string _editStartDate = "";
     private string _editStartTime = "";
     private string _editEndDate = "";
@@ -229,22 +154,17 @@
         _editSlotId = id;
         _editLoading = true;
         _editError = null;
+        await InvokeAsync(StateHasChanged);
         var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
         if (slot is null) { _editSlotId = null; _editLoading = false; return; }
         _editSlotType          = slot.Type;
         _editTitle             = slot.Title ?? "";
         _editColor             = slot.Color ?? "#C0392B";
         _editNotes             = slot.Notes ?? "";
-        _editHasMember         = member is not null;
-        _editMemberId          = member?.Id;
-        _editEmail             = member?.Email ?? "";
-        _editContactPerson     = member?.ContactPerson ?? "";
-        _editPhone             = member?.Phone ?? "";
-        _editRenterType        = member?.RenterType.Value.ToString() ?? "Privatperson";
-        _editBillingName       = member?.BillingName ?? "";
-        _editBillingAddress    = member?.BillingAddress ?? "";
-        _editBillingPostalCode = member?.BillingPostalCode ?? "";
-        _editBillingCity       = member?.BillingCity ?? "";
+        _editHasMember   = member is not null;
+        _editMemberId    = member?.Id;
+        _editEmail       = member?.Email ?? "";
+        _editMemberName  = member is null ? "" : $"{member.ContactFirstName} {member.ContactLastName}".Trim();
         var startLocal = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
         var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
         _editStartDate = startLocal.ToString("yyyy-MM-dd");
@@ -276,6 +196,7 @@
         await LoadCalendarSlotsAsync();
         CheckConflicts();
         _editLoading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void CancelEdit()
@@ -314,17 +235,6 @@
                 await AdminService.RescheduleSlotAsync(_editSlotId.Value, startUtc, endUtc, AdminUser);
             }
 
-            if (_editHasMember && _editMemberId.HasValue)
-                await AdminService.UpdateMemberAsync(_editMemberId.Value,
-                    _editContactPerson.Trim(),
-                    string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone.Trim(),
-                    _editRenterType,
-                    _editBillingName.Trim(),
-                    _editBillingAddress.Trim(),
-                    _editBillingPostalCode.Trim(),
-                    _editBillingCity.Trim(),
-                    AdminUser);
-
             _editSlotId = null;
             await OnSaved.InvokeAsync();
         }
@@ -338,9 +248,30 @@
             && _calInitializedForSlotId != _editSlotId)
         {
             _calInitializedForSlotId = _editSlotId;
-            await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendar",
-                $"ec-{_editSlotId}", _dotNetRef);
+            var slotsJson = SerializeCalendarSlots();
+            await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendarDay",
+                $"ec-{_editSlotId}", _dotNetRef, slotsJson,
+                _calStart, _calEnd, _editSelStart, _editSelEnd);
         }
+    }
+
+    private string SerializeCalendarSlots()
+    {
+        var slots = _calendarSlotsForDay
+            .Where(s => s.Id != _editSlotId)
+            .Select(s =>
+            {
+                var startLocal = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.StartUtc, Zurich);
+                var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.EndUtc,   Zurich);
+                return new
+                {
+                    startMin = startLocal.Hour * 60 + startLocal.Minute,
+                    endMin   = endLocal.Hour * 60 + endLocal.Minute,
+                    title    = s.Title ?? "",
+                    color    = s.Color ?? "#546E7A"
+                };
+            });
+        return System.Text.Json.JsonSerializer.Serialize(slots);
     }
 
     [JSInvokable]
@@ -390,35 +321,29 @@
         return TimeZoneInfo.ConvertTimeToUtc(local, Zurich);
     }
 
-    private SporthalleWeb.Domain.Booking.BookingSlot? GetExistingBookingAtSlot(int idx)
-    {
-        if (!DateOnly.TryParse(_editStartDate, out var day)) return null;
-        var startUtc = SlotIdxToUtc(day, idx);
-        var endUtc   = SlotIdxToUtc(day, idx + 1);
-        return _calendarSlotsForDay.FirstOrDefault(s =>
-            s.Id != _editSlotId &&
-            s.Slot.StartUtc < endUtc &&
-            s.Slot.EndUtc   > startUtc);
-    }
-
-    private string GetSlotCssClass(bool inSel, SporthalleWeb.Domain.Booking.BookingSlot? other)
-    {
-        if (inSel && other is not null) return "ec-slot-conflict";
-        if (inSel) return "ec-slot-selected";
-        if (other is not null) return "ec-slot-booked";
-        return "";
-    }
-
     private async Task LoadCalendarSlotsAsync()
     {
         if (!DateOnly.TryParse(_editStartDate, out var day)) return;
         _calendarSlotsForDay = await AdminService.GetSlotsForPeriodAsync(day, day, includeRejected: false);
     }
 
+    private string FormatDateDisplay(string iso) =>
+        DateOnly.TryParse(iso, out var d) ? d.ToString("dd.MM.yyyy") : iso;
+
     private async Task OnEditDayChangedAsync(ChangeEventArgs e)
     {
-        _editStartDate = e.Value?.ToString() ?? _editStartDate;
+        var input = e.Value?.ToString() ?? "";
+        if (DateOnly.TryParseExact(input, "dd.MM.yyyy", DeCh,
+                System.Globalization.DateTimeStyles.None, out var d)
+            || DateOnly.TryParse(input, out d))
+        {
+            _editStartDate = d.ToString("yyyy-MM-dd");
+        }
         _editEndDate   = _editStartDate;
+        _editSelStart  = -1;
+        _editSelEnd    = -1;
+        _editConflict  = false;
+        _calInitializedForSlotId = null;
         await LoadCalendarSlotsAsync();
         CheckConflicts();
     }

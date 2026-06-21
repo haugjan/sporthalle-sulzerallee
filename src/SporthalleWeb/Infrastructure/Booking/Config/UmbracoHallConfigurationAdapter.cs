@@ -30,10 +30,17 @@ public sealed class UmbracoHallConfigurationAdapter(
         return 23;
     }
 
-    public async Task<DateOnly?> GetBookingCutoffDateAsync()
+    public async Task<int> GetShortNoticeDaysAsync()
     {
-        var raw = await hallConfigService.GetAsync("buchungen_bis_datum");
-        if (DateOnly.TryParse(raw, out var date)) return date;
+        var raw = await hallConfigService.GetAsync("vorlaufzeit_tage");
+        if (int.TryParse(raw, out var days) && days >= 0) return days;
+        return 3;
+    }
+
+    public async Task<int?> GetMaxBookingDaysAsync()
+    {
+        var raw = await hallConfigService.GetAsync("buchungen_max_tage");
+        if (int.TryParse(raw, out var days) && days > 0) return days;
         return null;
     }
 

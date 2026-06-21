@@ -1,4 +1,4 @@
-﻿using SporthalleWeb.Application.Booking;
+using SporthalleWeb.Application.Booking;
 
 namespace SporthalleWeb.Domain.Booking.Ports;
 
@@ -7,8 +7,11 @@ public interface IMemberManagerPort
     Task<HallMember?> FindByEmailAsync(string email);
     Task<HallMember?> FindByIdAsync(int memberId);
     Task<HallMember> CreateAsync(RegisterRenterCommand cmd, string? password);
-    Task UpdateProfileAsync(int memberId, string contactPerson, string billingName,
-        string billingAddress, string billingPostalCode, string billingCity, string? phone, bool hasKey);
+    Task UpdateProfileAsync(int memberId, string? name,
+        string contactFirstName, string contactLastName,
+        string billingAddress, string? addressLine2,
+        string billingPostalCode, string billingCity, string? phone);
+    Task<IReadOnlyList<HallMember>> SearchAsync(string query);
 
     Task<bool> CheckPasswordAsync(string email, string password);
     Task SignInAsync(int memberId);

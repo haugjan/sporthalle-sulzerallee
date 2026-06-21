@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Das Projekt — Sporthalle Sulzerallee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./preview-shared.css" />
+  <style>
+    body { padding-top: 68px; }
+
+    /* Anchor sub-nav */
+    .subnav {
+      background: #fff;
+      border-bottom: 1px solid #f0f0f0;
+      position: sticky; top: 68px; z-index: 40;
+      overflow-x: auto;
+    }
+    .subnav ul {
+      list-style: none; display: flex; gap: 0;
+      max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;
+    }
+    .subnav a {
+      display: block; padding: 1rem 1.5rem;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      text-decoration: none; color: #888;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .subnav a:hover { color: var(--dust); border-bottom-color: var(--dust); }
+
+    /* Photo caption */
+    .photo-caption {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.65rem; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: #bbb; margin-top: 0.75rem;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 2rem; border-top: 1px solid #e5e7eb;
+      padding-top: 2.5rem; margin-top: 3rem;
+    }
+    @media (max-width:500px) { .stats-row { grid-template-columns: 1fr 1fr; } }
+
+    /* Zweck list */
+    .zweck-list { list-style: none; margin-top: 1.75rem; }
+    .zweck-list li {
+      display: flex; gap: 1.25rem; align-items: flex-start;
+      padding: 1.25rem 0; border-bottom: 1px solid #f0f0f0;
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.05rem; line-height: 1.65; color: rgb(70,70,70);
+    }
+    .zweck-list li:first-child { border-top: 1px solid #f0f0f0; }
+    .zweck-list .dash {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: 1.5rem; line-height: 1; color: var(--dust);
+      flex-shrink: 0; margin-top: -0.1rem;
+    }
+
+    /* Press grid */
+    .press-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    @media (max-width:700px) { .press-grid { grid-template-columns: 1fr; } }
+
+    /* CTA strip */
+    .cta-strip {
+      background: var(--ink); padding: 4rem 0;
+      display: flex; align-items: center;
+    }
+    .cta-strip-inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;
+      display: flex; flex-wrap: wrap;
+      align-items: center; justify-content: space-between; gap: 2rem;
+    }
+    .cta-strip-heading {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: clamp(2.5rem, 5vw, 5rem);
+      line-height: 0.85; letter-spacing: 0.02em;
+      text-transform: uppercase; color: white;
+    }
+    .cta-strip-sub {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.95rem; color: rgba(255,255,255,0.4);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <div class="site-nav-inner">
+    <a href="./preview-home.html" class="site-nav-logo" aria-label="Startseite">
+      <img src="./media/logo-dust.svg" alt="Sporthalle Sulzerallee"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+      <span class="site-nav-logo-fallback" style="display:none;">
+        <span style="display:block;">SPORT&thinsp;&thinsp;SULZER</span>
+        <span style="display:block;">HALLE&thinsp;&thinsp;ALLEE</span>
+      </span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="./preview-projekt.html"        class="nav-link nav-link--active">Das Projekt</a></li>
+      <li><a href="./preview-unterstuetzung.html" class="nav-link">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html"         class="nav-link">Kontakt</a></li>
+      <li><a href="/passivmitglied" class="nav-btn-dust">Werde Passivmitglied</a></li>
+      <li><a href="/reservierung"   class="nav-btn-outline">Reservierung</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Navigation">
+      <svg width="22" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+        <line x1="0" y1="2" x2="22" y2="2"/><line x1="0" y1="9" x2="22" y2="9"/><line x1="0" y1="16" x2="22" y2="16"/>
+      </svg>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="./preview-projekt.html"        class="is-active">Das Projekt</a></li>
+      <li><a href="./preview-unterstuetzung.html">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html">Kontakt</a></li>
+      <li class="sep"></li>
+      <li><a href="/passivmitglied" style="color:var(--dust);">Werde Passivmitglied →</a></li>
+      <li><a href="/reservierung">Reservierung →</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<header class="page-header">
+  <div class="page-header-bg" style="background-image:url('./media/halle.jpg');"></div>
+  <div class="page-header-fade"></div>
+  <div class="page-header-body">
+    <nav class="page-header-breadcrumb" aria-label="Breadcrumb">
+      <a href="./preview-home.html">Sporthalle Sulzerallee</a>
+      <span>/</span>
+      <em>Das Projekt</em>
+    </nav>
+    <h1 class="page-header-title">Das<br>Projekt</h1>
+    <p class="page-header-sub">Ein gemeinsames Vorhaben der Winterthurer Unihockeyvereine zur nachhaltigen Sicherung der Hallenkapazität in der Region.</p>
+  </div>
+</header>
+
+
+<!-- ── SUB-NAV ──────────────────────────────────────────────── -->
+<div class="subnav">
+  <ul>
+    <li><a href="#projekt">Was ist das Projekt</a></li>
+    <li><a href="#zweck">Zweck</a></li>
+    <li><a href="#uber-uns">Über uns</a></li>
+    <li><a href="#medien">In den Medien</a></li>
+  </ul>
+</div>
+
+
+<!-- ── WAS IST DAS PROJEKT ──────────────────────────────────── -->
+<section class="section section--white section--lg" id="projekt">
+  <div class="container">
+    <div class="sec-header">
+      <span class="sec-tag">Was ist das Projekt</span>
+      <h2>Eine einmalige<br>Chance für<br>Winterthur</h2>
+    </div>
+
+    <div class="grid-5-7">
+      <!-- Photos -->
+      <div>
+        <div class="photo photo-4-3">
+          <img src="./media/2502_SporthalleSulzerallee_Bild8.jpg" alt="Aussenansicht Sulzerallee" loading="lazy" />
+        </div>
+        <p class="photo-caption">Sulzerallee, Winterthur — 2025</p>
+
+        <div class="photo photo-4-3" style="margin-top:1.5rem;">
+          <img src="./media/Abbruch_10.jpg" alt="Umbauarbeiten in der Halle" loading="lazy" />
+        </div>
+        <p class="photo-caption">Umbau &amp; Renovation 2025/26</p>
+      </div>
+
+      <!-- Text -->
+      <div>
+        <p class="t-body">
+          Die Sporthalle Sulzerallee ist ein gemeinsames Projekt der Winterthurer Unihockeyvereine. Mit dem eigenständigen Verein soll eine bestehende Lagerhalle ausgebaut und als Sportinfrastruktur betrieben werden.
+        </p>
+        <p class="t-body" style="margin-top:1.25rem;">
+          Ziel ist es, zusätzliche Trainingszeiten für Vereine und Schulsport zu ermöglichen und den akuten Bedarf an Hallenkapazität in Winterthur nachhaltig zu decken.
+        </p>
+        <p class="t-body" style="margin-top:1.25rem;">
+          Da die Halle auf bestehende Infrastruktur aufbaut, kann sie ressourcenschonend, kostenoptimiert und rasch realisiert werden. Der Umbau läuft in 2025/26, die Eröffnung ist für August 2026 geplant.
+        </p>
+
+        <div class="stats-row">
+          <div>
+            <span class="stat-val">1'100+</span>
+            <span class="stat-lbl">Spielerinnen<br>&amp; Spieler</span>
+          </div>
+          <div>
+            <span class="stat-val">12</span>
+            <span class="stat-lbl">Vereine<br>beteiligt</span>
+          </div>
+          <div>
+            <span class="stat-val">2026</span>
+            <span class="stat-lbl">Eröffnung<br>geplant</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── LAGEPLAN ──────────────────────────────────────────────── -->
+<section class="section--paper" style="padding:0;">
+  <div style="max-height:420px;overflow:hidden;">
+    <img src="./media/lageplan_neu.jpg" alt="Lageplan Sporthalle Sulzerallee"
+         style="width:100%;height:420px;object-fit:cover;object-position:center;filter:grayscale(60%) brightness(0.9);display:block;" loading="lazy" />
+  </div>
+  <div class="container" style="padding-top:1rem;padding-bottom:1rem;">
+    <span class="photo-caption">Lageplan — Sulzerallee 1/3, 8400 Winterthur</span>
+  </div>
+</section>
+
+
+<!-- ── ZWECK ─────────────────────────────────────────────────── -->
+<section class="section section--white" id="zweck">
+  <div class="container">
+    <div class="sec-header">
+      <span class="sec-tag">Zweck</span>
+      <h2>Wofür steht<br>der Verein</h2>
+      <p>Der Verein Sporthalle Sulzerallee hat einen klar definierten Zweck: Er schafft Hallenkapazität, die Winterthur braucht.</p>
+    </div>
+
+    <ul class="zweck-list">
+      <li>
+        <span class="dash">—</span>
+        <span>Bau und Betrieb einer leistungsfähigen Sporthalle in Winterthur, die für Unihockey, Schulsport und weitere Sportgruppen nutzbar ist.</span>
+      </li>
+      <li>
+        <span class="dash">—</span>
+        <span>Bereitstellung von zusätzlichen Trainingskapazitäten für die Winterthurer Unihockeyvereine, deren Trainingsnachfrage die verfügbare Hallenzeit übersteigt.</span>
+      </li>
+      <li>
+        <span class="dash">—</span>
+        <span>Förderung des Schulsports: Die Halle soll auch für Schulen in der Region verfügbar und erschwinglich sein.</span>
+      </li>
+      <li>
+        <span class="dash">—</span>
+        <span>Nachhaltiger und ressourcenschonender Betrieb durch Umbau einer bestehenden Lagerhalle — kein Neubau auf der grünen Wiese.</span>
+      </li>
+      <li>
+        <span class="dash">—</span>
+        <span>Finanzierung ohne öffentliche Gelder: Das Projekt trägt sich durch Mitgliedsbeiträge, Gönner und Hallenvermietung selbst.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ── ÜBER UNS ──────────────────────────────────────────────── -->
+<section class="section section--paper" id="uber-uns">
+  <div class="container">
+    <div class="grid-7-5" style="align-items:start;">
+      <div>
+        <div class="sec-header">
+          <span class="sec-tag">Über uns</span>
+          <h2>Gemeinsam<br>anpacken</h2>
+          <p>Der Verein wurde von den Winterthurer Unihockeyvereinen gegründet, um das Projekt gemeinsam zu realisieren.</p>
+        </div>
+
+        <p class="t-body">
+          Mehrere Unihockeyvereine aus Winterthur haben sich zum Verein Sporthalle Sulzerallee zusammengeschlossen. Gemeinsam planen, finanzieren und bauen sie eine Halle, die allen zugute kommt — nicht nur dem Unihockey.
+        </p>
+        <p class="t-body" style="margin-top:1.25rem;">
+          Das Projekt entsteht ohne öffentliche Gelder. Stattdessen tragen Mitglieder, Passivmitglieder, Gönner und die beteiligten Vereine gemeinsam die Kosten. Dieses Modell macht die Halle unabhängig und nachhaltig.
+        </p>
+
+        <div style="margin-top:2.5rem;">
+          <img src="./media/logo_vereine.jpg" alt="Beteiligte Unihockeyvereine"
+               style="height:48px;width:auto;object-fit:contain;opacity:0.55;" loading="lazy" />
+        </div>
+      </div>
+
+      <div>
+        <div class="photo photo-3-4">
+          <img src="./media/2502_SporthalleSulzerallee_Bild6.jpg" alt="Innenansicht der Halle" loading="lazy" />
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem;">
+          <div>
+            <span class="stat-val">300</span>
+            <span class="stat-lbl">Quadratmeter<br>Hallenboden</span>
+          </div>
+          <div>
+            <span class="stat-val">40m</span>
+            <span class="stat-lbl">Hallenlänge</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── IN DEN MEDIEN ────────────────────────────────────────── -->
+<section class="section section--white" id="medien">
+  <div class="container">
+    <div class="sec-header">
+      <span class="sec-tag">In den Medien</span>
+      <h2>Presse</h2>
+    </div>
+    <div class="press-grid">
+      <a href="/media/2025.03.07_Bericht_Landbote.pdf" target="_blank" class="press-card">
+        <span class="press-card-source">Der Landbote</span>
+        <span class="press-card-title">Bericht<br>7. März 2025</span>
+        <p style="font-family:'Manrope',sans-serif;font-size:0.9rem;line-height:1.65;color:#666;margin-bottom:1.25rem;">Erstbericht über das Projekt und die Pläne der Winterthurer Unihockeyvereine.</p>
+        <span class="link-arrow">PDF öffnen <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6h8M6 2l4 4-4 4"/></svg></span>
+      </a>
+      <a href="/media/2025.04.09_Bericht_Landbote.pdf" target="_blank" class="press-card">
+        <span class="press-card-source">Der Landbote</span>
+        <span class="press-card-title">Bericht<br>9. April 2025</span>
+        <p style="font-family:'Manrope',sans-serif;font-size:0.9rem;line-height:1.65;color:#666;margin-bottom:1.25rem;">Folgebericht mit ersten Reaktionen aus der Winterthurer Vereinslandschaft.</p>
+        <span class="link-arrow">PDF öffnen <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6h8M6 2l4 4-4 4"/></svg></span>
+      </a>
+      <a href="/media/2025.09.25_Bericht_Landbote.pdf" target="_blank" class="press-card">
+        <span class="press-card-source">Der Landbote</span>
+        <span class="press-card-title">Bericht<br>25. Sept. 2025</span>
+        <p style="font-family:'Manrope',sans-serif;font-size:0.9rem;line-height:1.65;color:#666;margin-bottom:1.25rem;">Aktueller Stand des Projekts und Ausblick auf Umbau und Eröffnung.</p>
+        <span class="link-arrow">PDF öffnen <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6h8M6 2l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── CTA STRIP ─────────────────────────────────────────────── -->
+<section class="cta-strip">
+  <div class="cta-strip-inner">
+    <div>
+      <div class="cta-strip-heading">Mitmachen</div>
+      <p class="cta-strip-sub">Werde Passivmitglied oder reserviere die Halle.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+      <a href="./preview-unterstuetzung.html" class="btn btn-dust">Passivmitglied werden</a>
+      <a href="/reservierung"                  class="btn btn-outline-white">Halle reservieren</a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── FOOTER ────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-logo">
+        <a href="./preview-home.html">
+          <img src="./media/logo-black.svg" alt="Sporthalle Sulzerallee"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+          <span style="display:none;font-family:'Bebas Neue',Impact,sans-serif;color:rgba(255,255,255,0.5);font-size:1.3rem;letter-spacing:0.06em;line-height:0.88;">
+            <span style="display:block;">SPORT&thinsp;SULZER</span>
+            <span style="display:block;">HALLE&thinsp;ALLEE</span>
+          </span>
+        </a>
+        <span class="footer-tagline">für Winterthur · Schulen · Unihockey</span>
+        <p class="footer-desc">Privates Projekt zur raschen Erhöhung der Hallenkapazität in Winterthur.</p>
+      </div>
+      <div>
+        <span class="footer-col-title">Seiten</span>
+        <ul class="footer-links">
+          <li><a href="./preview-projekt.html">Das Projekt</a></li>
+          <li><a href="./preview-unterstuetzung.html">Unterstützung</a></li>
+          <li><a href="./preview-kontakt.html">Kontakt</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="footer-col-title">Mitmachen</span>
+        <ul class="footer-links">
+          <li><a href="/passivmitglied">Werde Passivmitglied</a></li>
+          <li><a href="/reservierung">Halle reservieren</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="footer-col-title">Kontakt</span>
+        <div class="footer-contact">
+          <p>Verein Sporthalle Sulzerallee<br>Sulzerallee 1/3<br>8400 Winterthur</p>
+          <a href="mailto:info@sporthalle-sulzerallee.ch">info@sporthalle-sulzerallee.ch</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Verein Sporthalle Sulzerallee</span>
+      <div class="footer-meta">
+        <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank">Instagram</a>
+        <span>sporthalle-sulzerallee.ch</span>
+        <span>Design: Agentur Koch</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('navToggle').addEventListener('click', function () {
+    document.getElementById('mobileMenu').classList.toggle('is-open');
+  });
+</script>
+</body>
+</html>

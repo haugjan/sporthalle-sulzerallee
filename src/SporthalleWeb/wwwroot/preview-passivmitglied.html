@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Passivmitglied werden — Sporthalle Sulzerallee</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dust: 'rgb(235,80,75)',
+            'dust-hover': 'rgb(210,60,55)',
+            ink: 'rgb(16,16,16)',
+          },
+          fontFamily: {
+            headline: ['"Bebas Neue"', 'Impact', 'Arial Narrow', 'sans-serif'],
+            body: ['Manrope', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Manrope', system-ui, sans-serif; background: #fff; color: rgb(16,16,16); -webkit-font-smoothing: antialiased; }
+
+    .dust-texture { position: relative; }
+    .dust-texture::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.55;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.15'/%3E%3C/svg%3E");
+      background-size: 300px 300px; mix-blend-mode: overlay;
+    }
+
+    .label { font-family: 'Manrope', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
+    .section-label { display:flex; align-items:center; gap:1rem; margin-bottom:3.5rem; }
+    .section-num { font-family:'Bebas Neue',Impact,sans-serif; font-size:3rem; line-height:1; color:rgb(235,80,75); }
+    .section-divider { width:1px; height:2rem; background:#e0e0e0; flex-shrink:0; }
+
+    /* Hero */
+    .pm-hero { position: relative; height: 100svh; min-height: 620px; overflow: hidden; background: rgb(16,16,16); }
+    .pm-hero-photo { position: absolute; inset: 0; background-image: url('./media/halle.jpg'); background-size: cover; background-position: center; filter: grayscale(100%) brightness(0.25); transform: scale(1.02); }
+    .pm-hero-logo { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding-left: 3.5vw; }
+    .pm-hero-word { font-family: 'Bebas Neue', Impact, sans-serif; font-size: clamp(12vw, 17vw, 20vw); line-height: 0.82; color: rgb(235, 80, 75); display: block; letter-spacing: 0.02em; white-space: nowrap; }
+    .pm-hero-sub { font-family: 'Bebas Neue', Impact, sans-serif; font-size: clamp(12vw, 17vw, 20vw); line-height: 0.82; color: rgba(255,255,255,0.1); display: block; letter-spacing: 0.02em; white-space: nowrap; }
+
+    /* Tier cards */
+    .tier-card { border: 1.5px solid; padding: 2rem 1.75rem; transition: all 0.25s; position: relative; overflow: hidden; }
+    .tier-card--bronze { border-color: #e0d5cc; background: #faf8f6; }
+    .tier-card--bronze:hover { border-color: rgb(235,80,75); background: white; box-shadow: 0 8px 32px rgba(235,80,75,0.08); }
+    .tier-card--silber { border-color: #d0d5dd; background: #f7f8fa; }
+    .tier-card--silber:hover { border-color: rgb(235,80,75); background: white; box-shadow: 0 8px 32px rgba(235,80,75,0.08); }
+    .tier-card--gold { border-color: rgb(235,80,75); background: white; box-shadow: 0 8px 32px rgba(235,80,75,0.1); }
+    .tier-badge { display: inline-block; font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; padding: 0.3rem 0.75rem; margin-bottom: 1.25rem; }
+
+    @media (max-width: 768px) { .pm-hero-word, .pm-hero-sub { font-size: 19vw; } }
+  </style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+  <div class="max-w-screen-xl mx-auto px-6 md:px-10 h-[64px] flex items-center justify-between gap-8">
+    <a href="./preview-home.html" class="flex-shrink-0 hover:opacity-80 transition-opacity" aria-label="Startseite">
+      <img src="./media/logo-dust.svg" alt="Sporthalle Sulzerallee" style="height:38px;width:auto;" />
+    </a>
+    <ul class="hidden md:flex items-center gap-7 list-none text-[0.7rem] font-bold tracking-[0.18em] uppercase text-ink font-body">
+      <li><a href="./preview-projekt.html"          class="hover:text-dust transition-colors">Das Projekt</a></li>
+      <li><a href="./preview-projekt.html#uber-uns" class="hover:text-dust transition-colors">Über uns</a></li>
+      <li><a href="./preview-passivmitglied.html"   class="text-dust">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html"           class="hover:text-dust transition-colors">Kontakt</a></li>
+      <li>
+        <a href="./preview-passivmitglied.html"
+           class="bg-dust text-white px-5 py-2.5 hover:bg-dust-hover transition-colors text-[0.65rem] font-bold tracking-[0.18em] uppercase">
+          Passivmitglied
+        </a>
+      </li>
+      <li>
+        <a href="/reservierung"
+           class="border border-ink text-ink px-5 py-2.5 hover:bg-ink hover:text-white transition-colors text-[0.65rem] font-bold tracking-[0.18em] uppercase">
+          Halle reservieren
+        </a>
+      </li>
+    </ul>
+    <button class="md:hidden text-ink" id="nav-toggle" aria-label="Navigation öffnen">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+        <line x1="2" y1="6" x2="20" y2="6"/><line x1="2" y1="12" x2="20" y2="12"/><line x1="2" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 bg-white px-6 pb-6 pt-4">
+    <ul class="space-y-4 list-none font-body text-sm font-bold tracking-[0.14em] uppercase">
+      <li><a href="./preview-projekt.html"          class="block py-1 hover:text-dust transition-colors">Das Projekt</a></li>
+      <li><a href="./preview-projekt.html#uber-uns" class="block py-1 hover:text-dust transition-colors">Über uns</a></li>
+      <li><a href="./preview-passivmitglied.html"   class="block py-1 text-dust">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html"           class="block py-1 hover:text-dust transition-colors">Kontakt</a></li>
+      <li class="pt-2 border-t border-gray-100">
+        <a href="./preview-passivmitglied.html" class="block py-1 text-dust">Passivmitglied werden</a>
+      </li>
+      <li><a href="/reservierung" class="block py-1">Halle reservieren →</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+<!-- HERO DARK -->
+<section class="pm-hero" aria-label="Passivmitglied werden">
+  <div class="pm-hero-photo" role="img" aria-label="Sporthalle Sulzerallee"></div>
+
+  <div class="pm-hero-logo" aria-hidden="true">
+    <span class="pm-hero-word">WERDE</span>
+    <span class="pm-hero-word">PASSIV</span>
+    <span class="pm-hero-sub">MITGLIED</span>
+  </div>
+
+  <!-- Bottom strip with scroll hint and label -->
+  <div class="absolute bottom-0 left-0 right-0 px-6 md:px-10 py-5 border-t border-white/10 flex items-center justify-between">
+    <div class="flex items-center gap-6">
+      <span class="label text-white/40">02 Unterstützung</span>
+    </div>
+    <div class="flex items-center gap-2 font-body text-[0.65rem] font-semibold tracking-[0.22em] uppercase text-white/25">
+      <span>Scroll</span>
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M3 9l4 4 4-4"/></svg>
+    </div>
+  </div>
+</section>
+
+
+<!-- WAS IST PASSIVMITGLIED -->
+<section class="py-24 md:py-44 bg-white">
+  <div class="max-w-screen-xl mx-auto px-6 md:px-10">
+
+    <div class="section-label">
+      <span class="section-num">01</span>
+      <div class="section-divider"></div>
+      <span class="label text-dust">Was ist das?</span>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-16 md:gap-24 items-start">
+      <div>
+        <h2 class="font-headline uppercase leading-[0.85] text-ink mb-8"
+            style="font-size: clamp(3.5rem, 6vw, 7rem); letter-spacing: 0.02em;">
+          Dein Quadrat<br>meter Halle
+        </h2>
+        <div class="space-y-5 font-body text-[1.05rem] leading-[1.8] text-gray-600">
+          <p>
+            Als Passivmitglied adoptierst du symbolisch einen Quadratmeter des Hallenbodens der Sporthalle Sulzerallee. Dein Name wird auf dem Boden verewigt und du wirst Teil dieses einmaligen Projekts.
+          </p>
+          <p>
+            Das ist keine Spende — es ist eine Mitgliedschaft mit Gegenwert: Du erhältst deinen eigenen Quadratmeter, einen Platz in der Geschichte der Sporthalle, und die Gewissheit, etwas Nachhaltiges für Winterthur mitgebaut zu haben.
+          </p>
+          <p>
+            Die Passivmitgliedschaft ist der zentrale Baustein der Projektfinanzierung. Gemeinsam mit deinen Mitgliedern ermöglichst du den Bau der Halle.
+          </p>
+        </div>
+
+        <!-- How it works -->
+        <div class="mt-12 space-y-6">
+          <h3 class="font-headline uppercase text-ink" style="font-size:1.8rem; letter-spacing:0.03em;">So funktioniert's</h3>
+          <div class="space-y-5">
+            <div class="flex items-start gap-5">
+              <span class="font-headline text-dust text-[2.5rem] leading-none flex-shrink-0 w-10">1</span>
+              <div>
+                <p class="font-body font-semibold text-ink mb-1">Quadratmeter wählen</p>
+                <p class="font-body text-sm text-gray-500 leading-relaxed">Wähle auf dem interaktiven Hallenplan deinen persönlichen Quadratmeter aus.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-5">
+              <span class="font-headline text-dust text-[2.5rem] leading-none flex-shrink-0 w-10">2</span>
+              <div>
+                <p class="font-body font-semibold text-ink mb-1">Stufe auswählen</p>
+                <p class="font-body text-sm text-gray-500 leading-relaxed">Wähle zwischen Bronze, Silber oder Gold — je nach Budget und Engagement.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-5">
+              <span class="font-headline text-dust text-[2.5rem] leading-none flex-shrink-0 w-10">3</span>
+              <div>
+                <p class="font-body font-semibold text-ink mb-1">Anmelden und bezahlen</p>
+                <p class="font-body text-sm text-gray-500 leading-relaxed">Persönliche Daten eingeben. Rechnung folgt per E-Mail. Dein Name erscheint auf dem Boden nach Bezahlung.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floor plan preview -->
+      <div class="flex flex-col gap-6 md:pt-4">
+        <div class="overflow-hidden rounded-none border border-gray-100 bg-gray-50 p-4" style="aspect-ratio:1.3/1;">
+          <img src="./media/unihockey-boden.svg"
+               alt="Hallenplan — wähle deinen Quadratmeter"
+               class="w-full h-full object-contain" loading="lazy" />
+        </div>
+        <p class="font-body text-xs text-gray-400 tracking-widest uppercase text-center">
+          300 Quadratmeter · Interaktiver Hallenplan auf der Registrierungsseite
+        </p>
+        <div class="text-center mt-2">
+          <a href="/passivmitglied"
+             class="inline-block font-body text-[0.7rem] font-bold tracking-[0.18em] uppercase px-8 py-4 bg-dust text-white hover:bg-dust-hover transition-colors">
+            Quadratmeter wählen
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- MEMBERSHIP TIERS -->
+<section class="py-24 md:py-36 bg-gray-50" id="stufen">
+  <div class="max-w-screen-xl mx-auto px-6 md:px-10">
+
+    <div class="section-label">
+      <span class="section-num">02</span>
+      <div class="section-divider" style="background:#c0c0c0;"></div>
+      <span class="label text-dust">Mitgliedschaftsstufen</span>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 items-start">
+
+      <!-- Bronze -->
+      <div class="tier-card tier-card--bronze">
+        <div class="tier-badge" style="background:#f0ebe6; color:rgb(160,100,70);">Hallenbodenbesitzer</div>
+        <h3 class="font-headline uppercase text-ink mb-1" style="font-size:3.5rem; letter-spacing:0.03em; line-height:1;">Bronze</h3>
+        <div class="font-headline text-dust mb-6" style="font-size:2.5rem; letter-spacing:0.02em; line-height:1;">CHF 50.—</div>
+        <p class="font-body text-xs text-gray-400 tracking-widest uppercase mb-6">Pro Jahr</p>
+        <ul class="space-y-3 font-body text-sm text-gray-600 mb-8">
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>1 persönlicher Quadratmeter Hallenboden</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Name optional auf dem Boden verewigt</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Mitgliedsausweis als Hallenbodenbesitzer</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Einladung zum Eröffnungsfest</span>
+          </li>
+        </ul>
+        <a href="/passivmitglied"
+           class="block text-center font-body text-[0.7rem] font-bold tracking-[0.18em] uppercase py-4 border border-ink text-ink hover:bg-ink hover:text-white transition-colors">
+          Bronze wählen
+        </a>
+      </div>
+
+      <!-- Silber -->
+      <div class="tier-card tier-card--silber">
+        <div class="tier-badge" style="background:#eff1f5; color:rgb(70,90,120);">Chnebler</div>
+        <h3 class="font-headline uppercase text-ink mb-1" style="font-size:3.5rem; letter-spacing:0.03em; line-height:1;">Silber</h3>
+        <div class="font-headline text-dust mb-6" style="font-size:2.5rem; letter-spacing:0.02em; line-height:1;">CHF 100.—</div>
+        <p class="font-body text-xs text-gray-400 tracking-widest uppercase mb-6">Pro Jahr</p>
+        <ul class="space-y-3 font-body text-sm text-gray-600 mb-8">
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Alles aus Bronze</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Name prominent auf dem Hallenboden</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Erwähnung auf der Website</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Bevorzugte Einladung zu Events</span>
+          </li>
+        </ul>
+        <a href="/passivmitglied"
+           class="block text-center font-body text-[0.7rem] font-bold tracking-[0.18em] uppercase py-4 border border-ink text-ink hover:bg-ink hover:text-white transition-colors">
+          Silber wählen
+        </a>
+      </div>
+
+      <!-- Gold (highlighted) -->
+      <div class="tier-card tier-card--gold">
+        <div class="absolute top-4 right-4 bg-dust text-white font-body text-[0.55rem] font-bold tracking-widest uppercase px-3 py-1.5">Empfohlen</div>
+        <div class="tier-badge" style="background:rgba(235,80,75,0.1); color:rgb(235,80,75);">Cüpli-Chnebler</div>
+        <h3 class="font-headline uppercase text-ink mb-1" style="font-size:3.5rem; letter-spacing:0.03em; line-height:1;">Gold</h3>
+        <div class="font-headline text-dust mb-6" style="font-size:2.5rem; letter-spacing:0.02em; line-height:1;">CHF 200.—</div>
+        <p class="font-body text-xs text-gray-400 tracking-widest uppercase mb-6">Pro Jahr</p>
+        <ul class="space-y-3 font-body text-sm text-gray-600 mb-8">
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Alles aus Silber</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>VIP-Einladung zum Eröffnungsfest</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Freie Stunde Hallennutzung pro Jahr</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Namensnennung in Kommunikation &amp; Flyern</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-dust" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3.5 3.5L12 3"/></svg>
+            <span>Cüpli am Eröffnungsfest inklusive</span>
+          </li>
+        </ul>
+        <a href="/passivmitglied"
+           class="block text-center font-body text-[0.7rem] font-bold tracking-[0.18em] uppercase py-4 bg-dust text-white hover:bg-dust-hover transition-colors">
+          Gold wählen
+        </a>
+      </div>
+
+    </div>
+
+    <p class="font-body text-sm text-gray-400 mt-8 text-center">
+      Alle Stufen sind Jahresmitgliedschaften. Die Mitgliedschaft verlängert sich automatisch, sofern sie nicht gekündigt wird.
+    </p>
+  </div>
+</section>
+
+
+<!-- CTA DARK -->
+<section class="relative bg-ink py-24 md:py-44 overflow-hidden">
+  <div class="absolute inset-0 flex items-center justify-center select-none pointer-events-none" aria-hidden="true">
+    <div class="text-center leading-[0.78]">
+      <span class="font-headline text-white/[0.025]" style="font-size:clamp(20vw,24vw,30vw); display:block;">PASSIV</span>
+      <span class="font-headline text-white/[0.025]" style="font-size:clamp(20vw,24vw,30vw); display:block;">MITGLIED</span>
+    </div>
+  </div>
+
+  <div class="max-w-screen-xl mx-auto px-6 md:px-10 relative z-10 text-center">
+    <p class="label text-white/30 mb-8">Mitmachen</p>
+    <h2 class="font-headline text-white uppercase leading-[0.82] mb-10"
+        style="font-size: clamp(4.5rem, 10vw, 11rem); letter-spacing: 0.02em;">
+      Jetzt<br>einsteigen
+    </h2>
+    <p class="font-body text-white/45 text-lg leading-[1.7] max-w-md mx-auto mb-12">
+      300 Quadratmeter. Jeder zählt. Werde Teil der Sporthalle Sulzerallee und sichere dir deinen Platz in der Geschichte der Winterthurer Unihockey-Infrastruktur.
+    </p>
+    <a href="/passivmitglied"
+       class="inline-block font-body text-[0.75rem] font-bold tracking-[0.2em] uppercase px-10 py-5 bg-dust text-white hover:bg-dust-hover transition-colors">
+      Quadratmeter wählen und anmelden
+    </a>
+  </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer class="bg-[rgb(10,10,10)] border-t border-white/5 pt-16 pb-10">
+  <div class="max-w-screen-xl mx-auto px-6 md:px-10">
+    <div class="grid md:grid-cols-[2fr_1fr_1fr_1fr] gap-12 mb-16">
+      <div>
+        <a href="./preview-home.html" class="inline-block hover:opacity-70 transition-opacity mb-4">
+          <img src="./media/logo-black.svg" alt="Sporthalle Sulzerallee" style="height:36px;width:auto;filter:brightness(0) invert(1);" />
+        </a>
+        <p class="font-body text-xs text-white/25 tracking-[0.18em] uppercase mb-4">für Winterthur · Schulen · Unihockey</p>
+        <p class="font-body text-sm text-white/35 leading-[1.7] max-w-xs">
+          Privates Projekt zur raschen Erhöhung der Hallenkapazität in Winterthur.
+        </p>
+      </div>
+      <div>
+        <span class="label text-white/20 block mb-5">Seiten</span>
+        <ul class="space-y-3 list-none font-body text-sm text-white/45">
+          <li><a href="./preview-projekt.html"          class="hover:text-white transition-colors">Das Projekt</a></li>
+          <li><a href="./preview-projekt.html#uber-uns" class="hover:text-white transition-colors">Über uns</a></li>
+          <li><a href="./preview-projekt.html#medien"   class="hover:text-white transition-colors">In den Medien</a></li>
+          <li><a href="./preview-passivmitglied.html"   class="hover:text-white transition-colors">Unterstützung</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="label text-white/20 block mb-5">Mitmachen</span>
+        <ul class="space-y-3 list-none font-body text-sm text-white/45">
+          <li><a href="./preview-passivmitglied.html" class="hover:text-white transition-colors">Passivmitglied werden</a></li>
+          <li><a href="/reservierung"                  class="hover:text-white transition-colors">Halle reservieren</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="label text-white/20 block mb-5">Kontakt</span>
+        <div class="font-body text-sm text-white/45 space-y-2">
+          <p>Verein Sporthalle Sulzerallee</p>
+          <p>Sulzerallee 1/3<br>8400 Winterthur</p>
+          <a href="mailto:info@sporthalle-sulzerallee.ch" class="text-dust hover:text-white transition-colors block mt-4">
+            info@sporthalle-sulzerallee.ch
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-white/5 pt-8 flex flex-wrap items-center justify-between gap-4">
+      <span class="font-body text-xs text-white/20">© 2026 Verein Sporthalle Sulzerallee</span>
+      <div class="flex items-center gap-6 font-body text-xs text-white/20">
+        <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank" class="hover:text-white/50 transition-colors">Instagram</a>
+        <span>sporthalle-sulzerallee.ch</span>
+        <span>Design: Agentur Koch</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('nav-toggle')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu').classList.toggle('hidden');
+  });
+</script>
+</body>
+</html>

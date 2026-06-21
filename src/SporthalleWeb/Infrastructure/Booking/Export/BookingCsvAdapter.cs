@@ -39,7 +39,7 @@ public sealed class BookingCsvAdapter(
                 durationH.ToString("0.##"),
                 slot.Type.ToString(),
                 CsvEscape(slot.Title),
-                CsvEscape(member?.ContactPerson),
+                CsvEscape(member is null ? null : $"{member.ContactFirstName} {member.ContactLastName}".Trim()),
                 CsvEscape(member?.Email),
                 CsvEscape(slot.Notes)));
         }

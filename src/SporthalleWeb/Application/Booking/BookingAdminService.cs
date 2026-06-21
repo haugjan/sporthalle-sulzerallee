@@ -146,15 +146,4 @@ public sealed class BookingAdminService(
         await audit.LogAsync("BookingSlot", slotId, "Rescheduled", adminUser, null, new { startUtc, endUtc });
     }
 
-    public async Task UpdateMemberAsync(int memberId, string contactPerson, string? phone,
-        string renterType, string billingName, string billingAddress,
-        string billingPostalCode, string billingCity, string adminUser)
-    {
-        var member = await members.FindByIdAsync(memberId)
-            ?? throw new DomainException($"Mieter {memberId} nicht gefunden.");
-        await members.UpdateProfileAsync(memberId, contactPerson, billingName,
-            billingAddress, billingPostalCode, billingCity, phone, member.HasKey);
-        await audit.LogAsync("HallMember", memberId, "Updated", adminUser, null,
-            new { contactPerson, phone, renterType, billingName, billingAddress, billingPostalCode, billingCity });
-    }
 }

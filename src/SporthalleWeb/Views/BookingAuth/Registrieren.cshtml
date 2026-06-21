@@ -21,17 +21,27 @@
                 <input type="email" name="email" class="form-control" required autocomplete="email" />
             </div>
             <div class="mb-3">
-                <label class="form-label">Ansprechperson *</label>
-                <input type="text" name="contactPerson" class="form-control" required />
-            </div>
-            <div class="mb-3">
                 <label class="form-label">Mietertyp *</label>
-                <select name="renterType" class="form-select" required>
+                <select name="renterType" class="form-select" required id="reg-renter-type">
                     <option value="Privatperson">Privatperson</option>
                     <option value="Verein">Verein</option>
                     <option value="Firma">Firma / Unternehmen</option>
-                    <option value="Schule">Schule / Bildungseinrichtung</option>
+                    <option value="Behörde">Behörde</option>
                 </select>
+            </div>
+            <div class="mb-3" id="reg-name-row" style="display:none">
+                <label class="form-label" id="reg-name-label">Organisationsname *</label>
+                <input type="text" name="name" id="reg-name" class="form-control" autocomplete="organization" />
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label">Vorname *</label>
+                    <input type="text" name="contactFirstName" class="form-control" required autocomplete="given-name" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Nachname *</label>
+                    <input type="text" name="contactLastName" class="form-control" required autocomplete="family-name" />
+                </div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Telefon (optional)</label>
@@ -42,12 +52,12 @@
         <div class="card p-4 mt-3">
             <h5 class="mb-3">Rechnungsadresse</h5>
             <div class="mb-3">
-                <label class="form-label">Name / Firma *</label>
-                <input type="text" name="billingName" class="form-control" required />
-            </div>
-            <div class="mb-3">
                 <label class="form-label">Strasse und Hausnummer *</label>
                 <input type="text" name="billingAddress" class="form-control" required autocomplete="street-address" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Adresszusatz (optional)</label>
+                <input type="text" name="addressLine2" class="form-control" autocomplete="address-line2" />
             </div>
             <div class="row g-2">
                 <div class="col-4">
@@ -82,3 +92,22 @@
         <a href="/reservierung/anmelden">Anmelden</a>
     </p>
 </div>
+
+<script>
+(function () {
+    var typeSelect = document.getElementById('reg-renter-type');
+    var nameRow = document.getElementById('reg-name-row');
+    var nameLabel = document.getElementById('reg-name-label');
+    var nameInput = document.getElementById('reg-name');
+    var labels = { 'Verein': 'Vereinsname *', 'Firma': 'Firmenname *', 'Behörde': 'Behördenname *' };
+    function update() {
+        var t = typeSelect.value;
+        var isOrg = t !== 'Privatperson';
+        nameRow.style.display = isOrg ? '' : 'none';
+        nameInput.required = isOrg;
+        if (isOrg && labels[t]) nameLabel.textContent = labels[t];
+    }
+    typeSelect.addEventListener('change', update);
+    update();
+})();
+</script>

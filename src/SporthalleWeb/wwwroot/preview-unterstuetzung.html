@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unterstützung — Sporthalle Sulzerallee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./preview-shared.css" />
+  <style>
+    body { padding-top: 68px; }
+
+    /* Steps */
+    .steps { list-style: none; margin-top: 2rem; }
+    .step {
+      display: flex; gap: 1.5rem; align-items: flex-start;
+      padding: 1.75rem 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .step:first-child { border-top: 1px solid #f0f0f0; }
+    .step-num {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: 2.5rem; line-height: 1; color: var(--dust);
+      flex-shrink: 0; width: 2rem;
+    }
+    .step-title {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1rem; font-weight: 700; color: var(--ink);
+      margin-bottom: 0.35rem;
+    }
+    .step-desc {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.95rem; line-height: 1.65; color: rgb(90,90,90);
+    }
+
+    /* Tier cards */
+    .tiers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem; align-items: start;
+    }
+    @media (max-width: 800px) { .tiers-grid { grid-template-columns: 1fr; } }
+
+    .tier-badge {
+      display: inline-block;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 0.3rem 0.85rem; margin-bottom: 1.25rem;
+    }
+    .tier-features { list-style: none; margin: 1.5rem 0 2rem; }
+    .tier-features li {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.92rem; line-height: 1.6; color: rgb(70,70,70);
+      padding: 0.5rem 0; border-bottom: 1px solid #f5f5f5;
+    }
+    .tier-features li:last-child { border-bottom: none; }
+    .tier-check { color: var(--dust); flex-shrink: 0; margin-top: 0.15rem; }
+    .tier-note {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.78rem; color: #aaa;
+      text-align: center; margin-top: 2rem;
+    }
+
+    /* Featured badge */
+    .badge-empfohlen {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--dust); color: white;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 0.3rem 0.7rem;
+    }
+
+    /* Dark CTA */
+    .dark-cta {
+      background: var(--ink);
+      padding: 6rem 0; overflow: hidden; position: relative;
+    }
+    .dark-cta-deco {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; user-select: none;
+    }
+    .dark-cta-deco span {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: 28vw; line-height: 0.8; letter-spacing: 0.02em;
+      color: rgba(255,255,255,0.02); text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .dark-cta-body { position: relative; z-index: 1; text-align: center; }
+    .dark-cta-title {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: clamp(4.5rem, 11vw, 11rem);
+      line-height: 0.82; letter-spacing: 0.02em;
+      text-transform: uppercase; color: var(--dust);
+      margin-bottom: 1.5rem;
+    }
+    .dark-cta-sub {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.1rem; line-height: 1.7;
+      color: rgba(255,255,255,0.4);
+      max-width: 480px; margin: 0 auto 2.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <div class="site-nav-inner">
+    <a href="./preview-home.html" class="site-nav-logo" aria-label="Startseite">
+      <img src="./media/logo-dust.svg" alt="Sporthalle Sulzerallee"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+      <span class="site-nav-logo-fallback" style="display:none;">
+        <span style="display:block;">SPORT&thinsp;&thinsp;SULZER</span>
+        <span style="display:block;">HALLE&thinsp;&thinsp;ALLEE</span>
+      </span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="./preview-projekt.html"        class="nav-link">Das Projekt</a></li>
+      <li><a href="./preview-unterstuetzung.html" class="nav-link nav-link--active">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html"         class="nav-link">Kontakt</a></li>
+      <li><a href="/passivmitglied" class="nav-btn-dust">Werde Passivmitglied</a></li>
+      <li><a href="/reservierung"   class="nav-btn-outline">Reservierung</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Navigation">
+      <svg width="22" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+        <line x1="0" y1="2" x2="22" y2="2"/><line x1="0" y1="9" x2="22" y2="9"/><line x1="0" y1="16" x2="22" y2="16"/>
+      </svg>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="./preview-projekt.html">Das Projekt</a></li>
+      <li><a href="./preview-unterstuetzung.html" class="is-active">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html">Kontakt</a></li>
+      <li class="sep"></li>
+      <li><a href="/passivmitglied" style="color:var(--dust);">Werde Passivmitglied →</a></li>
+      <li><a href="/reservierung">Reservierung →</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<header class="page-header">
+  <div class="page-header-bg" style="background-image:url('./media/2502_SporthalleSulzerallee_Bild8.jpg');"></div>
+  <div class="page-header-fade"></div>
+  <div class="page-header-body">
+    <nav class="page-header-breadcrumb" aria-label="Breadcrumb">
+      <a href="./preview-home.html">Sporthalle Sulzerallee</a>
+      <span>/</span>
+      <em>Unterstützung</em>
+    </nav>
+    <h1 class="page-header-title">Unter<br>stützung</h1>
+    <p class="page-header-sub">Werde Teil der Sporthalle Sulzerallee — als Passivmitglied, mit deinem Namen dauerhaft auf dem Hallenboden.</p>
+  </div>
+</header>
+
+
+<!-- ── KONZEPT ────────────────────────────────────────────────── -->
+<section class="section section--white section--lg">
+  <div class="container">
+    <div class="grid-7-5">
+      <div>
+        <div class="sec-header">
+          <span class="sec-tag">Passivmitglied</span>
+          <h2>Dein Quadrat<br>meter Halle</h2>
+          <p>Als Passivmitglied adoptierst du symbolisch einen Quadratmeter des Hallenbodens. Dein Name wird im Boden verewigt — und du wirst Teil eines einmaligen Projekts für Winterthur.</p>
+        </div>
+
+        <ul class="steps">
+          <li class="step">
+            <span class="step-num">1</span>
+            <div>
+              <p class="step-title">Quadratmeter wählen</p>
+              <p class="step-desc">Wähle auf dem interaktiven Hallenplan deinen persönlichen Quadratmeter aus den 300 verfügbaren Feldern.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <div>
+              <p class="step-title">Mitgliedschaftsstufe auswählen</p>
+              <p class="step-desc">Wähle zwischen Bronze, Silber oder Gold — je nach Engagement und Möglichkeiten.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <div>
+              <p class="step-title">Anmelden und bezahlen</p>
+              <p class="step-desc">Daten eingeben, Rechnung kommt per E-Mail. Nach Eingang der Zahlung erscheint dein Name auf dem Boden.</p>
+            </div>
+          </li>
+        </ul>
+
+        <div style="margin-top:2.5rem;">
+          <a href="/passivmitglied" class="btn btn-dust">Jetzt Quadratmeter wählen</a>
+        </div>
+      </div>
+
+      <!-- Floor plan preview -->
+      <div>
+        <div style="border:1px solid #eee;padding:1.5rem;background:#fafafa;">
+          <img src="./media/unihockey-boden.svg"
+               alt="Interaktiver Hallenplan — 300 Quadratmeter"
+               style="width:100%;height:auto;display:block;" loading="lazy" />
+        </div>
+        <p style="font-family:'Manrope',sans-serif;font-size:0.65rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:#bbb;margin-top:0.75rem;text-align:center;">
+          300 Quadratmeter · Interaktiver Hallenplan
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── MITGLIEDSCHAFTSSTUFEN ────────────────────────────────── -->
+<section class="section section--paper">
+  <div class="container">
+    <div class="sec-header">
+      <span class="sec-tag">Mitgliedschaftsstufen</span>
+      <h2>Bronze<br>Silber<br>Gold</h2>
+    </div>
+
+    <div class="tiers-grid">
+
+      <!-- Bronze -->
+      <div class="tier-card">
+        <span class="tier-badge" style="background:#f5ede8;color:#a05030;">Hallenbodenbesitzer</span>
+        <div class="tier-name">Bronze</div>
+        <div class="tier-price">CHF 50.—</div>
+        <span class="tier-label">Pro Jahr</span>
+        <ul class="tier-features">
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>1 persönlicher Quadratmeter Hallenboden</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Name optional auf dem Boden</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Einladung zum Eröffnungsfest</span></li>
+        </ul>
+        <a href="/passivmitglied" class="btn btn-outline-ink" style="display:block;text-align:center;">Bronze wählen</a>
+      </div>
+
+      <!-- Silber -->
+      <div class="tier-card">
+        <span class="tier-badge" style="background:#edf0f6;color:#485a7a;">Chnebler</span>
+        <div class="tier-name">Silber</div>
+        <div class="tier-price">CHF 100.—</div>
+        <span class="tier-label">Pro Jahr</span>
+        <ul class="tier-features">
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Alles aus Bronze</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Name prominent auf dem Boden</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Erwähnung auf der Website</span></li>
+        </ul>
+        <a href="/passivmitglied" class="btn btn-outline-ink" style="display:block;text-align:center;">Silber wählen</a>
+      </div>
+
+      <!-- Gold (featured) -->
+      <div class="tier-card tier-card--featured" style="position:relative;">
+        <span class="badge-empfohlen">Empfohlen</span>
+        <span class="tier-badge" style="background:rgba(235,80,75,0.1);color:var(--dust);">Cüpli-Chnebler</span>
+        <div class="tier-name">Gold</div>
+        <div class="tier-price">CHF 200.—</div>
+        <span class="tier-label">Pro Jahr</span>
+        <ul class="tier-features">
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Alles aus Silber</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>VIP-Einladung zum Eröffnungsfest</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Freie Stunde Hallennutzung / Jahr</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Namensnennung in Kommunikation</span></li>
+          <li><svg class="tier-check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 7l3 3.5L12 3"/></svg><span>Cüpli am Eröffnungsfest inklusive</span></li>
+        </ul>
+        <a href="/passivmitglied" class="btn btn-dust" style="display:block;text-align:center;">Gold wählen</a>
+      </div>
+
+    </div>
+
+    <p class="tier-note">Alle Stufen sind Jahresmitgliedschaften und verlängern sich automatisch bis zur Kündigung.</p>
+  </div>
+</section>
+
+
+<!-- ── DARK CTA ────────────────────────────────────────────────── -->
+<section class="dark-cta">
+  <div class="dark-cta-deco" aria-hidden="true">
+    <span>PASSIV<br>MITGLIED</span>
+  </div>
+  <div class="container dark-cta-body">
+    <h2 class="dark-cta-title">Jetzt<br>einsteigen</h2>
+    <p class="dark-cta-sub">300 Quadratmeter. Jeder zählt. Sichere dir deinen Platz in der Geschichte der Sporthalle Sulzerallee.</p>
+    <a href="/passivmitglied" class="btn btn-dust" style="font-size:0.75rem;padding:1.1rem 2.75rem;">Quadratmeter wählen und anmelden</a>
+  </div>
+</section>
+
+
+<!-- ── FOOTER ────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-logo">
+        <a href="./preview-home.html">
+          <img src="./media/logo-black.svg" alt="Sporthalle Sulzerallee"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+          <span style="display:none;font-family:'Bebas Neue',Impact,sans-serif;color:rgba(255,255,255,0.5);font-size:1.3rem;letter-spacing:0.06em;line-height:0.88;">
+            <span style="display:block;">SPORT&thinsp;SULZER</span>
+            <span style="display:block;">HALLE&thinsp;ALLEE</span>
+          </span>
+        </a>
+        <span class="footer-tagline">für Winterthur · Schulen · Unihockey</span>
+        <p class="footer-desc">Privates Projekt zur raschen Erhöhung der Hallenkapazität in Winterthur.</p>
+      </div>
+      <div>
+        <span class="footer-col-title">Seiten</span>
+        <ul class="footer-links">
+          <li><a href="./preview-projekt.html">Das Projekt</a></li>
+          <li><a href="./preview-unterstuetzung.html">Unterstützung</a></li>
+          <li><a href="./preview-kontakt.html">Kontakt</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="footer-col-title">Mitmachen</span>
+        <ul class="footer-links">
+          <li><a href="/passivmitglied">Werde Passivmitglied</a></li>
+          <li><a href="/reservierung">Halle reservieren</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="footer-col-title">Kontakt</span>
+        <div class="footer-contact">
+          <p>Verein Sporthalle Sulzerallee<br>Sulzerallee 1/3<br>8400 Winterthur</p>
+          <a href="mailto:info@sporthalle-sulzerallee.ch">info@sporthalle-sulzerallee.ch</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Verein Sporthalle Sulzerallee</span>
+      <div class="footer-meta">
+        <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank">Instagram</a>
+        <span>sporthalle-sulzerallee.ch</span>
+        <span>Design: Agentur Koch</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('navToggle').addEventListener('click', function () {
+    document.getElementById('mobileMenu').classList.toggle('is-open');
+  });
+</script>
+</body>
+</html>

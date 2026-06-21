@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kontakt — Sporthalle Sulzerallee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./preview-shared.css" />
+  <style>
+    body { padding-top: 68px; }
+
+    /* Contact info */
+    .contact-block {
+      border-top: 1px solid #e8e8e8;
+      padding: 2.25rem 0;
+    }
+    .contact-block:last-child { border-bottom: 1px solid #e8e8e8; }
+    .contact-block-label {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--dust); margin-bottom: 0.6rem;
+    }
+    .contact-block-value {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.05rem; color: var(--ink); line-height: 1.7;
+    }
+    .contact-block-value a {
+      color: var(--ink); text-decoration: none;
+    }
+    .contact-block-value a:hover { color: var(--dust); }
+
+    /* Map / Lageplan */
+    .lageplan-wrap {
+      position: relative;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+    .lageplan-wrap img {
+      width: 100%; height: 460px;
+      object-fit: cover; display: block;
+      filter: grayscale(1) brightness(0.5);
+    }
+    .lageplan-badge {
+      position: absolute; bottom: 2rem; left: 2rem;
+      background: white; padding: 1rem 1.5rem;
+    }
+    .lageplan-badge-title {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: 1.5rem; letter-spacing: 0.06em;
+      color: var(--ink); line-height: 1;
+    }
+    .lageplan-badge-addr {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.82rem; color: rgb(80,80,80);
+      margin-top: 0.3rem;
+    }
+
+    /* Contact grid */
+    .contact-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem; align-items: start;
+    }
+    @media (max-width: 800px) {
+      .contact-layout { grid-template-columns: 1fr; gap: 3rem; }
+    }
+
+    /* Form */
+    .form-field { margin-bottom: 1.25rem; }
+    .form-label {
+      display: block;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgb(100,100,100); margin-bottom: 0.45rem;
+    }
+    .form-input,
+    .form-textarea {
+      display: block; width: 100%; box-sizing: border-box;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.95rem; color: var(--ink);
+      border: 1.5px solid #d0d0d0; padding: 0.75rem 1rem;
+      background: #fafafa; outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-textarea:focus {
+      border-color: var(--dust); background: white;
+    }
+    .form-textarea { resize: vertical; min-height: 120px; }
+    .form-submit {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: 1.15rem; letter-spacing: 0.1em;
+      background: var(--dust); color: white;
+      border: none; cursor: pointer;
+      padding: 0.9rem 2.5rem;
+      display: inline-block;
+      transition: background 0.15s;
+    }
+    .form-submit:hover { background: var(--dust-dark); }
+
+    /* Verein info */
+    .verein-info {
+      border-left: 3px solid var(--dust);
+      padding-left: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .verein-info p {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.95rem; line-height: 1.7;
+      color: rgb(80,80,80); margin: 0;
+    }
+    .verein-info strong { color: var(--ink); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <div class="site-nav-inner">
+    <a href="./preview-home.html" class="site-nav-logo" aria-label="Startseite">
+      <img src="./media/logo-dust.svg" alt="Sporthalle Sulzerallee"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+      <span class="site-nav-logo-fallback" style="display:none;">
+        <span style="display:block;">SPORT&thinsp;&thinsp;SULZER</span>
+        <span style="display:block;">HALLE&thinsp;&thinsp;ALLEE</span>
+      </span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="./preview-projekt.html"        class="nav-link">Das Projekt</a></li>
+      <li><a href="./preview-unterstuetzung.html" class="nav-link">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html"         class="nav-link nav-link--active">Kontakt</a></li>
+      <li><a href="/passivmitglied" class="nav-btn-dust">Werde Passivmitglied</a></li>
+      <li><a href="/reservierung"   class="nav-btn-outline">Reservierung</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Navigation">
+      <svg width="22" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+        <line x1="0" y1="2" x2="22" y2="2"/><line x1="0" y1="9" x2="22" y2="9"/><line x1="0" y1="16" x2="22" y2="16"/>
+      </svg>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="./preview-projekt.html">Das Projekt</a></li>
+      <li><a href="./preview-unterstuetzung.html">Unterstützung</a></li>
+      <li><a href="./preview-kontakt.html" class="is-active">Kontakt</a></li>
+      <li class="sep"></li>
+      <li><a href="/passivmitglied" style="color:var(--dust);">Werde Passivmitglied →</a></li>
+      <li><a href="/reservierung">Reservierung →</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<header class="page-header">
+  <div class="page-header-bg" style="background-image:url('./media/2502_SporthalleSulzerallee_Bild6.jpg');"></div>
+  <div class="page-header-fade"></div>
+  <div class="page-header-body">
+    <nav class="page-header-breadcrumb" aria-label="Breadcrumb">
+      <a href="./preview-home.html">Sporthalle Sulzerallee</a>
+      <span>/</span>
+      <em>Kontakt</em>
+    </nav>
+    <h1 class="page-header-title">Kontakt</h1>
+    <p class="page-header-sub">Fragen, Anregungen, Zusammenarbeit — wir freuen uns über jede Nachricht.</p>
+  </div>
+</header>
+
+
+<!-- ── KONTAKT + FORMULAR ────────────────────────────────────── -->
+<section class="section section--white section--lg">
+  <div class="container">
+    <div class="contact-layout">
+
+      <!-- LEFT: Kontaktdaten -->
+      <div>
+        <div class="sec-header" style="margin-bottom:2.5rem;">
+          <span class="sec-tag">Verein</span>
+          <h2>So erreichst<br>du uns</h2>
+        </div>
+
+        <div class="verein-info">
+          <p><strong>Verein Sporthalle Sulzerallee</strong><br>
+          Gegründet 2024 in Winterthur.<br>
+          Privates Projekt zur raschen Erhöhung der Hallenkapazität in der Region.</p>
+        </div>
+
+        <div class="contact-block">
+          <p class="contact-block-label">Adresse</p>
+          <p class="contact-block-value">
+            Verein Sporthalle Sulzerallee<br>
+            Sulzerallee 1/3<br>
+            8400 Winterthur
+          </p>
+        </div>
+
+        <div class="contact-block">
+          <p class="contact-block-label">E-Mail</p>
+          <p class="contact-block-value">
+            <a href="mailto:info@sporthalle-sulzerallee.ch">info@sporthalle-sulzerallee.ch</a>
+          </p>
+        </div>
+
+        <div class="contact-block">
+          <p class="contact-block-label">Öffnungszeiten Halle</p>
+          <p class="contact-block-value">
+            Montag – Freitag: 07:00 – 23:00 Uhr<br>
+            Samstag / Sonntag: 08:00 – 22:00 Uhr
+          </p>
+        </div>
+
+        <div class="contact-block">
+          <p class="contact-block-label">Social Media</p>
+          <p class="contact-block-value">
+            <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank" rel="noopener">
+              @sporthalle_sulzerallee
+            </a>
+          </p>
+        </div>
+
+        <div style="margin-top: 2.5rem;">
+          <a href="/reservierung" class="btn btn-outline-ink">Halle reservieren</a>
+        </div>
+      </div>
+
+      <!-- RIGHT: Formular -->
+      <div>
+        <div class="sec-header" style="margin-bottom:2rem;">
+          <span class="sec-tag">Schreib uns</span>
+          <h2>Direkte<br>Nachricht</h2>
+        </div>
+
+        <form id="contactForm" novalidate>
+          <div class="form-field">
+            <label class="form-label" for="cf-name">Name *</label>
+            <input class="form-input" type="text" id="cf-name" name="name" required placeholder="Dein Name" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="cf-email">E-Mail *</label>
+            <input class="form-input" type="email" id="cf-email" name="email" required placeholder="deine@email.ch" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="cf-betreff">Betreff</label>
+            <input class="form-input" type="text" id="cf-betreff" name="betreff" placeholder="Worum geht es?" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="cf-message">Nachricht *</label>
+            <textarea class="form-textarea" id="cf-message" name="message" required placeholder="Deine Nachricht…"></textarea>
+          </div>
+          <div style="margin-top:0.5rem;">
+            <button type="submit" class="form-submit">Nachricht senden</button>
+          </div>
+          <p style="font-family:'Manrope',sans-serif;font-size:0.78rem;color:#aaa;margin-top:1rem;">
+            Wir antworten in der Regel innerhalb von 2 Werktagen.
+          </p>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── LAGEPLAN ──────────────────────────────────────────────── -->
+<section>
+  <div class="lageplan-wrap">
+    <img src="./media/Abbruch_10.jpg"
+         alt="Lage der Sporthalle Sulzerallee"
+         loading="lazy"
+         onerror="this.style.background='#2a2a2a';this.removeAttribute('src');" />
+    <div class="lageplan-badge">
+      <p class="lageplan-badge-title">SPORTHALLE<br>SULZERALLEE</p>
+      <p class="lageplan-badge-addr">Sulzerallee 1/3 · 8400 Winterthur</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── ANFAHRT ───────────────────────────────────────────────── -->
+<section class="section section--paper">
+  <div class="container">
+    <div class="grid-7-5">
+      <div>
+        <div class="sec-header">
+          <span class="sec-tag">Anfahrt</span>
+          <h2>So findest<br>du uns</h2>
+          <p>Die Sporthalle liegt zentral in Winterthur, gut erreichbar mit ÖV und Velo.</p>
+        </div>
+        <div class="contact-block" style="border-top:1px solid #e8e8e8;">
+          <p class="contact-block-label">Mit dem Zug</p>
+          <p class="contact-block-value">10 Min. Fussweg vom Bahnhof Winterthur</p>
+        </div>
+        <div class="contact-block">
+          <p class="contact-block-label">Mit dem Bus</p>
+          <p class="contact-block-value">Linie 1 / 11, Haltestelle Sulzerallee</p>
+        </div>
+        <div class="contact-block" style="border-bottom:1px solid #e8e8e8;">
+          <p class="contact-block-label">Mit dem Velo</p>
+          <p class="contact-block-value">Abstellplätze direkt beim Eingang</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;">
+        <div style="background:#f0f0f0;width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',Impact,sans-serif;font-size:5rem;color:#ccc;letter-spacing:0.06em;">
+          KARTE
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── FOOTER ────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-logo">
+        <a href="./preview-home.html">
+          <img src="./media/logo-black.svg" alt="Sporthalle Sulzerallee"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+          <span style="display:none;font-family:'Bebas Neue',Impact,sans-serif;color:rgba(255,255,255,0.5);font-size:1.3rem;letter-spacing:0.06em;line-height:0.88;">
+            <span style="display:block;">SPORT&thinsp;SULZER</span>
+            <span style="display:block;">HALLE&thinsp;ALLEE</span>
+          </span>
+        </a>
+        <span class="footer-tagline">für Winterthur · Schulen · Unihockey</span>
+        <p class="footer-desc">Privates Projekt zur raschen Erhöhung der Hallenkapazität in Winterthur.</p>
+      </div>
+      <div>
+        <span class="footer-col-title">Seiten</span>
+        <ul class="footer-links">
+          <li><a href="./preview-projekt.html">Das Projekt</a></li>
+          <li><a href="./preview-unterstuetzung.html">Unterstützung</a></li>
+          <li><a href="./preview-kontakt.html">Kontakt</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="footer-col-title">Mitmachen</span>
+        <ul class="footer-links">
+          <li><a href="/passivmitglied">Werde Passivmitglied</a></li>
+          <li><a href="/reservierung">Halle reservieren</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="footer-col-title">Kontakt</span>
+        <div class="footer-contact">
+          <p>Verein Sporthalle Sulzerallee<br>Sulzerallee 1/3<br>8400 Winterthur</p>
+          <a href="mailto:info@sporthalle-sulzerallee.ch">info@sporthalle-sulzerallee.ch</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Verein Sporthalle Sulzerallee</span>
+      <div class="footer-meta">
+        <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank">Instagram</a>
+        <span>sporthalle-sulzerallee.ch</span>
+        <span>Design: Agentur Koch</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('navToggle').addEventListener('click', function () {
+    document.getElementById('mobileMenu').classList.toggle('is-open');
+  });
+
+  document.getElementById('contactForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = this.querySelector('.form-submit');
+    btn.textContent = 'Wird gesendet…';
+    btn.disabled = true;
+    setTimeout(function () { btn.textContent = 'Gesendet ✓'; }, 1200);
+  });
+</script>
+</body>
+</html>

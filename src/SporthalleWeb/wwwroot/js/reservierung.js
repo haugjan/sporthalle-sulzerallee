@@ -11,7 +11,8 @@
   var CELL_STEP = CELL_HEIGHT + CELL_GAP;
 
   var DAYS_TO_SHOW = 7;
-  var BUCHUNGEN_BIS_DATUM = null; // DateOnly string "YYYY-MM-DD" or null
+  var VORLAUFZEIT_TAGE = 3; // min days advance notice; overridden from API
+  var BUCHUNGEN_MAX_TAGE = null; // max days ahead for public booking; null = no limit
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -79,13 +80,16 @@
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var diff = Math.round((date - today) / 86400000);
-    return diff === 1 || diff === 2;
+    return diff >= 0 && diff < VORLAUFZEIT_TAGE;
   }
 
-  function isBeyondHorizon(date) {
-    if (!BUCHUNGEN_BIS_DATUM) return false;
-    var horizon = new Date(BUCHUNGEN_BIS_DATUM + 'T00:00:00');
-    return date > horizon;
+  function isBeyondMaxDays(date) {
+    if (!BUCHUNGEN_MAX_TAGE) return false;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() + BUCHUNGEN_MAX_TAGE);
+    return date > cutoff;
   }
 
   function blockToTimeLabel(blockIdx) {
@@ -183,8 +187,9 @@
     days.forEach(function (day) {
       var cell = document.createElement('div');
       cell.className = 'cal-header-day';
-      if (isPastDay(day) || isBeyondHorizon(day)) cell.classList.add('is-past');
+      if (isPastDay(day)) cell.classList.add('is-past');
       else if (isToday(day)) cell.classList.add('is-today');
+      else if (isBeyondMaxDays(day)) cell.classList.add('is-beyond-cutoff');
       cell.textContent = formatDayHeader(day);
       grid.appendChild(cell);
     });
@@ -200,8 +205,9 @@
       days.forEach(function (day) {
         var cell = document.createElement('div');
         cell.className = 'cal-cell' + (isHourStart ? ' hour-start' : '');
-        if (isPastDay(day) || isBeyondHorizon(day)) cell.classList.add('is-past');
+        if (isPastDay(day)) cell.classList.add('is-past');
         else if (isToday(day)) cell.classList.add('is-today');
+        else if (isBeyondMaxDays(day)) cell.classList.add('is-beyond-cutoff');
         grid.appendChild(cell);
       });
     }
@@ -389,7 +395,6 @@
     var target = e.target;
     if (!target.classList.contains('cal-cell')) return;
     if (target.classList.contains('is-past')) return;
-    if (target.classList.contains('is-today')) return;
 
     var layout = computeGridLayout();
     if (!layout) return;
@@ -403,7 +408,7 @@
     for (var i = 0; i < DAYS_TO_SHOW; i++) days.push(addDays(currentMonday, i));
 
     if (dayIdx < 0 || dayIdx >= days.length) return;
-    if (isPastDay(days[dayIdx]) || isToday(days[dayIdx]) || isBeyondHorizon(days[dayIdx])) return;
+    if (isPastDay(days[dayIdx])) return;
 
     var startBlock = blockFromY(relY, layout.contentTop);
     if (isBlockOccupied(dayIdx, startBlock, days)) return;
@@ -509,8 +514,15 @@
       minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
 
     var shortNotice = isShortNotice(slot.day);
-    if (buchBtn) buchBtn.hidden = shortNotice;
+    var beyondCutoff = isBeyondMaxDays(slot.day);
+    var hideBookBtn = shortNotice || beyondCutoff;
+    if (buchBtn) buchBtn.hidden = hideBookBtn;
     if (notice) notice.hidden = !shortNotice;
+    var beyondNotice = document.getElementById('slot-beyond-cutoff');
+    if (beyondNotice) beyondNotice.hidden = !beyondCutoff;
+    var noticeText = document.getElementById('slot-short-notice-text');
+    if (noticeText && VORLAUFZEIT_TAGE > 0)
+      noticeText.textContent = 'Für Reservationen weniger als ' + VORLAUFZEIT_TAGE + ' Tage im Voraus bitte direkt per E-Mail melden:';
 
     // Panel ins Sichtfeld scrollen (auf Mobilgeräten scrollt es nach unten,
     // auf Desktop wird es sichtbar gemacht falls es ausserhalb des Viewports ist)
@@ -626,10 +638,6 @@
     if (!billingCity) { showModalError('Bitte gib den Ort ein.'); return; }
     if (!anlass) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
 
-    var guestName = firstname + ' ' + lastname;
-    var billingName = isOrg ? orgName : guestName;
-    var billingAddress = billingStreet + (billingExtra ? ', ' + billingExtra : '');
-
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Wird gesendet…'; }
 
@@ -637,14 +645,14 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
-        firstName: firstname,
-        lastName: lastname,
-        contactPerson: guestName,
+        contactFirstName: firstname,
+        contactLastName: lastname,
+        name: isOrg ? orgName : null,
         guestEmail: email,
         guestPhone: phone,
         renterType: renterType,
-        billingName: billingName,
-        billingAddress: billingAddress,
+        billingAddress: billingStreet,
+        addressLine2: billingExtra || null,
         billingPostalCode: billingPlz,
         billingCity: billingCity,
         startUtc: selectedSlot.startUtcIso,
@@ -731,7 +739,8 @@
           if (cfg.oeffnungVon !== undefined) OPENING_HOUR_START = cfg.oeffnungVon;
           if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
-          BUCHUNGEN_BIS_DATUM = cfg.buchungenBisDatum || null;
+          if (cfg.vorlaufzeitTage !== undefined) VORLAUFZEIT_TAGE = cfg.vorlaufzeitTage;
+          BUCHUNGEN_MAX_TAGE = cfg.buchungenMaxTage || null;
           if (cfg.preisText) {
             var panel = document.getElementById('preis-panel');
             var text = document.getElementById('preis-panel-text');

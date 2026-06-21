@@ -19,29 +19,29 @@ public sealed class BrevoBookingEmailAdapter(
     private string SenderName => "Sporthalle Sulzerallee";
 
     public Task SendMagicLinkAsync(HallMember member, string magicLink) =>
-        SendAsync(member.Email, member.ContactPerson,
+        SendAsync(member.Email, FullName(member),
             "Ihr Anmelde-Link – Sporthalle Sulzerallee",
             $"""
-            <p>Guten Tag {member.ContactPerson}</p>
+            <p>Guten Tag {FullName(member)}</p>
             <p>Klicken Sie auf den folgenden Link, um sich anzumelden (gültig 20 Minuten):</p>
             <p><a href="{magicLink}">{magicLink}</a></p>
             <p>Falls Sie diesen Link nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
             """);
 
     public Task SendRegistrationConfirmationWithMagicLinkAsync(HallMember member, string magicLink) =>
-        SendAsync(member.Email, member.ContactPerson,
+        SendAsync(member.Email, FullName(member),
             "Registrierung bestätigt – Sporthalle Sulzerallee",
             $"""
-            <p>Guten Tag {member.ContactPerson}</p>
+            <p>Guten Tag {FullName(member)}</p>
             <p>Ihre Registrierung war erfolgreich. Klicken Sie auf den folgenden Link, um sich anzumelden:</p>
             <p><a href="{magicLink}">{magicLink}</a></p>
             """);
 
     public Task SendPasswordResetAsync(HallMember member, string resetUrl) =>
-        SendAsync(member.Email, member.ContactPerson,
+        SendAsync(member.Email, FullName(member),
             "Passwort zurücksetzen – Sporthalle Sulzerallee",
             $"""
-            <p>Guten Tag {member.ContactPerson}</p>
+            <p>Guten Tag {FullName(member)}</p>
             <p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig 24 Stunden):</p>
             <p><a href="{resetUrl}">{resetUrl}</a></p>
             <p>Falls Sie kein neues Passwort angefordert haben, ignorieren Sie diese E-Mail.</p>
@@ -52,11 +52,11 @@ public sealed class BrevoBookingEmailAdapter(
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> ist bei uns eingegangen und wird geprüft.";
-        return SendAsync(member.Email, member.ContactPerson,
+        return SendAsync(member.Email, FullName(member),
             "Buchungsanfrage erhalten – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage erhalten",
-                greeting: $"Guten Tag {member.ContactPerson}",
+                greeting: $"Guten Tag {FullName(member)}",
                 body: body,
                 detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
                 note: customEmailBody is null ? "Sie erhalten eine separate Bestätigung, sobald die Buchung genehmigt wurde." : null));
@@ -64,12 +64,12 @@ public sealed class BrevoBookingEmailAdapter(
 
     public Task SendAdminNewBookingNotificationAsync(BookingSlot slot, HallMember member) =>
         SendAsync(AdminEmail, SenderName,
-            $"Neue Buchungsanfrage von {member.ContactPerson}",
+            $"Neue Buchungsanfrage von {FullName(member)}",
             BuildEmail(
                 title: "Neue Buchungsanfrage",
                 greeting: "Hallo",
                 body: $"Eine neue Buchungsanfrage ist eingegangen.",
-                detail: $"Mieter: {member.ContactPerson} ({member.Email})<br>Zeitslot: {FormatSlot(slot)}<br>Anlass: {slot.Title}",
+                detail: $"Mieter: {FullName(member)} ({member.Email})<br>Zeitslot: {FormatSlot(slot)}<br>Anlass: {slot.Title}",
                 ctaUrl: "https://www.sporthalle-sulzerallee.ch/umbraco",
                 ctaLabel: "Zur Verwaltung"));
 
@@ -78,11 +78,11 @@ public sealed class BrevoBookingEmailAdapter(
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Ihre Buchung für <strong>{FormatSlot(slot)}</strong> wurde bestätigt.";
-        return SendAsync(member.Email, member.ContactPerson,
+        return SendAsync(member.Email, FullName(member),
             "Buchung bestätigt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchung bestätigt",
-                greeting: $"Guten Tag {member.ContactPerson}",
+                greeting: $"Guten Tag {FullName(member)}",
                 body: body,
                 detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
                 note: customEmailBody is null ? "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch." : null));
@@ -93,14 +93,17 @@ public sealed class BrevoBookingEmailAdapter(
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Leider können wir Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> nicht bestätigen.";
-        return SendAsync(member.Email, member.ContactPerson,
+        return SendAsync(member.Email, FullName(member),
             "Buchungsanfrage abgelehnt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage abgelehnt",
-                greeting: $"Guten Tag {member.ContactPerson}",
+                greeting: $"Guten Tag {FullName(member)}",
                 body: body,
                 note: customEmailBody is null ? "Bitte kontaktieren Sie uns unter reservierung@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin." : null));
     }
+
+    private static string FullName(HallMember m) =>
+        $"{m.ContactFirstName} {m.ContactLastName}".Trim();
 
     private static string BuildEmail(
         string title, string greeting, string body,

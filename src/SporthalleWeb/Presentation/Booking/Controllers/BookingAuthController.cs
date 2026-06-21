@@ -99,10 +99,12 @@ public sealed class BookingAuthController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RegisterPost(
         [FromForm] string email,
-        [FromForm] string contactPerson,
+        [FromForm] string? name,
+        [FromForm] string contactFirstName,
+        [FromForm] string contactLastName,
         [FromForm] string renterType,
-        [FromForm] string billingName,
         [FromForm] string billingAddress,
+        [FromForm] string? addressLine2,
         [FromForm] string billingPostalCode,
         [FromForm] string billingCity,
         [FromForm] string? phone,
@@ -113,10 +115,12 @@ public sealed class BookingAuthController(
         {
             var cmd = new RegisterRenterCommand(
                 Email: email,
-                ContactPerson: contactPerson,
                 RenterType: new RenterType(renterType),
-                BillingName: billingName,
+                Name: name,
+                ContactFirstName: contactFirstName,
+                ContactLastName: contactLastName,
                 BillingAddress: billingAddress,
+                AddressLine2: addressLine2,
                 BillingPostalCode: billingPostalCode,
                 BillingCity: billingCity,
                 BillingCountry: "Schweiz",

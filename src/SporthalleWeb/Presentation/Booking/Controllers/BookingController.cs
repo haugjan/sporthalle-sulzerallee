@@ -38,14 +38,16 @@ public sealed class BookingController(
         var oeffnungBis = await hallConfig.GetOpeningHourEndAsync();
         var dauern = await hallConfig.GetBookableDurationsAsync();
         var preisText = await hallConfig.GetPreisTextAsync();
-        var bisDatum = await hallConfig.GetBookingCutoffDateAsync();
+        var vorlaufzeitTage = await hallConfig.GetShortNoticeDaysAsync();
+        var buchungenMaxTage = await hallConfig.GetMaxBookingDaysAsync();
         return Ok(new
         {
             oeffnungVon,
             oeffnungBis,
             buchbareDauern = dauern,
             preisText,
-            buchungenBisDatum = bisDatum?.ToString("yyyy-MM-dd")
+            vorlaufzeitTage,
+            buchungenMaxTage
         });
     }
 
@@ -69,9 +71,13 @@ public sealed class BookingController(
         if (startLocal.Hour < openingHour)
             return BadRequest(new { error = $"Buchungsstart darf nicht vor {openingHour}:00 Uhr liegen." });
 
-        var buchungenBisDatum = await hallConfig.GetBookingCutoffDateAsync();
-        if (buchungenBisDatum.HasValue && DateOnly.FromDateTime(startLocal) > buchungenBisDatum.Value)
-            return BadRequest(new { error = $"Online-Buchungen sind nur bis {buchungenBisDatum.Value:d. MMMM yyyy} möglich." });
+        var maxTage = await hallConfig.GetMaxBookingDaysAsync();
+        if (maxTage.HasValue)
+        {
+            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(maxTage.Value);
+            if (DateOnly.FromDateTime(startLocal) > cutoff)
+                return BadRequest(new { error = $"Online-Buchungen sind nur bis zu {maxTage.Value} Tage im Voraus möglich." });
+        }
 
         try
         {
@@ -81,26 +87,29 @@ public sealed class BookingController(
             {
                 await memberManager.UpdateProfileAsync(
                     existing.Id,
-                    req.ContactPerson.Trim(),
-                    req.BillingName.Trim(),
+                    req.Name?.Trim(),
+                    req.ContactFirstName.Trim(),
+                    req.ContactLastName.Trim(),
                     req.BillingAddress.Trim(),
+                    req.AddressLine2?.Trim(),
                     req.BillingPostalCode.Trim(),
                     req.BillingCity.Trim(),
-                    string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
-                    existing.HasKey);
+                    string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim());
                 memberId = existing.Id;
             }
             else
             {
                 var cmd = new RegisterRenterCommand(
                     Email: req.GuestEmail.Trim(),
-                    ContactPerson: req.ContactPerson.Trim(),
                     RenterType: new RenterType(req.RenterType),
-                    BillingName: req.BillingName.Trim(),
+                    Name: req.Name?.Trim(),
+                    ContactFirstName: req.ContactFirstName.Trim(),
+                    ContactLastName: req.ContactLastName.Trim(),
                     BillingAddress: req.BillingAddress.Trim(),
+                    AddressLine2: req.AddressLine2?.Trim(),
                     BillingPostalCode: req.BillingPostalCode.Trim(),
                     BillingCity: req.BillingCity.Trim(),
-                    BillingCountry: "CH",
+                    BillingCountry: "Schweiz",
                     Phone: string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
                     HasKey: false,
                     Password: null);
@@ -180,10 +189,12 @@ public sealed class BookingController(
         {
             var cmd = new RegisterRenterCommand(
                 Email: req.Email,
-                ContactPerson: req.ContactPerson,
                 RenterType: new RenterType(req.RenterType),
-                BillingName: req.BillingName,
+                Name: req.Name,
+                ContactFirstName: req.ContactFirstName,
+                ContactLastName: req.ContactLastName,
                 BillingAddress: req.BillingAddress,
+                AddressLine2: req.AddressLine2,
                 BillingPostalCode: req.BillingPostalCode,
                 BillingCity: req.BillingCity,
                 BillingCountry: req.BillingCountry,
@@ -277,6 +288,17 @@ public sealed class BookingController(
     {
         var memberId = GetMemberId();
         if (memberId is null) return Unauthorized();
+
+        var zurichAuth = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+        var startLocalAuth = TimeZoneInfo.ConvertTimeFromUtc(req.StartUtc, zurichAuth);
+        var maxTageAuth = await hallConfig.GetMaxBookingDaysAsync();
+        if (maxTageAuth.HasValue)
+        {
+            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(maxTageAuth.Value);
+            if (DateOnly.FromDateTime(startLocalAuth) > cutoff)
+                return BadRequest(new { error = $"Online-Buchungen sind nur bis zu {maxTageAuth.Value} Tage im Voraus möglich." });
+        }
+
         try
         {
             var slot = await createBooking.ExecuteAsync(new CreateBookingCommand(
@@ -368,14 +390,14 @@ public sealed class BookingController(
 }
 
 public sealed record GuestBookingRequest(
-    string FirstName,
-    string LastName,
-    string ContactPerson,
+    string ContactFirstName,
+    string ContactLastName,
+    string? Name,
     string GuestEmail,
     string? GuestPhone,
     string RenterType,
-    string BillingName,
     string BillingAddress,
+    string? AddressLine2,
     string BillingPostalCode,
     string BillingCity,
     DateTime StartUtc,
