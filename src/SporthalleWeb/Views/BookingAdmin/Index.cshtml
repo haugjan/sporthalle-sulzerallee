@@ -1,0 +1,10 @@
+﻿@using SporthalleWeb.Components.Booking
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-content">
+    <component type="typeof(BookingAdminComponent)"
+               render-mode="Server"
+               param-AdminUser="@(User.Identity?.Name ?? "admin")" />
+</div>

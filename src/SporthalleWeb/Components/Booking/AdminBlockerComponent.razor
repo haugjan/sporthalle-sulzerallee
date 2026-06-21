@@ -1,0 +1,199 @@
+﻿@inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
+
+@if (_message is not null)
+{
+    <div class="alert alert-success alert-dismissible">
+        @_message
+        <button type="button" class="btn-close" @onclick="() => _message = null"></button>
+    </div>
+}
+@if (_error is not null)
+{
+    <div class="alert alert-danger alert-dismissible">
+        @_error
+        <button type="button" class="btn-close" @onclick="() => _error = null"></button>
+    </div>
+}
+
+<div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+    @{ var modes = new[] { "Tag", "Woche", "Monat" }; }
+    <div class="btn-group btn-group-sm" role="group">
+        @foreach (var m in modes)
+        {
+            <button type="button"
+                    class="btn @(_viewMode == m ? "btn-primary" : "btn-outline-secondary")"
+                    @onclick="() => SetViewModeAsync(m)">@m</button>
+        }
+    </div>
+
+    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShiftAsync(-1)">@PrevLabel</button>
+    <strong>@PeriodTitle</strong>
+    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShiftAsync(1)">@NextLabel</button>
+    <button class="btn btn-sm btn-link p-0 ms-1 text-secondary" @onclick="GoToTodayAsync">Heute</button>
+</div>
+
+@if (_loading)
+{
+    <p>Lade…</p>
+}
+else if (!_slots.Any())
+{
+    <p class="text-muted">Keine Blocker in diesem Zeitraum.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" style="font-size:0.875rem">
+            <thead>
+                <tr>
+                    <th style="white-space:nowrap">Erstellt</th>
+                    <th style="white-space:nowrap">Termin</th>
+                    <th>Bezeichnung</th>
+                    <th>Bemerkungen</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in _slots)
+                {
+                    <tr>
+                        <td style="white-space:nowrap">
+                            @{ var erstellt = TimeZoneInfo.ConvertTimeFromUtc(b.CreatedAt, Zurich); }
+                            @erstellt.ToString("d. MMM yyyy", DeCh)<br />
+                            <small class="text-muted">@erstellt.ToString("HH:mm", DeCh)</small>
+                        </td>
+                        <td style="white-space:nowrap">
+                            @FormatSlot(b.Slot.StartUtc, b.Slot.EndUtc)<br />
+                            <small class="text-muted">@((int)(b.Slot.EndUtc - b.Slot.StartUtc).TotalMinutes) min</small>
+                        </td>
+                        <td>@(b.Title ?? "–")</td>
+                        <td style="max-width:250px">
+                            @if (!string.IsNullOrEmpty(b.Notes))
+                            {
+                                <span style="white-space:pre-wrap;font-size:0.85rem">@b.Notes</span>
+                            }
+                            else { <span class="text-muted">–</span> }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    @onclick="() => _editRef!.OpenAsync(b.Id)">Bearbeiten</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<AdminEditDialogComponent @ref="_editRef" AdminUser="@AdminUser" OnSaved="HandleEditSavedAsync" />
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+
+    private AdminEditDialogComponent? _editRef;
+
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+    private static readonly System.Globalization.CultureInfo DeCh =
+        System.Globalization.CultureInfo.GetCultureInfo("de-CH");
+
+    private string _viewMode = "Woche";
+    private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.BookingSlot> _slots = [];
+    private bool _loading;
+    private string? _message;
+    private string? _error;
+
+    private DateOnly PeriodFrom => CalcFrom(_viewMode, _anchor);
+    private DateOnly PeriodTo   => CalcTo(_viewMode, _anchor);
+
+    private string PeriodTitle => _viewMode switch
+    {
+        "Tag"   => _anchor.ToString("dddd, d. MMMM yyyy", DeCh),
+        "Monat" => _anchor.ToString("MMMM yyyy", DeCh),
+        _       => $"KW {GetIsoWeek(PeriodFrom.ToDateTime(TimeOnly.MinValue))}: " +
+                   $"{PeriodFrom.ToString("d. MMM", DeCh)} – {PeriodTo.ToString("d. MMM yyyy", DeCh)}"
+    };
+
+    private string PrevLabel => _viewMode switch
+    {
+        "Tag"   => "‹ Vortag",
+        "Monat" => "‹ Vormonat",
+        _       => "‹ Vorwoche"
+    };
+
+    private string NextLabel => _viewMode switch
+    {
+        "Tag"   => "Nächster Tag ›",
+        "Monat" => "Nächster Monat ›",
+        _       => "Nächste Woche ›"
+    };
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _slots = await AdminService.GetBlockersForPeriodAsync(PeriodFrom, PeriodTo);
+        _loading = false;
+    }
+
+    private async Task SetViewModeAsync(string mode)
+    {
+        _viewMode = mode;
+        await LoadAsync();
+    }
+
+    private async Task ShiftAsync(int direction)
+    {
+        _anchor = _viewMode switch
+        {
+            "Tag"   => _anchor.AddDays(direction),
+            "Monat" => _anchor.AddMonths(direction),
+            _       => _anchor.AddDays(direction * 7)
+        };
+        await LoadAsync();
+    }
+
+    private async Task GoToTodayAsync()
+    {
+        _anchor = DateOnly.FromDateTime(DateTime.Today);
+        await LoadAsync();
+    }
+
+    private async Task HandleEditSavedAsync()
+    {
+        _message = "Blocker wurde gespeichert.";
+        await LoadAsync();
+    }
+
+    private string FormatSlot(DateTime startUtc, DateTime endUtc)
+    {
+        var start = TimeZoneInfo.ConvertTimeFromUtc(startUtc, Zurich);
+        var end   = TimeZoneInfo.ConvertTimeFromUtc(endUtc, Zurich);
+        return $"{start.ToString("ddd d. MMM yyyy HH:mm", DeCh)} – {end:HH:mm}";
+    }
+
+    private static DateOnly CalcFrom(string viewMode, DateOnly anchor) => viewMode switch
+    {
+        "Tag"   => anchor,
+        "Monat" => new DateOnly(anchor.Year, anchor.Month, 1),
+        _       => GetMonday(anchor)
+    };
+
+    private static DateOnly CalcTo(string viewMode, DateOnly anchor) => viewMode switch
+    {
+        "Tag"   => anchor,
+        "Monat" => new DateOnly(anchor.Year, anchor.Month, DateTime.DaysInMonth(anchor.Year, anchor.Month)),
+        _       => GetMonday(anchor).AddDays(6)
+    };
+
+    private static DateOnly GetMonday(DateOnly d)
+        => d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
+
+    private static int GetIsoWeek(DateTime date)
+    {
+        var cal = System.Globalization.CultureInfo.GetCultureInfo("de-CH").Calendar;
+        return cal.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+    }
+}
