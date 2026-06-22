@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SporthalleWeb.Presentation.Booking.Controllers;
 
-[Route("reservierung/admin")]
+[Route("admin/reservierungen")]
 [Authorize(Roles = "admin")]
 public sealed class BookingAdminController : Controller
 {

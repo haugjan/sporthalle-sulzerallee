@@ -4,7 +4,7 @@ using Umbraco.Cms.Core;
 
 namespace SporthalleWeb.Presentation.Booking.Controllers;
 
-[Route("reservierung/backoffice-admin")]
+[Route("admin/reservierungen/backoffice")]
 [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
 public sealed class BookingBackofficeAdminController : Controller
 {
