@@ -4,7 +4,7 @@ using Umbraco.Cms.Core;
 
 namespace SporthalleWeb.Presentation.PassiveMembership.Controllers;
 
-[Route("passivmitglieder/admin")]
+[Route("admin/passivmitglieder")]
 [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
 public sealed class PassiveMemberAdminController : Controller
 {
