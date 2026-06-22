@@ -739,6 +739,29 @@
   margin: 0 0 1.5rem;
 }
 
+/* ── Session / auth alerts ─────────────────────────────────────────────── */
+
+.session-alert {
+  max-width: 1100px;
+  margin: 1rem auto 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.session-alert--success {
+  background: #eaf7ef;
+  border: 1px solid #5dba7d;
+  color: #1a5c32;
+}
+
+.session-alert--error {
+  background: #fff0f0;
+  border: 1px solid #e05252;
+  color: #7a1515;
+}
+
 /* ── Admin member search ───────────────────────────────────────────────── */
 
 .bm-search-results {

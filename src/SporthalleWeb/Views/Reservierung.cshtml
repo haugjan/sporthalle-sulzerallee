@@ -6,6 +6,9 @@
   var introText = Model.Value<string>("introText");
   var textAfter = Model.Value<string>("textAfter");
   ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+
+  var sessionConfirmed = Context.Request.Query["session"] == "confirmed";
+  var tokenError = Context.Request.Query["error"] == "invalid-token";
 }
 
 @section Styles {
@@ -22,6 +25,15 @@
     <h2>@heading</h2>
   </div>
   <div class="page-header-bar"></div>
+
+  @if (sessionConfirmed)
+  {
+    <div class="session-alert session-alert--success">Du bist jetzt angemeldet!</div>
+  }
+  @if (tokenError)
+  {
+    <div class="session-alert session-alert--error">Der Anmelde-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.</div>
+  }
 
   @if (!string.IsNullOrWhiteSpace(introText))
   {
