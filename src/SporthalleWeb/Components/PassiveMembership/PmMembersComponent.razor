@@ -2,67 +2,37 @@
 @using SporthalleWeb.Domain.PassiveMembership
 @inject AdminService AdminService
 
-<style>
-  * { box-sizing: border-box; }
-  body { font-family: sans-serif; font-size: 14px; color: #1a1a2e; background: #f5f6fa; margin: 0; }
-  .toolbar { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem 0; }
-  .count { color: #666; font-size: 0.9rem; }
-  .msg { padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.85rem; font-weight: 600; margin: 0.5rem 1.5rem; }
-  .msg-ok  { background: #d1fae5; color: #065f46; }
-  .msg-err { background: #fee2e2; color: #991b1b; }
-  .table-wrap { overflow-x: auto; margin: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.83rem; }
-  th { background: #1A5FAD; color: #fff; padding: 0.65rem 0.75rem; text-align: left; white-space: nowrap; cursor: pointer; user-select: none; }
-  th:hover { background: #1550a0; }
-  td { padding: 0.55rem 0.75rem; border-bottom: 1px solid #eef0f5; vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
-  tr.paid td { background: #f0f9f0; }
-  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; font-weight: 700; }
-  .badge-bronze { background: #cd7f32; color: #fff; }
-  .badge-silber { background: #909090; color: #fff; }
-  .badge-gold   { background: #b08000; color: #fff; }
-  .paid-mark { color: #2d8a4e; font-weight: 600; }
-  .btn-pay { background: #1A5FAD; color: #fff; border: none; border-radius: 4px; padding: 0.3rem 0.65rem; font-size: 0.78rem; cursor: pointer; }
-  .btn-pay:hover { background: #1550a0; }
-  .btn-pay:disabled { opacity: 0.4; cursor: default; }
-  textarea.notes { width: 100%; min-width: 140px; border: 1px solid #dde1ec; border-radius: 4px; padding: 0.3rem; font-family: inherit; font-size: 0.82rem; resize: vertical; }
-  textarea.notes:focus { outline: 2px solid #1A5FAD; border-color: transparent; }
-</style>
-
-<div class="toolbar">
-  @if (_members.Count > 0)
-  {
-    <span class="count">@_members.Count Mitglied@(_members.Count == 1 ? "" : "er")</span>
-  }
-</div>
+<div class="p-3">
 
 @if (!string.IsNullOrEmpty(_message))
 {
-  <div class="msg @(_isError ? "msg-err" : "msg-ok")">@_message</div>
+  <div class="alert @(_isError ? "alert-danger" : "alert-success") py-2 px-3 mb-3" role="alert">@_message</div>
 }
 
 @if (_loading)
 {
-  <p style="padding:1.5rem;color:#888;">Lade Mitglieder…</p>
+  <p class="text-muted">Lade Mitglieder…</p>
 }
 else if (_members.Count == 0)
 {
-  <p style="padding:1.5rem;color:#888;">Noch keine Passivmitglieder registriert.</p>
+  <p class="text-muted">Noch keine bestätigten Passivmitglieder.</p>
 }
 else
 {
-  <div class="table-wrap">
-    <table>
+  <p class="text-muted mb-2" style="font-size:0.875rem;">@_members.Count Mitglied@(_members.Count == 1 ? "" : "er")</p>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle" style="font-size:0.875rem;">
       <thead>
         <tr>
-          <th @onclick='() => Sort("FieldNumber")'>Feld @Ind("FieldNumber")</th>
+          <th style="cursor:pointer" @onclick='() => Sort("FieldNumber")'>Feld @Ind("FieldNumber")</th>
           <th>VIP</th>
-          <th @onclick='() => Sort("LevelKey")'>Stufe @Ind("LevelKey")</th>
-          <th @onclick='() => Sort("LastName")'>Name @Ind("LastName")</th>
+          <th style="cursor:pointer" @onclick='() => Sort("LevelKey")'>Stufe @Ind("LevelKey")</th>
+          <th style="cursor:pointer" @onclick='() => Sort("LastName")'>Name @Ind("LastName")</th>
           <th>E-Mail</th>
           <th>Adresse</th>
-          <th @onclick='() => Sort("CreatedAt")'>Angemeldet @Ind("CreatedAt")</th>
-          <th>Bezahlt</th>
+          <th style="cursor:pointer" @onclick='() => Sort("CreatedAt")'>Angemeldet @Ind("CreatedAt")</th>
+          <th>Zahlung 1. Rate</th>
+          <th>In FiBu übertragen</th>
           <th>Notizen</th>
         </tr>
       </thead>
@@ -70,31 +40,51 @@ else
         @foreach (var m in Sorted())
         {
           var id = m.Id;
-          <tr class="@(m.PaidAt.HasValue ? "paid" : "")">
-            <td>@m.FieldNumber.Value</td>
-            <td>@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</td>
-            <td><span class="badge badge-@m.Level.Key.ToLower()">@m.Level.Key</span></td>
-            <td>@m.FirstName @m.LastName</td>
-            <td><a href="mailto:@m.Email.Value">@m.Email.Value</a></td>
-            <td>@m.AddressLine<br />@m.PostalCode @m.City</td>
+          <tr class="@(m.PaidAt.HasValue ? "table-success" : "")">
+            <td class="fw-semibold">@m.FieldNumber.Value</td>
+            <td><span class="text-muted">@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</span></td>
             <td>
-              @m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")<br />
-              <span style="color:#888;font-size:0.78rem;">@m.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+              <span class="badge" style="@LevelBadgeStyle(m.Level.Key)">@m.Level.Key</span>
             </td>
-            <td>
+            <td class="text-nowrap">@m.FirstName @m.LastName</td>
+            <td><a href="mailto:@m.Email.Value" class="text-decoration-none">@m.Email.Value</a></td>
+            <td class="text-muted" style="font-size:0.8rem;">@m.AddressLine<br />@m.PostalCode @m.City</td>
+            <td class="text-nowrap" style="font-size:0.8rem;">
+              @m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")<br />
+              <span class="text-muted">@m.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+            </td>
+            <td class="text-nowrap">
               @if (m.PaidAt.HasValue)
               {
-                <span class="paid-mark">✓ @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                <div class="text-success fw-semibold" style="font-size:0.8rem;">
+                  ✓ @m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy")
+                </div>
+                @if (!string.IsNullOrEmpty(m.PaidBy))
+                {
+                  <div class="text-muted" style="font-size:0.75rem;">@m.PaidBy</div>
+                }
+                <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem;"
+                        disabled="@_busy.Contains(id)" @onclick="() => MarkUnpaid(id)">
+                  Zurücksetzen
+                </button>
               }
               else
               {
-                <button class="btn-pay" disabled="@_busy.Contains(id)" @onclick="() => MarkPaid(id)">
+                <button class="btn btn-sm btn-success" disabled="@_busy.Contains(id)"
+                        @onclick="() => MarkPaid(id)">
                   Als bezahlt markieren
                 </button>
               }
             </td>
+            <td class="text-center">
+              <div class="form-check d-flex justify-content-center">
+                <input class="form-check-input" type="checkbox" checked="@m.ExportedToAccounting"
+                       disabled="@_busy.Contains(id)"
+                       @onchange="e => SetAccounting(id, (bool)(e.Value ?? false))" />
+              </div>
+            </td>
             <td>
-              <textarea class="notes" rows="2"
+              <textarea class="form-control form-control-sm" rows="2" style="min-width:130px;font-size:0.8rem;"
                         @bind="_notes[id]"
                         @bind:event="oninput"
                         @onblur="() => SaveNotes(id)">
@@ -107,7 +97,11 @@ else
   </div>
 }
 
+</div>
+
 @code {
+    [Parameter] public string AdminUser { get; set; } = "";
+
     private IReadOnlyList<PassiveMember> _members = [];
     private Dictionary<int, string?> _notes = [];
     private HashSet<int> _busy = [];
@@ -117,15 +111,12 @@ else
     private string _sortCol = "FieldNumber";
     private bool _sortAsc = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _members = await AdminService.GetAllAsync();
+        _members = await AdminService.GetConfirmedAsync();
         _notes = _members.ToDictionary(m => m.Id, m => m.Notes);
         _loading = false;
     }
@@ -135,18 +126,38 @@ else
         _busy.Add(id);
         try
         {
-            await AdminService.MarkAsPaidAsync(id);
+            await AdminService.MarkAsPaidAsync(id, AdminUser);
             await LoadAsync();
             ShowMsg("Zahlung gespeichert.", false);
         }
-        catch (Exception ex)
+        catch (Exception ex) { ShowMsg($"Fehler: {ex.Message}", true); }
+        finally { _busy.Remove(id); }
+    }
+
+    private async Task MarkUnpaid(int id)
+    {
+        _busy.Add(id);
+        try
         {
-            ShowMsg($"Fehler: {ex.Message}", true);
+            await AdminService.MarkAsUnpaidAsync(id);
+            await LoadAsync();
+            ShowMsg("Zahlung zurückgesetzt.", false);
         }
-        finally
+        catch (Exception ex) { ShowMsg($"Fehler: {ex.Message}", true); }
+        finally { _busy.Remove(id); }
+    }
+
+    private async Task SetAccounting(int id, bool exported)
+    {
+        _busy.Add(id);
+        try
         {
-            _busy.Remove(id);
+            await AdminService.SetExportedToAccountingAsync(id, exported);
+            await LoadAsync();
+            ShowMsg(exported ? "Als FiBu-exportiert markiert." : "FiBu-Export zurückgesetzt.", false);
         }
+        catch (Exception ex) { ShowMsg($"Fehler: {ex.Message}", true); }
+        finally { _busy.Remove(id); }
     }
 
     private async Task SaveNotes(int id)
@@ -156,10 +167,7 @@ else
             await AdminService.UpdateNotesAsync(id, _notes.GetValueOrDefault(id));
             ShowMsg("Notiz gespeichert.", false);
         }
-        catch (Exception ex)
-        {
-            ShowMsg($"Fehler: {ex.Message}", true);
-        }
+        catch (Exception ex) { ShowMsg($"Fehler: {ex.Message}", true); }
     }
 
     private void Sort(string col)
@@ -169,16 +177,22 @@ else
     }
 
     private IEnumerable<PassiveMember> Sorted() =>
-        (_sortCol switch
+        _sortCol switch
         {
-            "LevelKey"  => _sortAsc ? _members.OrderBy(m => m.Level.Key)           : _members.OrderByDescending(m => m.Level.Key),
-            "LastName"  => _sortAsc ? _members.OrderBy(m => m.LastName)            : _members.OrderByDescending(m => m.LastName),
-            "CreatedAt" => _sortAsc ? _members.OrderBy(m => m.CreatedAt)           : _members.OrderByDescending(m => m.CreatedAt),
-            _           => _sortAsc ? _members.OrderBy(m => m.FieldNumber.Value)   : _members.OrderByDescending(m => m.FieldNumber.Value),
-        });
+            "LevelKey"  => _sortAsc ? _members.OrderBy(m => m.Level.Key)         : _members.OrderByDescending(m => m.Level.Key),
+            "LastName"  => _sortAsc ? _members.OrderBy(m => m.LastName)          : _members.OrderByDescending(m => m.LastName),
+            "CreatedAt" => _sortAsc ? _members.OrderBy(m => m.CreatedAt)         : _members.OrderByDescending(m => m.CreatedAt),
+            _           => _sortAsc ? _members.OrderBy(m => m.FieldNumber.Value) : _members.OrderByDescending(m => m.FieldNumber.Value),
+        };
 
-    private string Ind(string col) =>
-        _sortCol == col ? (_sortAsc ? "▲" : "▼") : "";
+    private string Ind(string col) => _sortCol == col ? (_sortAsc ? "▲" : "▼") : "";
+
+    private static string LevelBadgeStyle(string key) => key.ToLower() switch
+    {
+        "gold"   => "background:#b08000;color:#fff",
+        "silber" => "background:#909090;color:#fff",
+        _        => "background:#cd7f32;color:#fff",
+    };
 
     private void ShowMsg(string msg, bool isError)
     {

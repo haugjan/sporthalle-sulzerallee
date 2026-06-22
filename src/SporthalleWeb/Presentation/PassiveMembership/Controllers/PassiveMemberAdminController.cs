@@ -10,5 +10,8 @@ public sealed class PassiveMemberAdminController : Controller
 {
     [HttpGet("")]
     public IActionResult Index()
-        => View("~/Views/PassivMemberAdmin/Index.cshtml");
+    {
+        var adminUser = User.Identity?.Name ?? "admin";
+        return View("~/Views/PassivMemberAdmin/Index.cshtml", model: adminUser);
+    }
 }

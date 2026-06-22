@@ -57,9 +57,30 @@ public class PassiveMemberDbRecord
     [Column("CreatedAt")]
     public DateTime CreatedAt { get; set; }
 
+    [Column("Status")]
+    [Length(20)]
+    public string Status { get; set; } = "Confirmed";
+
+    [Column("ConfirmedAt")]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public DateTime? ConfirmedAt { get; set; }
+
+    [Column("ConfirmedBy")]
+    [Length(200)]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public string? ConfirmedBy { get; set; }
+
     [Column("PaidAt")]
     [NullSetting(NullSetting = NullSettings.Null)]
     public DateTime? PaidAt { get; set; }
+
+    [Column("PaidBy")]
+    [Length(200)]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public string? PaidBy { get; set; }
+
+    [Column("ExportedToAccounting")]
+    public bool ExportedToAccounting { get; set; }
 
     [Column("Notes")]
     [NullSetting(NullSetting = NullSettings.Null)]

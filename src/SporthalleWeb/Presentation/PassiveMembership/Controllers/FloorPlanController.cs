@@ -10,6 +10,6 @@ public sealed class FloorPlanController(IConfiguration config) : Controller
     public IActionResult Index()
     {
         var siteKey = config["Turnstile:SiteKey"] ?? "1x00000000000000000000AA";
-        return View(siteKey);
+        return View("~/Views/FloorPlan/Index.cshtml", siteKey);
     }
 }

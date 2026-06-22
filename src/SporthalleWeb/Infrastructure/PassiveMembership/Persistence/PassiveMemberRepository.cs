@@ -15,8 +15,9 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     public async Task<bool> IsFieldTakenAsync(FieldNumber field)
     {
         using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var count = await scope.Database.ExecuteScalarAsync<int>(
-            new Sql("SELECT COUNT(*) FROM PassivMitglieder WHERE FieldNumber = @0", field.Value));
+        var count = await scope.Database.ExecuteScalarAsync<int>(new Sql(
+            "SELECT COUNT(*) FROM PassivMitglieder WHERE FieldNumber = @0 AND Status != @1",
+            field.Value, MemberStatus.Deleted));
         return count > 0;
     }
 
@@ -26,19 +27,24 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         var record = ToRecord(member);
         await scope.Database.InsertAsync(record);
         scope.Complete();
-        return PassiveMember.Reconstitute(
-            record.Id, record.FieldNumber, record.FirstName, record.LastName,
-            record.AddressLine, record.PostalCode, record.City, record.Country,
-            record.Email, record.MembershipLevel,
-            record.ShowNameOnFloor, record.DisplayName,
-            record.CreatedAt, record.PaidAt, record.Notes);
+        return ToEntity(record);
     }
 
-    public async Task<IReadOnlyList<PassiveMember>> GetAllAsync()
+    public async Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
     {
         using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(
-            "SELECT * FROM PassivMitglieder ORDER BY Id");
+        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(new Sql(
+            "SELECT * FROM PassivMitglieder WHERE Status = @0 ORDER BY CreatedAt",
+            MemberStatus.Pending));
+        return records.Select(ToEntity).ToList();
+    }
+
+    public async Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
+    {
+        using var scope = _scopeProvider.CreateScope(autoComplete: true);
+        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(new Sql(
+            "SELECT * FROM PassivMitglieder WHERE Status = @0 ORDER BY FieldNumber",
+            MemberStatus.Confirmed));
         return records.Select(ToEntity).ToList();
     }
 
@@ -60,10 +66,13 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     public async Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
     {
         using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(
-            "SELECT FieldNumber, DisplayName FROM PassivMitglieder");
+        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(new Sql(
+            "SELECT FieldNumber, ShowNameOnFloor, DisplayName, Status FROM PassivMitglieder WHERE Status != @0",
+            MemberStatus.Deleted));
         return records
-            .Select(r => (new FieldNumber(r.FieldNumber), r.DisplayName))
+            .Select(r => (
+                new FieldNumber(r.FieldNumber),
+                r.ShowNameOnFloor && r.Status == MemberStatus.Confirmed ? r.DisplayName : null))
             .ToList();
     }
 
@@ -82,8 +91,13 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         ShowNameOnFloor = m.ShowNameOnFloor,
         DisplayName = m.DisplayName,
         CreatedAt = m.CreatedAt,
+        Status = m.Status,
+        ConfirmedAt = m.ConfirmedAt,
+        ConfirmedBy = m.ConfirmedBy,
         PaidAt = m.PaidAt,
-        Notes = m.Notes
+        PaidBy = m.PaidBy,
+        ExportedToAccounting = m.ExportedToAccounting,
+        Notes = m.Notes,
     };
 
     private static PassiveMember ToEntity(PassiveMemberDbRecord r) =>
@@ -92,5 +106,8 @@ public class PassiveMemberRepository : IPassiveMemberRepository
             r.AddressLine, r.PostalCode, r.City, r.Country,
             r.Email, r.MembershipLevel,
             r.ShowNameOnFloor, r.DisplayName,
-            r.CreatedAt, r.PaidAt, r.Notes);
+            r.CreatedAt, r.Status,
+            r.ConfirmedAt, r.ConfirmedBy,
+            r.PaidAt, r.PaidBy,
+            r.ExportedToAccounting, r.Notes);
 }

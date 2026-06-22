@@ -4,7 +4,8 @@ public interface IPassiveMemberRepository
 {
     Task<bool> IsFieldTakenAsync(FieldNumber field);
     Task<PassiveMember> SaveAsync(PassiveMember member);
-    Task<IReadOnlyList<PassiveMember>> GetAllAsync();
+    Task<IReadOnlyList<PassiveMember>> GetPendingAsync();
+    Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync();
     Task<PassiveMember?> FindByIdAsync(int id);
     Task UpdateAsync(PassiveMember member);
     Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync();
