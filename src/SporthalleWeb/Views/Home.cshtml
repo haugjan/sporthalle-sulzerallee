@@ -28,70 +28,6 @@
     var festDatum = festBlock?.Content.Value<string>("datum") ?? "";
     var festText  = festBlock?.Content.Value<string>("text")  ?? "";
 }
-<style>
-  .fest-section { background: rgb(235, 80, 75) !important; padding: 5rem 0; overflow: hidden; }
-  .fest-title {
-    font-family: 'Anton', Impact, sans-serif !important;
-    font-size: clamp(4rem, 8vw, 7rem);
-    line-height: 1.0; letter-spacing: 0.02em;
-    text-transform: uppercase; color: white !important; max-width: 9ch;
-  }
-  .fest-date-main { font-family: 'Manrope', sans-serif; font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600; color: white !important; margin-top: 1.5rem; }
-  .fest-sub { font-family: 'Manrope', sans-serif; font-size: 1.05rem; line-height: 1.75; color: rgba(255,255,255,0.65) !important; margin-top: 1rem; max-width: 500px; }
-
-  /* ── TEASERS ─────────────────────────────────────────────── */
-  .teasers-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-  @@media (max-width: 768px) { .teasers-grid { grid-template-columns: 1fr; } }
-
-  .teaser {
-    display: flex; flex-direction: column; justify-content: flex-end;
-    min-height: 500px; padding: 2.5rem;
-    text-decoration: none; position: relative; overflow: hidden;
-    transition: filter 0.2s;
-  }
-  .teaser:hover { filter: brightness(0.95); }
-  .teaser-deco {
-    position: absolute; top: 1.5rem; right: 1.75rem;
-    font-family: 'Anton', Impact, sans-serif;
-    font-size: 8rem; line-height: 1;
-    pointer-events: none; user-select: none;
-  }
-  .teaser-body { position: relative; z-index: 1; }
-  .teaser-title {
-    font-family: 'Anton', Impact, sans-serif !important;
-    font-size: clamp(3rem, 5vw, 5rem);
-    line-height: 0.85; letter-spacing: 0.02em;
-    text-transform: uppercase; display: block; margin-bottom: 0.75rem;
-  }
-  .teaser-sub {
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.9rem; line-height: 1.65;
-    display: block; margin-bottom: 1.5rem; max-width: 280px;
-  }
-  .t-label { font-family: 'Manrope', sans-serif; font-size: 0.7rem;
-    font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-    display: block; margin-bottom: 0.75rem; }
-  .link-arrow { font-family: 'Manrope', sans-serif; font-size: 0.78rem;
-    font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-    text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
-
-  /* Weisser Hintergrund, Dust-Titel */
-  .teaser--white { background: #fff !important; }
-  .teaser--white .teaser-title { color: rgb(235, 80, 75) !important; }
-  .teaser--white .teaser-sub   { color: #555 !important; }
-  .teaser--white .teaser-deco  { color: rgba(235,80,75,0.07) !important; }
-  .teaser--white .t-label      { color: rgba(0,0,0,0.4) !important; }
-  .teaser--white .link-arrow   { color: rgb(235, 80, 75) !important; }
-
-  /* Dust-Hintergrund, weisser Text */
-  .teaser--dust { background: rgb(235, 80, 75) !important; }
-  .teaser--dust .teaser-title { color: #fff !important; }
-  .teaser--dust .teaser-sub   { color: rgba(255,255,255,0.75) !important; }
-  .teaser--dust .teaser-deco  { color: rgba(255,255,255,0.07) !important; }
-  .teaser--dust .t-label      { color: rgba(255,255,255,0.6) !important; }
-  .teaser--dust .link-arrow   { color: rgba(255,255,255,0.85) !important; }
-</style>
-
 <!-- HERO -->
 <section class="hero">
   @if (!string.IsNullOrEmpty(heroImage))
@@ -120,7 +56,7 @@
     {
       <span class="hero-tag">@tag</span>
     }
-    <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;font-family:'Manrope',sans-serif;font-size:0.65rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.25);">
+    <div class="hero-bar-scroll">
       <span>Scroll</span>
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 1.5v10M2.5 8l4 4 4-4"/></svg>
     </div>
@@ -135,16 +71,16 @@
       <div>
         @if (!string.IsNullOrEmpty(festLabel))
         {
-          <span class="t-label" style="color:rgba(255,255,255,0.45);display:block;margin-bottom:1rem;">@festLabel</span>
+          <span class="t-label fest-label">@festLabel</span>
         }
         <h2 class="fest-title">@Html.Raw(festTitel.Replace("\n", "<br />"))</h2>
         @if (!string.IsNullOrEmpty(festDatum))
         {
-          <p class="fest-date-main">@festDatum</p>
+          <p class="fest-date">@festDatum</p>
         }
         @if (!string.IsNullOrEmpty(festText))
         {
-          <p class="fest-sub">@festText</p>
+          <p class="fest-text">@festText</p>
         }
       </div>
     </div>

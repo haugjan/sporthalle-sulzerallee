@@ -332,58 +332,6 @@ body {
   mix-blend-mode: overlay;
 }
 
-/* ── HERO (home only) ──────────────────────────────────────── */
-.hero {
-  position: relative; height: 100svh; min-height: 600px; overflow: hidden;
-  background: #0d0d0d;
-}
-.hero-bg {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center 40%;
-  filter: grayscale(100%) brightness(0.4);
-  transform: scale(1.03);
-}
-.hero-logo {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(90vw, 960px);
-  height: auto;
-  pointer-events: none;
-  user-select: none;
-}
-.hero-wordmark {
-  position: absolute; inset: 0;
-  display: grid; grid-template-columns: 1fr 1fr;
-  align-content: center;
-  margin-left: -1vw; margin-right: -1vw;
-}
-.hero-word {
-  display: block;
-  font-family: 'Anton', Impact, sans-serif;
-  font-size: clamp(13vw, 18vw, 22vw);
-  line-height: 0.82; letter-spacing: 0.02em;
-  color: var(--dust); white-space: nowrap;
-}
-.hero-word--l { padding-left: 3.5vw; }
-.hero-word--r { padding-left: 1.5vw; }
-.hero-bar {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  border-top: 1px solid rgba(255,255,255,0.12);
-  padding: 1.25rem 3.5vw;
-  display: flex; align-items: center; gap: 2.5rem;
-}
-.hero-tag {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.68rem; font-weight: 700;
-  letter-spacing: 0.22em; text-transform: uppercase;
-  color: rgba(255,255,255,0.65);
-}
-@media (max-width: 700px) {
-  .hero-word { font-size: 21vw; }
-  .hero-wordmark { margin-left: -2vw; margin-right: -2vw; }
-}
-
 
 /* ── PRESS CARD ───────────────────────────────────────────── */
 .press-card {

@@ -10,9 +10,10 @@
 }
 .fest-title {
   font-family: 'Anton', Impact, sans-serif;
-  font-size: clamp(4.5rem, 11vw, 10rem);
-  line-height: 0.82; letter-spacing: 0.02em;
+  font-size: clamp(4rem, 8vw, 7rem);
+  line-height: 1.0; letter-spacing: 0.02em;
   text-transform: uppercase; color: white;
+  max-width: 9ch;
 }
 .fest-date {
   font-family: 'Manrope', sans-serif;
