@@ -32,7 +32,7 @@ body {
   text-transform: uppercase;
 }
 .t-headline {
-  font-family: 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   letter-spacing: 0.02em;
 }
 .t-body {
@@ -68,7 +68,7 @@ body {
 .site-nav-logo img { height: 46px; width: auto; display: block; }
 /* CSS fallback if SVG doesn't render */
 .site-nav-logo-fallback {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   color: var(--dust);
   font-size: 1.15rem;
   letter-spacing: 0.06em;
@@ -181,7 +181,7 @@ body {
   color: rgba(255,255,255,0.5); font-style: normal;
 }
 .page-header-title {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: clamp(5rem, 14vw, 13rem);
   line-height: 0.82;
   color: var(--dust);
@@ -220,7 +220,7 @@ body {
   color: var(--dust); display: block; margin-bottom: 1rem;
 }
 .sec-header h2 {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: clamp(2.8rem, 5.5vw, 6rem);
   line-height: 0.85; letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -256,7 +256,7 @@ body {
 
 /* ── STAT ─────────────────────────────────────────────────── */
 .stat-val {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: clamp(2.5rem, 4vw, 4rem);
   line-height: 1; color: var(--dust);
 }
@@ -360,7 +360,7 @@ body {
 }
 .hero-word {
   display: block;
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: clamp(13vw, 18vw, 22vw);
   line-height: 0.82; letter-spacing: 0.02em;
   color: var(--dust); white-space: nowrap;
@@ -403,7 +403,7 @@ body {
 }
 .teaser-body { position: relative; z-index: 1; }
 .teaser-title {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: clamp(3rem, 5vw, 5rem);
   line-height: 0.85; letter-spacing: 0.02em;
   text-transform: uppercase; color: white;
@@ -432,7 +432,7 @@ body {
   color: #9ca3af; display: block; margin-bottom: 0.75rem;
 }
 .press-card-title {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: 2rem; line-height: 0.9;
   text-transform: uppercase; color: var(--ink);
   display: block; margin-bottom: 1.25rem;
@@ -457,13 +457,13 @@ body {
   box-shadow: 0 8px 36px rgba(235,80,75,0.12);
 }
 .tier-name {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: 3.5rem; line-height: 1;
   text-transform: uppercase; letter-spacing: 0.02em;
   color: var(--ink);
 }
 .tier-price {
-  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-family: 'Anton', Impact, sans-serif;
   font-size: 2.5rem; line-height: 1;
   letter-spacing: 0.02em; color: var(--dust);
   margin-bottom: 0.25rem;
@@ -483,12 +483,12 @@ body {
 .site-footer {
   background: var(--paper);
   border-top: 1px solid rgba(255,255,255,0.04);
-  padding: 4rem 0 2.5rem;
+  padding: 3rem 0 1rem;
 }
 .footer-grid {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 3rem; margin-bottom: 4rem;
+  gap: 3rem; margin-bottom: 2rem;
 }
 .footer-logo img {
   height: 40px; width: auto; display: block;
