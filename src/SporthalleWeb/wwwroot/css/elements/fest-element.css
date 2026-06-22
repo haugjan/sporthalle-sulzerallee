@@ -1,5 +1,5 @@
 .fest-section {
-  background: var(--dust);
+  background: var(--dust, rgb(235, 80, 75));
   padding: 5rem 0;
   overflow: hidden;
 }

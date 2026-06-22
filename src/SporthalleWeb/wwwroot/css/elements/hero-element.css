@@ -19,7 +19,7 @@
   font-family: 'Anton', Impact, sans-serif;
   font-size: clamp(13vw, 18vw, 22vw);
   line-height: 0.82; letter-spacing: 0.02em;
-  color: var(--dust); white-space: nowrap;
+  color: var(--dust, rgb(235, 80, 75)); white-space: nowrap;
 }
 .hero-word--l { padding-left: 3.5vw; }
 .hero-word--r { padding-left: 1.5vw; }
