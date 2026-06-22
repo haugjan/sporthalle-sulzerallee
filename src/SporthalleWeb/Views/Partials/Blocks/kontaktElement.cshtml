@@ -1,0 +1,119 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var linkeLabel      = Model.Content.Value<string>("linkeLabel")      ?? "";
+    var linkeTitel      = Model.Content.Value<string>("linkeTitel")      ?? "";
+    var orgName         = Model.Content.Value<string>("orgName")         ?? "";
+    var orgBeschreibung = Model.Content.Value<string>("orgBeschreibung") ?? "";
+    var adresse         = Model.Content.Value<string>("adresse")         ?? "";
+    var kontaktEmail    = Model.Content.Value<string>("kontaktEmail")    ?? "";
+    var oeffnungszeiten = Model.Content.Value<string>("oeffnungszeiten") ?? "";
+    var socialMedia     = Model.Content.Value<string>("socialMedia")     ?? "";
+    var rechteLabel     = Model.Content.Value<string>("rechteLabel")     ?? "";
+    var rechteTitel     = Model.Content.Value<string>("rechteTitel")     ?? "";
+}
+<section class="ke-section">
+  <div class="ke-container">
+    <div class="ke-grid">
+
+      <!-- Linke Spalte: Kontaktinformationen -->
+      <div class="ke-col">
+        @if (!string.IsNullOrEmpty(linkeLabel))
+        {
+          <span class="ke-label">@linkeLabel</span>
+        }
+        @if (!string.IsNullOrEmpty(linkeTitel))
+        {
+          <h2 class="ke-heading">@Html.Raw(linkeTitel.Replace("\n", "<br/>"))</h2>
+        }
+
+        @if (!string.IsNullOrEmpty(orgName))
+        {
+          <div class="ke-org-block">
+            <strong class="ke-org-name">@orgName</strong>
+            @if (!string.IsNullOrEmpty(orgBeschreibung))
+            {
+              <p class="ke-org-desc">@Html.Raw(orgBeschreibung.Replace("\n", "<br/>"))</p>
+            }
+          </div>
+        }
+
+        @if (!string.IsNullOrEmpty(adresse))
+        {
+          <div class="ke-info-row">
+            <hr class="ke-rule" />
+            <span class="ke-info-label">Adresse</span>
+            <p class="ke-info-text">@Html.Raw(adresse.Replace("\n", "<br/>"))</p>
+          </div>
+        }
+
+        @if (!string.IsNullOrEmpty(kontaktEmail))
+        {
+          <div class="ke-info-row">
+            <hr class="ke-rule" />
+            <span class="ke-info-label">E-Mail</span>
+            <p class="ke-info-text">
+              <a href="mailto:@kontaktEmail" class="ke-email-link">@kontaktEmail</a>
+            </p>
+          </div>
+        }
+
+        @if (!string.IsNullOrEmpty(oeffnungszeiten))
+        {
+          <div class="ke-info-row">
+            <hr class="ke-rule" />
+            <span class="ke-info-label">Öffnungszeiten Halle</span>
+            <p class="ke-info-text">@Html.Raw(oeffnungszeiten.Replace("\n", "<br/>"))</p>
+          </div>
+        }
+
+        @if (!string.IsNullOrEmpty(socialMedia))
+        {
+          <div class="ke-info-row">
+            <hr class="ke-rule" />
+            <span class="ke-info-label">Social Media</span>
+            <p class="ke-info-text">@socialMedia</p>
+          </div>
+        }
+
+        <hr class="ke-rule" />
+      </div>
+
+      <!-- Rechte Spalte: Kontaktformular -->
+      <div class="ke-col">
+        @if (!string.IsNullOrEmpty(rechteLabel))
+        {
+          <span class="ke-label">@rechteLabel</span>
+        }
+        @if (!string.IsNullOrEmpty(rechteTitel))
+        {
+          <h2 class="ke-heading">@Html.Raw(rechteTitel.Replace("\n", "<br/>"))</h2>
+        }
+
+        <form class="ke-form" method="post" action="/api/kontakt/senden">
+          <div class="ke-form-field">
+            <label class="ke-form-label" for="ke-name">Name <span class="ke-required">*</span></label>
+            <input class="ke-form-input" type="text" id="ke-name" name="name" placeholder="Dein Name" required />
+          </div>
+          <div class="ke-form-field">
+            <label class="ke-form-label" for="ke-email">E-Mail <span class="ke-required">*</span></label>
+            <input class="ke-form-input" type="email" id="ke-email" name="email" placeholder="deine@email.ch" required />
+          </div>
+          <div class="ke-form-field">
+            <label class="ke-form-label" for="ke-betreff">Betreff</label>
+            <input class="ke-form-input" type="text" id="ke-betreff" name="betreff" placeholder="Worum geht es?" />
+          </div>
+          <div class="ke-form-field">
+            <label class="ke-form-label" for="ke-nachricht">Nachricht <span class="ke-required">*</span></label>
+            <textarea class="ke-form-input ke-form-textarea" id="ke-nachricht" name="nachricht"
+                      placeholder="Deine Nachricht..." rows="6" required></textarea>
+          </div>
+          <div class="ke-form-footer">
+            <button type="submit" class="ke-btn-dust">Nachricht senden</button>
+            <p class="ke-form-note">Wir antworten in der Regel innerhalb von 2 Werktagen.</p>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>

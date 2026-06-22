@@ -34,44 +34,24 @@ Sporthalle-Sulzerallee/
   src/
     SporthalleWeb/          # Main Umbraco project
       Application/          # Use cases, queries, service classes
-<<<<<<< HEAD
+        Booking/
         PassiveMembership/
-        Reservierung/
       Components/           # Blazor components (admin UI + public)
-        PassiveMembership/
-        Reservierung/
-      ContentSeeder.cs      # Startup seeder for content and templates
-      Domain/               # Entities, value objects, ports
-        PassiveMembership/
-        Reservierung/
-        Shared/
-      Infrastructure/       # Adapters: email, CAPTCHA, persistence, members
-        PassiveMembership/
-        Reservierung/
-        Shared/
-      Pages/                # Razor Pages (legacy, mostly empty)
-      Presentation/         # MVC Controllers, DTOs
-        PassiveMembership/
-        Reservierung/
-=======
         Booking/
-        PassivMitgliedschaft/
-      Components/           # Blazor components (admin UI)
-        Booking/
+        PassiveMembership/
       ContentSeeder.cs      # Startup seeder for content and templates
       Domain/               # Entities, value objects, ports
         Booking/
-        PassivMitgliedschaft/
+        PassiveMembership/
         Shared/
       Infrastructure/       # Adapters: email, CAPTCHA, persistence, members
         Booking/
-        PassivMitgliedschaft/
+        PassiveMembership/
         Shared/
       Pages/                # Razor Pages (legacy, mostly empty)
       Presentation/         # MVC Controllers, DTOs
         Booking/
-        PassivMitgliedschaft/
->>>>>>> worktree-feature-reservierung
+        PassiveMembership/
       Program.cs
       appsettings.json
       appsettings.Development.json  # SQLite + uSync dev settings
@@ -708,21 +688,14 @@ Blazor Server is active globally for admin components:
 - `_Imports.razor`: global `@using` statements
 - `_Layout.cshtml`: `<script src="_framework/blazor.server.js"></script>`
 
-<<<<<<< HEAD
-Admin and public components are embedded in Razor views (with `Layout = null`) via:
+Components are embedded in Razor views (with `Layout = null`) via:
 ```cshtml
 <component type="typeof(PmAdminComponent)" render-mode="Server" />
 ```
 
-PassiveMembership components live in `Components/PassiveMembership/`, Reservierung components in `Components/Reservierung/`.
-=======
-Admin components in `Components/Booking/` are embedded in admin Razor views via:
-```cshtml
-<component type="typeof(AdminConfigurationComponent)" render-mode="Server" />
-```
+PassiveMembership components live in `Components/PassiveMembership/`, Booking components in `Components/Booking/`.
 
 The `BookingAdminComponent` is the root shell for the backoffice tab navigation. It renders one of the six sub-components based on the active tab.
->>>>>>> worktree-feature-reservierung
 
 ---
 
