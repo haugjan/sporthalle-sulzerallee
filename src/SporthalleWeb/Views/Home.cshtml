@@ -14,9 +14,9 @@
     var festBlock   = blocks.FirstOrDefault(b => b.Content.ContentType.Alias == "festElement");
     var teaserBlocks = blocks.Where(b => b.Content.ContentType.Alias == "teaserElement").ToList();
 
-    // Hero values
-    var heroImageRaw = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.GetCropUrl();
-    var heroImage    = heroImageRaw ?? "";
+    // Hero values – MediaPicker3 single-pick returns MediaWithCrops<Image>, not IEnumerable
+    var heroMediaObj  = heroBlock?.Content.GetProperty("heroImage")?.GetValue() as IPublishedContent;
+    var heroImage     = heroMediaObj?.GetCropUrl() ?? "";
     var schlagwoerter = (heroBlock?.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -111,7 +111,7 @@
         var tTitel  = tb.Content.Value<string>("titel") ?? "";
         var tText   = tb.Content.Value<string>("text")  ?? "";
         var tLink   = tb.Content.Value<IEnumerable<Link>>("link")?.FirstOrDefault()?.Url ?? "#";
-        var tBild   = tb.Content.Value<IEnumerable<MediaWithCrops>>("bild")?.FirstOrDefault()?.GetCropUrl() ?? "";
+        var tBild   = (tb.Content.GetProperty("bild")?.GetValue() as IPublishedContent)?.GetCropUrl() ?? "";
         var tNum    = (i + 1).ToString("D2");
 
         if (i == 0)

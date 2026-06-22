@@ -11,7 +11,7 @@
 
     var rootBlocks = root?.Value<BlockListModel>("content");
     var heroBlock = rootBlocks?.FirstOrDefault(b => b.Content.ContentType.Alias == "heroElement");
-    var logoRaw = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("logoSvg")?.FirstOrDefault()?.GetCropUrl();
+    var logoRaw = (heroBlock?.Content.GetProperty("logoSvg")?.GetValue() as IPublishedContent)?.GetCropUrl();
     var logoUrl = string.IsNullOrEmpty(logoRaw) ? "/img/logo_transparent.png" : logoRaw;
 
     var transparentNav = ViewBag.TransparentNav as bool? ?? false;
