@@ -1,0 +1,27 @@
+.fest-section {
+  background: var(--dust);
+  padding: 5rem 0;
+  overflow: hidden;
+}
+.fest-label {
+  color: rgba(255,255,255,0.45);
+  display: block;
+  margin-bottom: 1rem;
+}
+.fest-title {
+  font-family: 'Anton', Impact, sans-serif;
+  font-size: clamp(4.5rem, 11vw, 10rem);
+  line-height: 0.82; letter-spacing: 0.02em;
+  text-transform: uppercase; color: white;
+}
+.fest-date {
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600;
+  color: white; margin-top: 1.5rem;
+}
+.fest-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.05rem; line-height: 1.75;
+  color: rgba(255,255,255,0.65);
+  margin-top: 1rem; max-width: 500px;
+}

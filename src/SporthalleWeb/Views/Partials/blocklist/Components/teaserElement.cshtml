@@ -1,0 +1,20 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var label = Model.Content.Value<string>("label") ?? "";
+    var titel = Model.Content.Value<string>("titel") ?? "";
+    var text  = Model.Content.Value<string>("text")  ?? "";
+    var link  = Model.Content.Value<IEnumerable<Link>>("link")?.FirstOrDefault()?.Url ?? "#";
+    var idx   = ViewData["TeaserIndex"] as int? ?? 0;
+    var num   = (idx + 1).ToString("D2");
+    var cls   = idx % 2 == 0 ? "teaser--white" : "teaser--dust";
+    var cta   = idx == 1 ? "Jetzt Mitglied werden" : idx == 2 ? "Jetzt buchen" : "Mehr erfahren";
+}
+<a href="@link" class="teaser @cls">
+  <div class="teaser-deco">@num</div>
+  <div class="teaser-body">
+    @if (!string.IsNullOrEmpty(label)) { <span class="t-label">@label</span> }
+    <span class="teaser-title">@Html.Raw(titel.Replace("\n", "<br />"))</span>
+    @if (!string.IsNullOrEmpty(text)) { <span class="teaser-sub">@text</span> }
+    <span class="link-arrow">@cta <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
+  </div>
+</a>

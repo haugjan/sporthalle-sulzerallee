@@ -1,0 +1,18 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@using Umbraco.Cms.Core.Models.Blocks
+@{
+    Layout = "_SiteLayout.cshtml";
+    ViewBag.PageTitle = Model.Name + " – Sporthalle Sulzerallee";
+    var blocks = Model.Value<BlockListModel>("content");
+}
+
+<main>
+  @if (blocks != null && blocks.Any())
+  {
+    foreach (var block in blocks)
+    {
+      var alias = block.Content.ContentType.Alias;
+      @await Html.PartialAsync($"~/Views/Partials/Blocks/{alias}.cshtml", block)
+    }
+  }
+</main>

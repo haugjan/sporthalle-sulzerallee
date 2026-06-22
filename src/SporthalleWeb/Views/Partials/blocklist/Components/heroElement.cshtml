@@ -1,0 +1,32 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var heroImage = Model.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "";
+    var schlagwoerter = (Model.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
+                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}
+<section class="hero">
+  @if (!string.IsNullOrEmpty(heroImage))
+  {
+    <div class="hero-bg" style="background-image:url('@heroImage');"></div>
+  }
+  <div class="hero-wordmark" aria-hidden="true">
+    <div>
+      <span class="hero-word hero-word--l">SPORT</span>
+      <span class="hero-word hero-word--l">HALLE</span>
+    </div>
+    <div>
+      <span class="hero-word hero-word--r">SULZER</span>
+      <span class="hero-word hero-word--r">ALLEE</span>
+    </div>
+  </div>
+  <div class="hero-bar">
+    @foreach (var tag in schlagwoerter)
+    {
+      <span class="hero-tag">@tag</span>
+    }
+    <div class="hero-bar-scroll">
+      <span>Scroll</span>
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 1.5v10M2.5 8l4 4 4-4"/></svg>
+    </div>
+  </div>
+</section>

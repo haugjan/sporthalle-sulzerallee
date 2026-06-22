@@ -1,0 +1,27 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var label = Model.Content.Value<string>("label") ?? "";
+    var titel = Model.Content.Value<string>("titel") ?? "";
+    var datum = Model.Content.Value<string>("datum") ?? "";
+    var text  = Model.Content.Value<string>("text")  ?? "";
+}
+@if (!string.IsNullOrEmpty(titel))
+{
+  <section class="fest-section dust-grain">
+    <div class="container">
+      @if (!string.IsNullOrEmpty(label))
+      {
+        <span class="t-label fest-label">@label</span>
+      }
+      <h2 class="fest-title">@Html.Raw(titel.Replace("\n", "<br />"))</h2>
+      @if (!string.IsNullOrEmpty(datum))
+      {
+        <p class="fest-date">@datum</p>
+      }
+      @if (!string.IsNullOrEmpty(text))
+      {
+        <p class="fest-text">@text</p>
+      }
+    </div>
+  </section>
+}
