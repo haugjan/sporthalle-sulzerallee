@@ -40,7 +40,17 @@
         <div id="slot-panel-detail" hidden>
           <h3>Ausgewählter Termin</h3>
           <p id="slot-date-label" class="slot-panel__date"></p>
-          <p class="slot-panel__time-display" id="slot-time-display"></p>
+          <div class="slot-panel__times">
+            <div class="slot-panel__time-item">
+              <span class="slot-panel__time-label">Von</span>
+              <span class="slot-panel__time-val" id="slot-von">–</span>
+            </div>
+            <span class="slot-panel__time-dash">bis</span>
+            <div class="slot-panel__time-item">
+              <span class="slot-panel__time-label">Bis</span>
+              <span class="slot-panel__time-val" id="slot-bis">–</span>
+            </div>
+          </div>
           <p class="slot-panel__meta" id="slot-meta"></p>
           <button class="btn-buchen" id="admin-btn-erfassen">Slot erfassen</button>
         </div>

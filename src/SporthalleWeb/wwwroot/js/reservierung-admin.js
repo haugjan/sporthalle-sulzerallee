@@ -429,13 +429,15 @@ window.SporthalleAdmin = (function () {
     var hint = document.getElementById('slot-panel-hint');
     var detail = document.getElementById('slot-panel-detail');
     var dateLabel = document.getElementById('slot-date-label');
-    var timeDisplay = document.getElementById('slot-time-display');
+    var vonEl = document.getElementById('slot-von');
+    var bisEl = document.getElementById('slot-bis');
     var metaEl = document.getElementById('slot-meta');
     if (!detail) return;
     if (hint) hint.hidden = true;
     detail.hidden = false;
     if (dateLabel) dateLabel.textContent = formatDateLong(slot.day);
-    if (timeDisplay) timeDisplay.textContent = minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
+    if (vonEl) vonEl.textContent = minutesToTimeStr(slot.startMin) + ' Uhr';
+    if (bisEl) bisEl.textContent = minutesToTimeStr(slot.endMin) + ' Uhr';
     var durationMin = slot.endMin - slot.startMin;
     if (metaEl) metaEl.textContent = 'Dauer: ' + (durationMin >= 60 ? (durationMin / 60) + ' h' : durationMin + ' min');
     var panel = document.getElementById('slot-panel');

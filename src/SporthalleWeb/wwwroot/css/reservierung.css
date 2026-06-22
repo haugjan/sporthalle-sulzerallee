@@ -355,11 +355,40 @@
   margin: 0 0 1rem;
 }
 
-.slot-panel__time-display {
-  font-size: 1.05rem;
+.slot-panel__times {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.slot-panel__time-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.slot-panel__time-label {
+  font-size: 0.65rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #aaa;
+}
+
+.slot-panel__time-val {
+  font-size: 1.35rem;
+  font-weight: 800;
   color: #1a1a1a;
-  margin: 0 0 1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.slot-panel__time-dash {
+  font-size: 0.8rem;
+  color: #bbb;
+  padding-bottom: 0.2rem;
 }
 
 .slot-panel__meta {
@@ -390,9 +419,23 @@
 }
 
 .slot-panel__notice {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #555;
   line-height: 1.5;
+  margin-bottom: 0.9rem;
+}
+
+.slot-panel__notice--warn {
+  background: #fff8e6;
+  border: 1px solid #f5c842;
+  border-radius: 6px;
+  padding: 0.75rem 0.9rem;
+}
+
+.slot-panel__notice--warn p {
+  margin: 0 0 0.4rem;
+  font-weight: 500;
+  color: #6b5500;
 }
 
 .slot-panel__notice a {

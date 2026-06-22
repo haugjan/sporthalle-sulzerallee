@@ -500,7 +500,8 @@
     var hint = document.getElementById('slot-panel-hint');
     var detail = document.getElementById('slot-panel-detail');
     var dateLabel = document.getElementById('slot-date-label');
-    var timeDisplay = document.getElementById('slot-time-display');
+    var vonEl = document.getElementById('slot-von');
+    var bisEl = document.getElementById('slot-bis');
     var buchBtn = document.getElementById('btn-jetzt-buchen');
     var notice = document.getElementById('slot-short-notice');
 
@@ -510,8 +511,8 @@
     detail.hidden = false;
 
     if (dateLabel) dateLabel.textContent = formatDateLong(slot.day);
-    if (timeDisplay) timeDisplay.textContent =
-      minutesToTimeStr(slot.startMin) + ' – ' + minutesToTimeStr(slot.endMin) + ' Uhr';
+    if (vonEl) vonEl.textContent = minutesToTimeStr(slot.startMin) + ' Uhr';
+    if (bisEl) bisEl.textContent = minutesToTimeStr(slot.endMin) + ' Uhr';
 
     var shortNotice = isShortNotice(slot.day);
     var beyondCutoff = isBeyondMaxDays(slot.day);
