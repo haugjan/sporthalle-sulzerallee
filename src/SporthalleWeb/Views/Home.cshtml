@@ -28,6 +28,12 @@
     var festDatum = festBlock?.Content.Value<string>("datum") ?? "";
     var festText  = festBlock?.Content.Value<string>("text")  ?? "";
 }
+@section Head {
+  <link rel="stylesheet" href="/css/elements/hero-element.css" />
+  <link rel="stylesheet" href="/css/elements/fest-element.css" />
+  <link rel="stylesheet" href="/css/elements/teaser-element.css" />
+}
+
 <!-- HERO -->
 <section class="hero">
   @if (!string.IsNullOrEmpty(heroImage))
