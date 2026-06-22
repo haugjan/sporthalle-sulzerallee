@@ -1,10 +1,7 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @using System.Linq
-@using Umbraco.Extensions
-@using Umbraco.Cms.Core.Models.PublishedContent
+@using Umbraco.Cms.Core.Models
 @using Umbraco.Cms.Core.Models.Blocks
-@using Umbraco.Cms.Core.PropertyEditors.ValueConverters
-@using Umbraco.Cms.Core.PropertyEditors.ValueConverters
 @{
     var root = Umbraco.ContentAtRoot()?.FirstOrDefault();
     var navChildren = root?.Children()?.ToList() ?? new List<IPublishedContent>();
@@ -14,7 +11,8 @@
 
     var rootBlocks = root?.Value<BlockListModel>("content");
     var heroBlock = rootBlocks?.FirstOrDefault(b => b.Content.ContentType.Alias == "heroElement");
-    var logoUrl = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("logoSvg")?.FirstOrDefault()?.Url() ?? "/img/logo-dust.svg";
+    var logoRaw = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("logoSvg")?.FirstOrDefault()?.GetCropUrl();
+    var logoUrl = string.IsNullOrEmpty(logoRaw) ? "/img/logo_transparent.png" : logoRaw;
 
     var transparentNav = ViewBag.TransparentNav as bool? ?? false;
     var pageTitle = ViewBag.PageTitle as string ?? "Sporthalle Sulzerallee";
@@ -37,7 +35,6 @@
   @RenderSection("Head", required: false)
 </head>
 <body>
-
 <nav class="site-nav" id="siteNav"
      style="background:@navBg; border-bottom-color:@navBorder; @(transparentNav ? "" : "box-shadow:0 1px 12px rgba(0,0,0,0.06);")">
   <div class="site-nav-inner">

@@ -15,7 +15,8 @@
     var teaserBlocks = blocks.Where(b => b.Content.ContentType.Alias == "teaserElement").ToList();
 
     // Hero values
-    var heroImage    = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "";
+    var heroImageRaw = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.GetCropUrl();
+    var heroImage    = heroImageRaw ?? "";
     var schlagwoerter = (heroBlock?.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -110,7 +111,7 @@
         var tTitel  = tb.Content.Value<string>("titel") ?? "";
         var tText   = tb.Content.Value<string>("text")  ?? "";
         var tLink   = tb.Content.Value<IEnumerable<Link>>("link")?.FirstOrDefault()?.Url ?? "#";
-        var tBild   = tb.Content.Value<IEnumerable<MediaWithCrops>>("bild")?.FirstOrDefault()?.Url() ?? "";
+        var tBild   = tb.Content.Value<IEnumerable<MediaWithCrops>>("bild")?.FirstOrDefault()?.GetCropUrl() ?? "";
         var tNum    = (i + 1).ToString("D2");
 
         if (i == 0)
