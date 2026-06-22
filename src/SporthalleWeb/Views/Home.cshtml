@@ -17,6 +17,8 @@
     // Hero values – MediaPicker3 single-pick returns MediaWithCrops<Image>, not IEnumerable
     var heroMediaObj  = heroBlock?.Content.GetProperty("heroImage")?.GetValue() as IPublishedContent;
     var heroImage     = heroMediaObj?.GetCropUrl() ?? "";
+    var heroLogoObj   = heroBlock?.Content.GetProperty("logoSvg")?.GetValue() as IPublishedContent;
+    var heroLogoUrl   = heroLogoObj?.GetCropUrl() ?? "";
     var schlagwoerter = (heroBlock?.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -39,12 +41,6 @@
 
   .teasers-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
   @@media (max-width: 768px) { .teasers-grid { grid-template-columns: 1fr; } }
-  .teaser-deco {
-    position: absolute; top: 1.5rem; right: 1.75rem;
-    font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 8rem; line-height: 1; letter-spacing: 0.02em;
-    color: rgba(255,255,255,0.04); pointer-events: none; user-select: none;
-  }
 </style>
 
 <!-- HERO -->
@@ -53,16 +49,23 @@
   {
     <div class="hero-bg" style="background-image:url('@heroImage');"></div>
   }
-  <div class="hero-wordmark" aria-hidden="true">
-    <div>
-      <span class="hero-word hero-word--l">SPORT</span>
-      <span class="hero-word hero-word--l">HALLE</span>
+  @if (!string.IsNullOrEmpty(heroLogoUrl))
+  {
+    <img class="hero-logo" src="@heroLogoUrl" alt="Sporthalle Sulzerallee" />
+  }
+  else
+  {
+    <div class="hero-wordmark" aria-hidden="true">
+      <div>
+        <span class="hero-word hero-word--l">SPORT</span>
+        <span class="hero-word hero-word--l">HALLE</span>
+      </div>
+      <div>
+        <span class="hero-word hero-word--r">SULZER</span>
+        <span class="hero-word hero-word--r">ALLEE</span>
+      </div>
     </div>
-    <div>
-      <span class="hero-word hero-word--r">SULZER</span>
-      <span class="hero-word hero-word--r">ALLEE</span>
-    </div>
-  </div>
+  }
   <div class="hero-bar">
     @foreach (var tag in schlagwoerter)
     {
@@ -114,47 +117,17 @@
         var tBild   = (tb.Content.GetProperty("bild")?.GetValue() as IPublishedContent)?.GetCropUrl() ?? "";
         var tNum    = (i + 1).ToString("D2");
 
-        if (i == 0)
-        {
-          <a href="@tLink" class="teaser">
-            @if (!string.IsNullOrEmpty(tBild))
-            {
-              <div class="teaser-bg" style="background-image:url('@tBild');filter:grayscale(100%) brightness(0.5);"></div>
-            }
-            <div class="teaser-veil"></div>
-            <div class="teaser-deco">@tNum</div>
-            <div class="teaser-body">
-              @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="color:rgba(255,255,255,0.3);display:block;margin-bottom:0.75rem;">@tLabel</span> }
-              <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
-              @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
-              <span class="link-arrow on-dark">Mehr erfahren <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
-            </div>
-          </a>
-        }
-        else if (i == 1)
-        {
-          <a href="@tLink" class="teaser teaser--dust dust-grain">
-            <div class="teaser-deco" style="color:rgba(255,255,255,0.06);">@tNum</div>
-            <div class="teaser-body" style="position:relative;z-index:1;">
-              @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="color:rgba(255,255,255,0.4);display:block;margin-bottom:0.75rem;">@tLabel</span> }
-              <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
-              @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
-              <span class="link-arrow" style="color:rgba(255,255,255,0.65);">Jetzt Mitglied werden <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
-            </div>
-          </a>
-        }
-        else
-        {
-          <a href="@tLink" class="teaser teaser--ink">
-            <div class="teaser-deco" style="color:rgba(255,255,255,0.03);">@tNum</div>
-            <div class="teaser-body">
-              @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="color:rgba(255,255,255,0.2);display:block;margin-bottom:0.75rem;">@tLabel</span> }
-              <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
-              @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
-              <span class="link-arrow on-dark">Jetzt buchen <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
-            </div>
-          </a>
-        }
+        var tCls = i % 2 == 0 ? "teaser--white" : "teaser--dust";
+        var tCta = i == 1 ? "Jetzt Mitglied werden" : i == 2 ? "Jetzt buchen" : "Mehr erfahren";
+        <a href="@tLink" class="teaser @tCls">
+          <div class="teaser-deco">@tNum</div>
+          <div class="teaser-body">
+            @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label">@tLabel</span> }
+            <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
+            @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
+            <span class="link-arrow">@tCta <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
+          </div>
+        </a>
       }
     </div>
   </section>

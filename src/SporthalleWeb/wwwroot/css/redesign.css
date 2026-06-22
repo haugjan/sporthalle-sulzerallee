@@ -343,6 +343,15 @@ body {
   filter: grayscale(100%) brightness(0.4);
   transform: scale(1.03);
 }
+.hero-logo {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 960px);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
 .hero-wordmark {
   position: absolute; inset: 0;
   display: grid; grid-template-columns: 1fr 1fr;
