@@ -108,15 +108,22 @@
         var tBild   = (tb.Content.GetProperty("bild")?.GetValue() as IPublishedContent)?.GetCropUrl() ?? "";
         var tNum    = (i + 1).ToString("D2");
 
-        var tCls = i % 2 == 0 ? "teaser--white" : "teaser--dust";
-        var tCta = i == 1 ? "Jetzt Mitglied werden" : i == 2 ? "Jetzt buchen" : "Mehr erfahren";
-        <a href="@tLink" class="teaser @tCls">
-          <div class="teaser-deco">@tNum</div>
+        var isDust  = i % 2 != 0;
+        var tCls    = isDust ? "teaser--dust" : "teaser--white";
+        var tCta    = i == 1 ? "Jetzt Mitglied werden" : i == 2 ? "Jetzt buchen" : "Mehr erfahren";
+        var sBg     = isDust ? "background:rgb(235,80,75)"   : "background:#fff";
+        var sTitle  = isDust ? "color:#fff"                  : "color:rgb(235,80,75)";
+        var sSub    = isDust ? "color:rgba(255,255,255,0.75)" : "color:#555";
+        var sDeco   = isDust ? "color:rgba(255,255,255,0.07)" : "color:rgba(235,80,75,0.07)";
+        var sLabel  = isDust ? "color:rgba(255,255,255,0.6)"  : "color:rgba(0,0,0,0.4)";
+        var sArrow  = isDust ? "color:rgba(255,255,255,0.85)" : "color:rgb(235,80,75)";
+        <a href="@tLink" class="teaser @tCls" style="@sBg">
+          <div class="teaser-deco" style="@sDeco">@tNum</div>
           <div class="teaser-body">
-            @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label">@tLabel</span> }
-            <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
-            @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
-            <span class="link-arrow">@tCta <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
+            @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="@sLabel">@tLabel</span> }
+            <span class="teaser-title" style="@sTitle">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
+            @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub" style="@sSub">@tText</span> }
+            <span class="link-arrow" style="@sArrow">@tCta <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
           </div>
         </a>
       }
