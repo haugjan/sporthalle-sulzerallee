@@ -1,25 +1,39 @@
 ﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@using Umbraco.Extensions
 @{
-  Layout = "~/Views/Shared/_Layout.cshtml";
-  var heading = Model.Value<string>("pageHeading") ?? Model.Name;
-  var body = Model.Value<string>("bodyContent");
-  var imageUrl = Model.Value<string>("pageImage");
-  ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+    Layout = "~/Views/Shared/_SiteLayout.cshtml";
+    var heading  = Model.Value<string>("pageHeading") ?? Model.Name;
+    var body     = Model.Value<string>("bodyContent");
+    var imageUrl = Model.Value<string>("pageImage");
+    ViewBag.PageTitle = heading + " – Sporthalle Sulzerallee";
 }
+<style>
+  .content-page { padding-top: calc(var(--nav-h, 68px) + 3rem); padding-bottom: 5rem; }
+  .content-page-header { margin-bottom: 2.5rem; }
+  .content-page-heading {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 0.85; letter-spacing: 0.02em;
+    text-transform: uppercase; color: var(--ink, #1a1a1a);
+  }
+  .content-page-image { width: 100%; max-height: 420px; object-fit: cover; margin-bottom: 2.5rem; }
+  .content-body { font-family: 'Manrope', sans-serif; font-size: 1.05rem; line-height: 1.8; color: #333; max-width: 720px; }
+  .content-body p { margin-bottom: 1.2em; }
+</style>
 
-<div class="page-content">
-  <div class="page-header">
+<main class="content-page">
+  <div class="container">
     @if (!string.IsNullOrEmpty(imageUrl))
     {
-      <img src="@imageUrl" alt="" aria-hidden="true" />
+      <img src="@imageUrl" alt="" class="content-page-image" />
     }
-    <h2>@heading</h2>
-  </div>
-  <div class="page-header-bar"></div>
-  <section>
+    <div class="content-page-header">
+      <h1 class="content-page-heading">@heading</h1>
+      <div style="width:3rem;height:3px;background:var(--dust,#eb504b);margin-top:1rem;"></div>
+    </div>
     @if (!string.IsNullOrEmpty(body))
     {
-      @Html.Raw(body)
+      <div class="content-body">@Html.Raw(body)</div>
     }
-  </section>
-</div>
+  </div>
+</main>

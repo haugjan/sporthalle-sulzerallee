@@ -1,0 +1,188 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@using System.Linq
+@using Umbraco.Extensions
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.PropertyEditors.ValueConverters
+@using Umbraco.Cms.Core.PropertyEditors.ValueConverters
+@{
+    var root = Umbraco.ContentAtRoot()?.FirstOrDefault();
+    var navChildren = root?.Children()?.ToList() ?? new List<IPublishedContent>();
+    var contentPages = navChildren.Where(c => c.ContentType.Alias == "contentPage").ToList();
+    var passiv = navChildren.FirstOrDefault(c => c.ContentType.Alias == "passivMitgliedschaft");
+    var reservierung = navChildren.FirstOrDefault(c => c.ContentType.Alias == "reservierung");
+
+    var rootBlocks = root?.Value<BlockListModel>("content");
+    var heroBlock = rootBlocks?.FirstOrDefault(b => b.Content.ContentType.Alias == "heroElement");
+    var logoUrl = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("logoSvg")?.FirstOrDefault()?.Url() ?? "/img/logo-dust.svg";
+
+    var transparentNav = ViewBag.TransparentNav as bool? ?? false;
+    var pageTitle = ViewBag.PageTitle as string ?? "Sporthalle Sulzerallee";
+    var navBg = transparentNav ? "rgba(255,255,255,0)" : "rgba(255,255,255,0.97)";
+    var navBorder = transparentNav ? "transparent" : "#f0f0f0";
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@pageTitle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" href="/fav.png" />
+  <link rel="stylesheet" href="/css/redesign.css" />
+  @RenderSection("Head", required: false)
+</head>
+<body>
+
+<nav class="site-nav" id="siteNav"
+     style="background:@navBg; border-bottom-color:@navBorder; @(transparentNav ? "" : "box-shadow:0 1px 12px rgba(0,0,0,0.06);")">
+  <div class="site-nav-inner">
+    <a href="/" class="site-nav-logo" aria-label="Startseite">
+      <img src="@logoUrl" alt="Sporthalle Sulzerallee"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+      <span class="site-nav-logo-fallback" style="display:none;">
+        <span style="display:block;">SPORT&thinsp;&thinsp;SULZER</span>
+        <span style="display:block;">HALLE&thinsp;&thinsp;ALLEE</span>
+      </span>
+    </a>
+    <ul class="nav-links">
+      @foreach (var cp in contentPages)
+      {
+        var isActive = Context.Request.Path.Value?.TrimEnd('/').Equals(cp.Url()?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ?? false;
+        <li><a href="@cp.Url()" class="nav-link @(isActive ? "is-active" : "")"
+               style="@(transparentNav ? "color:rgba(255,255,255,0.8);" : "")">@cp.Name</a></li>
+      }
+      @if (passiv != null)
+      {
+        <li><a href="@passiv.Url()" class="nav-btn-dust">Werde Passivmitglied</a></li>
+      }
+      @if (reservierung != null)
+      {
+        <li><a href="@reservierung.Url()" class="nav-btn-outline"
+               style="@(transparentNav ? "border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.75);" : "")">Reservierung</a></li>
+      }
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Navigation">
+      <svg width="22" height="18" fill="none" stroke="@(transparentNav ? "white" : "currentColor")" stroke-width="2" stroke-linecap="square" id="navToggleIcon">
+        <line x1="0" y1="2" x2="22" y2="2"/><line x1="0" y1="9" x2="22" y2="9"/><line x1="0" y1="16" x2="22" y2="16"/>
+      </svg>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      @foreach (var cp in contentPages)
+      {
+        <li><a href="@cp.Url()">@cp.Name</a></li>
+      }
+      @if (passiv != null || reservierung != null)
+      {
+        <li class="sep"></li>
+      }
+      @if (passiv != null)
+      {
+        <li><a href="@passiv.Url()" style="color:var(--dust);">Werde Passivmitglied →</a></li>
+      }
+      @if (reservierung != null)
+      {
+        <li><a href="@reservierung.Url()">Reservierung →</a></li>
+      }
+    </ul>
+  </div>
+</nav>
+
+@RenderBody()
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-logo">
+        <a href="/">
+          <img src="@logoUrl" alt="Sporthalle Sulzerallee"
+               style="filter:brightness(0) invert(1);"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+          <span style="display:none;font-family:'Bebas Neue',Impact,sans-serif;color:rgba(255,255,255,0.5);font-size:1.3rem;letter-spacing:0.06em;line-height:0.88;">
+            <span style="display:block;">SPORT&thinsp;SULZER</span>
+            <span style="display:block;">HALLE&thinsp;ALLEE</span>
+          </span>
+        </a>
+        <span class="footer-tagline">für Winterthur · Schulen · Unihockey</span>
+        <p class="footer-desc">Privates Projekt zur raschen Erhöhung der Hallenkapazität in Winterthur. Realisiert durch die Winterthurer Unihockeyvereine.</p>
+      </div>
+      <div>
+        <span class="footer-col-title">Seiten</span>
+        <ul class="footer-links">
+          @foreach (var cp in contentPages)
+          {
+            <li><a href="@cp.Url()">@cp.Name</a></li>
+          }
+        </ul>
+      </div>
+      @if (passiv != null || reservierung != null)
+      {
+        <div>
+          <span class="footer-col-title">Mitmachen</span>
+          <ul class="footer-links">
+            @if (passiv != null)
+            {
+              <li><a href="@passiv.Url()">Werde Passivmitglied</a></li>
+            }
+            @if (reservierung != null)
+            {
+              <li><a href="@reservierung.Url()">Halle reservieren</a></li>
+            }
+          </ul>
+        </div>
+      }
+      <div>
+        <span class="footer-col-title">Kontakt</span>
+        <div class="footer-contact">
+          <p>Verein Sporthalle Sulzerallee<br />Sulzerallee 1/3<br />8400 Winterthur</p>
+          <a href="mailto:info@sporthalle-sulzerallee.ch">info@sporthalle-sulzerallee.ch</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Verein Sporthalle Sulzerallee</span>
+      <div class="footer-meta">
+        <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank" rel="noopener">Instagram</a>
+        <span>sporthalle-sulzerallee.ch</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var nav = document.getElementById('siteNav');
+  var transparent = @(transparentNav ? "true" : "false");
+  if (transparent) {
+    window.addEventListener('scroll', function () {
+      var past = window.scrollY > 60;
+      nav.style.background = past ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0)';
+      nav.style.borderBottomColor = past ? '#f0f0f0' : 'transparent';
+      nav.style.boxShadow = past ? '0 1px 12px rgba(0,0,0,0.06)' : 'none';
+      nav.querySelectorAll('.nav-link').forEach(function (a) {
+        a.style.color = past ? '' : 'rgba(255,255,255,0.8)';
+      });
+      var outlineBtn = nav.querySelector('.nav-btn-outline');
+      if (outlineBtn) {
+        outlineBtn.style.borderColor = past ? '' : 'rgba(255,255,255,0.5)';
+        outlineBtn.style.color = past ? '' : 'rgba(255,255,255,0.75)';
+      }
+      var icon = document.getElementById('navToggleIcon');
+      if (icon) icon.setAttribute('stroke', past ? 'currentColor' : 'white');
+    });
+  }
+  document.getElementById('navToggle').addEventListener('click', function () {
+    document.getElementById('mobileMenu').classList.toggle('is-open');
+  });
+}());
+</script>
+
+@RenderSection("Scripts", required: false)
+</body>
+</html>

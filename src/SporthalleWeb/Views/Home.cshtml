@@ -1,145 +1,57 @@
 ﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@using System.Linq
 @using Umbraco.Extensions
 @using Umbraco.Cms.Core.Models
+@using Umbraco.Cms.Core.Models.Blocks
 @using Umbraco.Cms.Core.PropertyEditors.ValueConverters
 @{
-    Layout = null;
+    Layout = "~/Views/Shared/_SiteLayout.cshtml";
+    ViewBag.TransparentNav = true;
+    ViewBag.PageTitle = "Sporthalle Sulzerallee — Winterthur";
 
-    var heroImage = Model.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "/img/halle.jpg";
-    var logoSvg   = Model.Value<IEnumerable<MediaWithCrops>>("logoSvg")?.FirstOrDefault()?.Url()   ?? "/img/logo-dust.svg";
-    var schlagwoerter = (Model.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
-                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var blocks = Model.Value<BlockListModel>("content") ?? new BlockListModel(new List<BlockListItem>());
+    var heroBlock   = blocks.FirstOrDefault(b => b.Content.ContentType.Alias == "heroElement");
+    var festBlock   = blocks.FirstOrDefault(b => b.Content.ContentType.Alias == "festElement");
+    var teaserBlocks = blocks.Where(b => b.Content.ContentType.Alias == "teaserElement").ToList();
 
-    var festLabel = Model.Value<string>("festLabel") ?? "";
-    var festTitel = Model.Value<string>("festTitel") ?? "";
-    var festDatum = Model.Value<string>("festDatum") ?? "";
-    var festText  = Model.Value<string>("festText")  ?? "";
+    // Hero values
+    var heroImage    = heroBlock?.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "";
+    var schlagwoerter = (heroBlock?.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
+                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    var t1Label = Model.Value<string>("teaser1Label") ?? "";
-    var t1Titel = Model.Value<string>("teaser1Titel") ?? "";
-    var t1Text  = Model.Value<string>("teaser1Text")  ?? "";
-    var t1Link  = Model.Value<IEnumerable<Link>>("teaser1Link")?.FirstOrDefault()?.Url ?? "#";
-    var t1Bild  = Model.Value<IEnumerable<MediaWithCrops>>("teaser1Bild")?.FirstOrDefault()?.Url() ?? "";
-
-    var t2Label = Model.Value<string>("teaser2Label") ?? "";
-    var t2Titel = Model.Value<string>("teaser2Titel") ?? "";
-    var t2Text  = Model.Value<string>("teaser2Text")  ?? "";
-    var t2Link  = Model.Value<IEnumerable<Link>>("teaser2Link")?.FirstOrDefault()?.Url ?? "#";
-
-    var t3Label = Model.Value<string>("teaser3Label") ?? "";
-    var t3Titel = Model.Value<string>("teaser3Titel") ?? "";
-    var t3Text  = Model.Value<string>("teaser3Text")  ?? "";
-    var t3Link  = Model.Value<IEnumerable<Link>>("teaser3Link")?.FirstOrDefault()?.Url ?? "#";
-
-    var children = Model.Children().ToList();
-    var dasProject    = children.FirstOrDefault(c => c.ContentType.Alias == "contentPage" && c.UrlSegment() == "das-projekt");
-    var unterstuetzung = children.FirstOrDefault(c => c.ContentType.Alias == "contentPage" && c.UrlSegment() == "unterstutzung");
-    var kontakt       = children.FirstOrDefault(c => c.ContentType.Alias == "contentPage" && c.UrlSegment() == "kontakt");
-    var passiv        = children.FirstOrDefault(c => c.ContentType.Alias == "passivMitgliedschaft");
-    var reservierung  = children.FirstOrDefault(c => c.ContentType.Alias == "reservierung");
-
-    string NavUrl(Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent? page, string fallback)
-        => page?.Url() ?? fallback;
+    // Fest values
+    var festLabel = festBlock?.Content.Value<string>("label") ?? "";
+    var festTitel = festBlock?.Content.Value<string>("titel") ?? "";
+    var festDatum = festBlock?.Content.Value<string>("datum") ?? "";
+    var festText  = festBlock?.Content.Value<string>("text")  ?? "";
 }
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sporthalle Sulzerallee — Winterthur</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="icon" href="/fav.png" />
-  <link rel="stylesheet" href="/css/redesign.css" />
-  <style>
-    body { padding-top: 0; }
+<style>
+  .fest-section { background: var(--dust); padding: 5rem 0; overflow: hidden; }
+  .fest-title {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: clamp(4.5rem, 11vw, 10rem);
+    line-height: 0.82; letter-spacing: 0.02em;
+    text-transform: uppercase; color: white;
+  }
+  .fest-date-main { font-family: 'Manrope', sans-serif; font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600; color: white; margin-top: 1.5rem; }
+  .fest-sub { font-family: 'Manrope', sans-serif; font-size: 1.05rem; line-height: 1.75; color: rgba(255,255,255,0.65); margin-top: 1rem; max-width: 500px; }
 
-    .fest-section { background: var(--dust); padding: 5rem 0; overflow: hidden; }
-    .fest-date-deco {
-      font-family: 'Bebas Neue', Impact, sans-serif;
-      font-size: clamp(6rem, 9vw, 11rem);
-      line-height: 0.82; letter-spacing: 0.02em;
-      color: rgba(255,255,255,0.08);
-      text-align: right; pointer-events: none; user-select: none;
-      display: none;
-    }
-    @@media(min-width:900px) { .fest-date-deco { display: block; } }
-    .fest-title {
-      font-family: 'Bebas Neue', Impact, sans-serif;
-      font-size: clamp(4.5rem, 11vw, 10rem);
-      line-height: 0.82; letter-spacing: 0.02em;
-      text-transform: uppercase; color: white;
-    }
-    .fest-date-main {
-      font-family: 'Manrope', sans-serif;
-      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
-      font-weight: 600; color: white; margin-top: 1.5rem;
-    }
-    .fest-sub {
-      font-family: 'Manrope', sans-serif;
-      font-size: 1.05rem; line-height: 1.75;
-      color: rgba(255,255,255,0.65); margin-top: 1rem; max-width: 500px;
-    }
-    .fest-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2.25rem; }
-
-    .teasers-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-    @@media (max-width: 768px) { .teasers-grid { grid-template-columns: 1fr; } }
-
-    .teaser-deco {
-      position: absolute; top: 1.5rem; right: 1.75rem;
-      font-family: 'Bebas Neue', Impact, sans-serif;
-      font-size: 8rem; line-height: 1; letter-spacing: 0.02em;
-      color: rgba(255,255,255,0.04);
-      pointer-events: none; user-select: none;
-    }
-  </style>
-</head>
-<body>
-
-<!-- NAV -->
-<nav class="site-nav" style="background:rgba(255,255,255,0);" id="siteNav">
-  <div class="site-nav-inner">
-    <a href="/" class="site-nav-logo" aria-label="Startseite">
-      <img src="@logoSvg" alt="Sporthalle Sulzerallee"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
-      <span class="site-nav-logo-fallback" style="display:none;">
-        <span style="display:block;">SPORT&thinsp;&thinsp;SULZER</span>
-        <span style="display:block;">HALLE&thinsp;&thinsp;ALLEE</span>
-      </span>
-    </a>
-    <ul class="nav-links">
-      <li><a href="@NavUrl(dasProject, "/das-projekt")"     class="nav-link" style="color:rgba(255,255,255,0.8);">Das Projekt</a></li>
-      <li><a href="@NavUrl(unterstuetzung, "/unterstutzung")" class="nav-link" style="color:rgba(255,255,255,0.8);">Unterstützung</a></li>
-      <li><a href="@NavUrl(kontakt, "/kontakt")"             class="nav-link" style="color:rgba(255,255,255,0.8);">Kontakt</a></li>
-      <li><a href="@NavUrl(passiv, "/passivmitgliedschaft")" class="nav-btn-dust">Werde Passivmitglied</a></li>
-      <li><a href="@NavUrl(reservierung, "/reservierung")"   class="nav-btn-outline" style="border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.75);">Reservierung</a></li>
-    </ul>
-    <button class="nav-toggle" id="navToggle" aria-label="Navigation">
-      <svg width="22" height="18" fill="none" stroke="white" stroke-width="2" stroke-linecap="square">
-        <line x1="0" y1="2" x2="22" y2="2"/><line x1="0" y1="9" x2="22" y2="9"/><line x1="0" y1="16" x2="22" y2="16"/>
-      </svg>
-    </button>
-  </div>
-  <div class="mobile-menu" id="mobileMenu">
-    <ul>
-      <li><a href="@NavUrl(dasProject, "/das-projekt")">Das Projekt</a></li>
-      <li><a href="@NavUrl(unterstuetzung, "/unterstutzung")">Unterstützung</a></li>
-      <li><a href="@NavUrl(kontakt, "/kontakt")">Kontakt</a></li>
-      <li class="sep"></li>
-      <li><a href="@NavUrl(passiv, "/passivmitgliedschaft")" style="color:var(--dust);">Werde Passivmitglied →</a></li>
-      <li><a href="@NavUrl(reservierung, "/reservierung")">Reservierung →</a></li>
-    </ul>
-  </div>
-</nav>
-
+  .teasers-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+  @@media (max-width: 768px) { .teasers-grid { grid-template-columns: 1fr; } }
+  .teaser-deco {
+    position: absolute; top: 1.5rem; right: 1.75rem;
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 8rem; line-height: 1; letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.04); pointer-events: none; user-select: none;
+  }
+</style>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-bg" style="background-image:url('@heroImage');"></div>
-
+  @if (!string.IsNullOrEmpty(heroImage))
+  {
+    <div class="hero-bg" style="background-image:url('@heroImage');"></div>
+  }
   <div class="hero-wordmark" aria-hidden="true">
     <div>
       <span class="hero-word hero-word--l">SPORT</span>
@@ -150,7 +62,6 @@
       <span class="hero-word hero-word--r">ALLEE</span>
     </div>
   </div>
-
   <div class="hero-bar">
     @foreach (var tag in schlagwoerter)
     {
@@ -163,183 +74,87 @@
   </div>
 </section>
 
-
 <!-- ERÖFFNUNGSFEST -->
-@if (!string.IsNullOrEmpty(festTitel))
+@if (festBlock != null && !string.IsNullOrEmpty(festTitel))
 {
   <section class="fest-section dust-grain">
     <div class="container">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:3rem;align-items:end;">
-        <div>
-          @if (!string.IsNullOrEmpty(festLabel))
-          {
-            <span class="t-label" style="color:rgba(255,255,255,0.45);display:block;margin-bottom:1rem;">@festLabel</span>
-          }
-          <h2 class="fest-title">@Html.Raw(festTitel.Replace("\n", "<br />"))</h2>
-          @if (!string.IsNullOrEmpty(festDatum))
-          {
-            <p class="fest-date-main">@festDatum</p>
-          }
-          @if (!string.IsNullOrEmpty(festText))
-          {
-            <p class="fest-sub">@festText</p>
-          }
-        </div>
-        <div class="fest-date-deco" aria-hidden="true"></div>
+      <div>
+        @if (!string.IsNullOrEmpty(festLabel))
+        {
+          <span class="t-label" style="color:rgba(255,255,255,0.45);display:block;margin-bottom:1rem;">@festLabel</span>
+        }
+        <h2 class="fest-title">@Html.Raw(festTitel.Replace("\n", "<br />"))</h2>
+        @if (!string.IsNullOrEmpty(festDatum))
+        {
+          <p class="fest-date-main">@festDatum</p>
+        }
+        @if (!string.IsNullOrEmpty(festText))
+        {
+          <p class="fest-sub">@festText</p>
+        }
       </div>
     </div>
   </section>
 }
 
-
 <!-- TEASERS -->
-<section>
-  <div class="teasers-grid">
+@if (teaserBlocks.Count > 0)
+{
+  <section>
+    <div class="teasers-grid">
+      @for (int i = 0; i < teaserBlocks.Count; i++)
+      {
+        var tb      = teaserBlocks[i];
+        var tLabel  = tb.Content.Value<string>("label") ?? "";
+        var tTitel  = tb.Content.Value<string>("titel") ?? "";
+        var tText   = tb.Content.Value<string>("text")  ?? "";
+        var tLink   = tb.Content.Value<IEnumerable<Link>>("link")?.FirstOrDefault()?.Url ?? "#";
+        var tBild   = tb.Content.Value<IEnumerable<MediaWithCrops>>("bild")?.FirstOrDefault()?.Url() ?? "";
+        var tNum    = (i + 1).ToString("D2");
 
-    @if (!string.IsNullOrEmpty(t1Titel))
-    {
-      <a href="@t1Link" class="teaser">
-        @if (!string.IsNullOrEmpty(t1Bild))
+        if (i == 0)
         {
-          <div class="teaser-bg" style="background-image:url('@t1Bild');filter:grayscale(100%) brightness(0.5);"></div>
+          <a href="@tLink" class="teaser">
+            @if (!string.IsNullOrEmpty(tBild))
+            {
+              <div class="teaser-bg" style="background-image:url('@tBild');filter:grayscale(100%) brightness(0.5);"></div>
+            }
+            <div class="teaser-veil"></div>
+            <div class="teaser-deco">@tNum</div>
+            <div class="teaser-body">
+              @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="color:rgba(255,255,255,0.3);display:block;margin-bottom:0.75rem;">@tLabel</span> }
+              <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
+              @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
+              <span class="link-arrow on-dark">Mehr erfahren <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
+            </div>
+          </a>
         }
-        <div class="teaser-veil"></div>
-        <div class="teaser-deco">01</div>
-        <div class="teaser-body">
-          @if (!string.IsNullOrEmpty(t1Label))
-          {
-            <span class="t-label" style="color:rgba(255,255,255,0.3);display:block;margin-bottom:0.75rem;">@t1Label</span>
-          }
-          <span class="teaser-title">@Html.Raw(t1Titel.Replace("\n", "<br />"))</span>
-          @if (!string.IsNullOrEmpty(t1Text))
-          {
-            <span class="teaser-sub">@t1Text</span>
-          }
-          <span class="link-arrow on-dark">Mehr erfahren
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg>
-          </span>
-        </div>
-      </a>
-    }
-
-    @if (!string.IsNullOrEmpty(t2Titel))
-    {
-      <a href="@t2Link" class="teaser teaser--dust dust-grain">
-        <div class="teaser-deco" style="color:rgba(255,255,255,0.06);">02</div>
-        <div class="teaser-body" style="position:relative;z-index:1;">
-          @if (!string.IsNullOrEmpty(t2Label))
-          {
-            <span class="t-label" style="color:rgba(255,255,255,0.4);display:block;margin-bottom:0.75rem;">@t2Label</span>
-          }
-          <span class="teaser-title">@Html.Raw(t2Titel.Replace("\n", "<br />"))</span>
-          @if (!string.IsNullOrEmpty(t2Text))
-          {
-            <span class="teaser-sub">@t2Text</span>
-          }
-          <span class="link-arrow" style="color:rgba(255,255,255,0.65);">Jetzt Mitglied werden
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg>
-          </span>
-        </div>
-      </a>
-    }
-
-    @if (!string.IsNullOrEmpty(t3Titel))
-    {
-      <a href="@t3Link" class="teaser teaser--ink">
-        <div class="teaser-deco" style="color:rgba(255,255,255,0.03);">03</div>
-        <div class="teaser-body">
-          @if (!string.IsNullOrEmpty(t3Label))
-          {
-            <span class="t-label" style="color:rgba(255,255,255,0.2);display:block;margin-bottom:0.75rem;">@t3Label</span>
-          }
-          <span class="teaser-title">@Html.Raw(t3Titel.Replace("\n", "<br />"))</span>
-          @if (!string.IsNullOrEmpty(t3Text))
-          {
-            <span class="teaser-sub">@t3Text</span>
-          }
-          <span class="link-arrow on-dark">Jetzt buchen
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg>
-          </span>
-        </div>
-      </a>
-    }
-
-  </div>
-</section>
-
-
-<!-- FOOTER -->
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-grid">
-      <div class="footer-logo">
-        <a href="/">
-          <img src="@logoSvg" alt="Sporthalle Sulzerallee"
-               style="filter:brightness(0) invert(1);"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
-          <span style="display:none;font-family:'Bebas Neue',Impact,sans-serif;color:rgba(255,255,255,0.5);font-size:1.3rem;letter-spacing:0.06em;line-height:0.88;">
-            <span style="display:block;">SPORT&thinsp;SULZER</span>
-            <span style="display:block;">HALLE&thinsp;ALLEE</span>
-          </span>
-        </a>
-        <span class="footer-tagline">für Winterthur · Schulen · Unihockey</span>
-        <p class="footer-desc">Privates Projekt zur raschen Erhöhung der Hallenkapazität in Winterthur. Realisiert durch die Winterthurer Unihockeyvereine.</p>
-      </div>
-      <div>
-        <span class="footer-col-title">Seiten</span>
-        <ul class="footer-links">
-          <li><a href="@NavUrl(dasProject, "/das-projekt")">Das Projekt</a></li>
-          <li><a href="@NavUrl(unterstuetzung, "/unterstutzung")">Unterstützung</a></li>
-          <li><a href="@NavUrl(kontakt, "/kontakt")">Kontakt</a></li>
-        </ul>
-      </div>
-      <div>
-        <span class="footer-col-title">Mitmachen</span>
-        <ul class="footer-links">
-          <li><a href="@NavUrl(passiv, "/passivmitgliedschaft")">Werde Passivmitglied</a></li>
-          <li><a href="@NavUrl(reservierung, "/reservierung")">Halle reservieren</a></li>
-        </ul>
-      </div>
-      <div>
-        <span class="footer-col-title">Kontakt</span>
-        <div class="footer-contact">
-          <p>Verein Sporthalle Sulzerallee<br />Sulzerallee 1/3<br />8400 Winterthur</p>
-          <a href="mailto:info@sporthalle-sulzerallee.ch">info@sporthalle-sulzerallee.ch</a>
-        </div>
-      </div>
+        else if (i == 1)
+        {
+          <a href="@tLink" class="teaser teaser--dust dust-grain">
+            <div class="teaser-deco" style="color:rgba(255,255,255,0.06);">@tNum</div>
+            <div class="teaser-body" style="position:relative;z-index:1;">
+              @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="color:rgba(255,255,255,0.4);display:block;margin-bottom:0.75rem;">@tLabel</span> }
+              <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
+              @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
+              <span class="link-arrow" style="color:rgba(255,255,255,0.65);">Jetzt Mitglied werden <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
+            </div>
+          </a>
+        }
+        else
+        {
+          <a href="@tLink" class="teaser teaser--ink">
+            <div class="teaser-deco" style="color:rgba(255,255,255,0.03);">@tNum</div>
+            <div class="teaser-body">
+              @if (!string.IsNullOrEmpty(tLabel)) { <span class="t-label" style="color:rgba(255,255,255,0.2);display:block;margin-bottom:0.75rem;">@tLabel</span> }
+              <span class="teaser-title">@Html.Raw(tTitel.Replace("\n", "<br />"))</span>
+              @if (!string.IsNullOrEmpty(tText)) { <span class="teaser-sub">@tText</span> }
+              <span class="link-arrow on-dark">Jetzt buchen <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg></span>
+            </div>
+          </a>
+        }
+      }
     </div>
-    <div class="footer-bottom">
-      <span class="footer-copy">© 2026 Verein Sporthalle Sulzerallee</span>
-      <div class="footer-meta">
-        <a href="https://www.instagram.com/sporthalle_sulzerallee/" target="_blank" rel="noopener">Instagram</a>
-        <span>sporthalle-sulzerallee.ch</span>
-      </div>
-    </div>
-  </div>
-</footer>
-
-
-<script>
-  var nav = document.getElementById('siteNav');
-  window.addEventListener('scroll', function () {
-    var past = window.scrollY > 60;
-    nav.style.background = past ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0)';
-    nav.style.borderBottomColor = past ? '#f0f0f0' : 'transparent';
-    nav.querySelectorAll('.nav-link').forEach(function (a) {
-      a.style.color = past ? '' : 'rgba(255,255,255,0.8)';
-    });
-    var outlineBtn = nav.querySelector('.nav-btn-outline');
-    if (outlineBtn) {
-      outlineBtn.style.borderColor = past ? '' : 'rgba(255,255,255,0.5)';
-      outlineBtn.style.color = past ? '' : 'rgba(255,255,255,0.75)';
-    }
-    var toggle = nav.querySelector('.nav-toggle svg');
-    if (toggle) toggle.setAttribute('stroke', past ? 'currentColor' : 'white');
-  });
-
-  document.getElementById('navToggle').addEventListener('click', function () {
-    document.getElementById('mobileMenu').classList.toggle('is-open');
-  });
-</script>
-</body>
-</html>
+  </section>
+}

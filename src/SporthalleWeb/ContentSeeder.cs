@@ -301,46 +301,18 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         var homePage = _contentTypeService.Get("homePage");
         if (homePage == null) return;
 
-        var textBox    = _dataTypeService.GetByEditorAlias("Umbraco.TextBox").FirstOrDefault();
-        var textArea   = _dataTypeService.GetByEditorAlias("Umbraco.TextArea").FirstOrDefault();
-        var mediaPicker = _dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault();
-        var linkPicker  = _dataTypeService.GetByEditorAlias("Umbraco.MultiUrlPicker").FirstOrDefault();
-        if (textBox == null || textArea == null || mediaPicker == null || linkPicker == null) return;
+        if (homePage.PropertyTypes.Any(p => p.Alias == "content")) return;
 
-        var existing = homePage.PropertyTypes.Select(p => p.Alias).ToHashSet();
-        var dirty = false;
+        var blockListGuid = Guid.Parse("d4e5f6a7-b8c9-0123-defa-234567890123");
+        var blockListType = _dataTypeService.GetByEditorAlias("Umbraco.BlockList")
+            ?.FirstOrDefault(dt => dt.Key == blockListGuid);
+        if (blockListType == null) return;
 
-        void Add(string alias, string name, IDataType type, string groupAlias, string groupName)
-        {
-            if (existing.Contains(alias)) return;
-            homePage.AddPropertyType(new PropertyType(_shortStringHelper, type) { Alias = alias, Name = name }, groupAlias, groupName);
-            dirty = true;
-        }
-
-        Add("heroImage",    "Hero Image",    mediaPicker, "hero",    "Hero");
-        Add("logoSvg",      "Logo SVG",      mediaPicker, "hero",    "Hero");
-        Add("schlagwoerter","Schlagwörter",  textBox,     "hero",    "Hero");
-        Add("festLabel",    "Fest Label",    textBox,     "fest",    "Eröffnungsfest");
-        Add("festTitel",    "Fest Titel",    textBox,     "fest",    "Eröffnungsfest");
-        Add("festDatum",    "Fest Datum",    textBox,     "fest",    "Eröffnungsfest");
-        Add("festText",     "Fest Text",     textArea,    "fest",    "Eröffnungsfest");
-        Add("teaser1Label", "Teaser 1 Label",textBox,     "teasers", "Teasers");
-        Add("teaser1Titel", "Teaser 1 Titel",textBox,     "teasers", "Teasers");
-        Add("teaser1Text",  "Teaser 1 Text", textArea,    "teasers", "Teasers");
-        Add("teaser1Link",  "Teaser 1 Link", linkPicker,  "teasers", "Teasers");
-        Add("teaser1Bild",  "Teaser 1 Bild", mediaPicker, "teasers", "Teasers");
-        Add("teaser2Label", "Teaser 2 Label",textBox,     "teasers", "Teasers");
-        Add("teaser2Titel", "Teaser 2 Titel",textBox,     "teasers", "Teasers");
-        Add("teaser2Text",  "Teaser 2 Text", textArea,    "teasers", "Teasers");
-        Add("teaser2Link",  "Teaser 2 Link", linkPicker,  "teasers", "Teasers");
-        Add("teaser3Label", "Teaser 3 Label",textBox,     "teasers", "Teasers");
-        Add("teaser3Titel", "Teaser 3 Titel",textBox,     "teasers", "Teasers");
-        Add("teaser3Text",  "Teaser 3 Text", textArea,    "teasers", "Teasers");
-        Add("teaser3Link",  "Teaser 3 Link", linkPicker,  "teasers", "Teasers");
-
-        if (!dirty) return;
+        homePage.AddPropertyType(
+            new PropertyType(_shortStringHelper, blockListType) { Alias = "content", Name = "Inhalt" },
+            "Content", "Content");
         _contentTypeService.Save(homePage, Constants.Security.SuperUserId);
-        _logger.LogInformation("ContentSeeder: added redesign properties to homePage content type.");
+        _logger.LogInformation("ContentSeeder: added Block List 'content' property to homePage.");
     }
 
     private void MigrateMediaPathsToImg()
