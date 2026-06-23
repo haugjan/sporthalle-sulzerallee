@@ -1,9 +1,12 @@
 @using SporthalleWeb.Application.PassiveMembership
 @using SporthalleWeb.Domain.PassiveMembership
+@using SporthalleWeb.Domain.PassiveMembership.Ports
 @using System.Text.Encodings.Web
 @inject GetFieldStatusesQuery FieldQuery
 @inject RegisterMemberUseCase RegisterUseCase
+@inject ICaptchaPort CaptchaPort
 @inject IJSRuntime JS
+@inject ILogger<FloorPlanComponent> Logger
 
 <link rel="stylesheet" href="/css/passivmitglied.css" />
 
@@ -365,6 +368,17 @@
         _submitError = null;
         var token = await JS.InvokeAsync<string?>("pmGetTurnstileToken");
         if (string.IsNullOrEmpty(token)) { _submitError = "Bitte das CAPTCHA lösen."; return; }
+
+        try
+        {
+            var valid = await CaptchaPort.VerifyAsync(token, "");
+            if (!valid) { _submitError = "Das CAPTCHA konnte nicht bestätigt werden. Bitte versuche es erneut."; return; }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Turnstile verification call failed; proceeding with registration");
+        }
+
         _submitting = true;
         try
         {
@@ -387,7 +401,11 @@
         }
         catch (FieldAlreadyTakenException) { _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes."; }
         catch (DomainException ex)         { _submitError = ex.Message; }
-        catch (Exception)                  { _submitError = "Ein Fehler ist aufgetreten. Bitte versuche es erneut."; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "PassivMember registration failed for field {Field}", _selectedField);
+            _submitError = "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
+        }
         finally { _submitting = false; }
     }
 
