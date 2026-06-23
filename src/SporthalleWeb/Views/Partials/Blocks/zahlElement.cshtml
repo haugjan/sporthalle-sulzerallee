@@ -1,0 +1,15 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var zahl         = Model.Content.Value<string>("zahl")         ?? "";
+    var beschriftung = Model.Content.Value<string>("beschriftung") ?? "";
+}
+<div class="ze-item">
+  @if (!string.IsNullOrEmpty(zahl))
+  {
+    <div class="ze-zahl">@zahl</div>
+  }
+  @if (!string.IsNullOrEmpty(beschriftung))
+  {
+    <div class="ze-label">@beschriftung</div>
+  }
+</div>

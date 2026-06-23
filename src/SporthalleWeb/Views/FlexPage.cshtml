@@ -36,6 +36,21 @@
                 }
             </div>
         }
+        else if (alias == "zahlElement")
+        {
+            var group = new List<BlockListItem>();
+            while (idx < blocks.Count && blocks[idx].Content.ContentType.Alias == "zahlElement")
+            {
+                group.Add(blocks[idx]);
+                idx++;
+            }
+            <div class="zahl-row">
+                @foreach (var g in group)
+                {
+                    @await Html.PartialAsync("~/Views/Partials/Blocks/zahlElement.cshtml", g)
+                }
+            </div>
+        }
         else if (alias == "dateiElement")
         {
             var group = new List<BlockListItem>();
