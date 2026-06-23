@@ -326,8 +326,10 @@
 
     private void ToggleExpand() => _expanded = !_expanded;
 
-    private void CloseWizard()
+    private async Task CloseWizard()
     {
+        if (_step == Step.Captcha)
+            await JS.InvokeVoidAsync("pmClearTurnstile");
         _step               = Step.None;
         _selectedField      = null;
         _stepError          = null;
@@ -354,10 +356,14 @@
         };
     }
 
-    private void PrevStep()
+    private async Task PrevStep()
     {
         _stepError = null;
-        if (_step == Step.Captcha) _captchaInitialized = false;
+        if (_step == Step.Captcha)
+        {
+            _captchaInitialized = false;
+            await JS.InvokeVoidAsync("pmClearTurnstile");
+        }
         _step = _step switch
         {
             Step.Level   => Step.Field,
