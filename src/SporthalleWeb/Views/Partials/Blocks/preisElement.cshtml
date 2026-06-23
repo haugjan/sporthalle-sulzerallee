@@ -1,0 +1,37 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var label      = Model.Content.Value<string>("label")      ?? "";
+    var titel      = Model.Content.Value<string>("titel")      ?? "";
+    var preis      = Model.Content.Value<string>("preis")      ?? "";
+    var preisLabel = Model.Content.Value<string>("preisLabel") ?? "";
+    var text       = Model.Content.Value<string>("text")       ?? "";
+    var lines      = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}
+<div class="pre-card">
+  @if (!string.IsNullOrEmpty(label))
+  {
+    <span class="pre-badge">@label</span>
+  }
+  @if (!string.IsNullOrEmpty(titel))
+  {
+    <div class="pre-titel">@titel</div>
+  }
+  @if (!string.IsNullOrEmpty(preis))
+  {
+    <div class="pre-preis">@preis</div>
+  }
+  @if (!string.IsNullOrEmpty(preisLabel))
+  {
+    <div class="pre-preis-label">@preisLabel</div>
+  }
+  @if (lines.Length > 0)
+  {
+    <div class="pre-divider"></div>
+    <ul class="pre-features">
+      @foreach (var line in lines)
+      {
+        <li>@line</li>
+      }
+    </ul>
+  }
+</div>

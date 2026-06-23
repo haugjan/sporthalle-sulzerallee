@@ -36,6 +36,21 @@
                 }
             </div>
         }
+        else if (alias == "preisElement")
+        {
+            var group = new List<BlockListItem>();
+            while (idx < blocks.Count && blocks[idx].Content.ContentType.Alias == "preisElement")
+            {
+                group.Add(blocks[idx]);
+                idx++;
+            }
+            <div class="preis-row">
+                @foreach (var g in group)
+                {
+                    @await Html.PartialAsync("~/Views/Partials/Blocks/preisElement.cshtml", g)
+                }
+            </div>
+        }
         else if (alias == "zahlElement")
         {
             var group = new List<BlockListItem>();
