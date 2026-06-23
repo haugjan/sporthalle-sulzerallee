@@ -125,13 +125,40 @@
                         }
                     </div>
 
-                    <!-- Right: time picker -->
+                    <!-- Right: time picker — cells rendered by Blazor, drag wired by JS -->
                     <div style="flex:1;overflow-y:auto;padding:1rem">
                         <label class="form-label fw-semibold">
                             Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
                         </label>
-                        <div id="ec-@_editSlotId"
+                        <div id="ec-@_editSlotId" class="ec-day-grid"
                              style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;user-select:none;min-height:300px">
+                            @for (var i = 0; i < _slotOverlays.Length; i++)
+                            {
+                                var slotMin = _calStart * 60 + i * 30;
+                                var hh = slotMin / 60;
+                                var mm = slotMin % 60;
+                                var sel = _editSelStart >= 0 && _editSelEnd >= 0
+                                          && i >= _editSelStart && i <= _editSelEnd;
+                                var ov = _slotOverlays[i];
+                                var booked = ov is not null;
+                                var hour = mm == 0;
+                                var cls = "ec-slot"
+                                    + (booked ? " ec-slot--booked"  : "")
+                                    + (sel    ? " ec-slot-selected" : "")
+                                    + (hour   ? " ec-slot--hour"    : "");
+                                var inlineStyle = booked
+                                    ? $"border-left:3px solid {ov!.Color};background:{ov.Color}18;"
+                                    : "";
+                                <div class="@cls" data-slot-idx="@i"
+                                     data-booked="@(booked ? "1" : "")"
+                                     style="@inlineStyle">
+                                    <span class="ec-slot-time">@($"{hh:00}:{mm:00}")</span>
+                                    @if (booked && !string.IsNullOrEmpty(ov!.Title))
+                                    {
+                                        <span class="ec-slot-label">@ov.Title</span>
+                                    }
+                                </div>
+                            }
                         </div>
 
                         @if (_editSelStart >= 0 && _editSelEnd >= 0)
@@ -196,6 +223,9 @@
     private DotNetObjectReference<AdminEditDialogComponent>? _dotNetRef;
     private int? _calInitializedForSlotId;
 
+    private sealed record SlotOverlay(string Title, string Color);
+    private SlotOverlay?[] _slotOverlays = [];
+
     private bool _showMemberSearch;
     private string _memberQuery = "";
     private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
@@ -215,15 +245,15 @@
         await InvokeAsync(StateHasChanged);
         var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
         if (slot is null) { _editSlotId = null; _editLoading = false; return; }
-        _editSlotType          = slot.Type;
-        _editTitle             = slot.Title ?? "";
-        _editColor             = slot.Color ?? "#C0392B";
-        _editNotes             = slot.Notes ?? "";
-        _editHasMember   = member is not null;
-        _editMemberId    = member?.Id;
+        _editSlotType     = slot.Type;
+        _editTitle        = slot.Title ?? "";
+        _editColor        = slot.Color ?? "#C0392B";
+        _editNotes        = slot.Notes ?? "";
+        _editHasMember    = member is not null;
+        _editMemberId     = member?.Id;
         _originalMemberId = member?.Id;
-        _editEmail       = member?.Email ?? "";
-        _editMemberName  = member is null ? "" : $"{member.ContactFirstName} {member.ContactLastName}".Trim();
+        _editEmail        = member?.Email ?? "";
+        _editMemberName   = member is null ? "" : $"{member.ContactFirstName} {member.ContactLastName}".Trim();
         var startLocal = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
         var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
         _editStartDate = startLocal.ToString("yyyy-MM-dd");
@@ -231,8 +261,8 @@
         _editEndDate   = _editStartDate;
         _editEndTime   = endLocal.ToString("HH:mm");
 
-        var cfgStart = await Config.GetAsync("kalender_beginn");
-        var cfgEnd   = await Config.GetAsync("kalender_ende");
+        var cfgStart = await Config.GetAsync("openingHourStart");
+        var cfgEnd   = await Config.GetAsync("openingHourEnd");
         _calStart = int.TryParse(cfgStart, out var cs) ? cs : 7;
         _calEnd   = int.TryParse(cfgEnd,   out var ce) ? ce : 23;
 
@@ -253,9 +283,31 @@
         }
 
         await LoadCalendarSlotsAsync();
+        BuildSlotOverlays();
         CheckConflicts();
         _editLoading = false;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildSlotOverlays()
+    {
+        var total = (_calEnd - _calStart) * 2;
+        _slotOverlays = new SlotOverlay?[total];
+        foreach (var s in _calendarSlotsForDay)
+        {
+            if (s.Id == _editSlotId) continue;
+            var startLocal = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.StartUtc, Zurich);
+            var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.EndUtc,   Zurich);
+            var startMin = startLocal.Hour * 60 + startLocal.Minute;
+            var endMin   = endLocal.Hour * 60 + endLocal.Minute;
+            for (var i = 0; i < total; i++)
+            {
+                var sMin = _calStart * 60 + i * 30;
+                var eMin = sMin + 30;
+                if (startMin < eMin && endMin > sMin && _slotOverlays[i] is null)
+                    _slotOverlays[i] = new SlotOverlay(s.Title ?? "", s.Color ?? "#546E7A");
+            }
+        }
     }
 
     private void CancelEdit()
@@ -314,34 +366,13 @@
             && _calInitializedForSlotId != _editSlotId)
         {
             _calInitializedForSlotId = _editSlotId;
-            var slotsJson = SerializeCalendarSlots();
             try
             {
                 await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendarDay",
-                    $"ec-{_editSlotId}", _dotNetRef, slotsJson,
-                    _calStart, _calEnd, _editSelStart, _editSelEnd);
+                    $"ec-{_editSlotId}", _dotNetRef);
             }
-            catch { /* JS not yet loaded; next render will retry */ }
+            catch { _calInitializedForSlotId = null; /* retry next render */ }
         }
-    }
-
-    private string SerializeCalendarSlots()
-    {
-        var slots = _calendarSlotsForDay
-            .Where(s => s.Id != _editSlotId)
-            .Select(s =>
-            {
-                var startLocal = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.StartUtc, Zurich);
-                var endLocal   = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.EndUtc,   Zurich);
-                return new
-                {
-                    startMin = startLocal.Hour * 60 + startLocal.Minute,
-                    endMin   = endLocal.Hour * 60 + endLocal.Minute,
-                    title    = s.Title ?? "",
-                    color    = s.Color ?? "#546E7A"
-                };
-            });
-        return System.Text.Json.JsonSerializer.Serialize(slots);
     }
 
     [JSInvokable]
@@ -409,12 +440,13 @@
         {
             _editStartDate = d.ToString("yyyy-MM-dd");
         }
-        _editEndDate   = _editStartDate;
-        _editSelStart  = -1;
-        _editSelEnd    = -1;
-        _editConflict  = false;
+        _editEndDate             = _editStartDate;
+        _editSelStart            = -1;
+        _editSelEnd              = -1;
+        _editConflict            = false;
         _calInitializedForSlotId = null;
         await LoadCalendarSlotsAsync();
+        BuildSlotOverlays();
         CheckConflicts();
     }
 
@@ -435,44 +467,44 @@
 
     private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
     {
-        _editMemberId   = m.Id;
-        _editEmail      = m.Email;
-        _editMemberName = $"{m.ContactFirstName} {m.ContactLastName}".Trim();
-        _editHasMember  = true;
+        _editMemberId     = m.Id;
+        _editEmail        = m.Email;
+        _editMemberName   = $"{m.ContactFirstName} {m.ContactLastName}".Trim();
+        _editHasMember    = true;
         _showMemberSearch = false;
-        _memberQuery = "";
-        _memberResults = [];
+        _memberQuery      = "";
+        _memberResults    = [];
         _memberSearchDone = false;
     }
 
     private void ClearMember()
     {
-        _editMemberId   = null;
-        _editEmail      = "";
-        _editMemberName = "";
-        _editHasMember  = false;
+        _editMemberId     = null;
+        _editEmail        = "";
+        _editMemberName   = "";
+        _editHasMember    = false;
         _showMemberSearch = false;
-        _memberQuery = "";
-        _memberResults = [];
+        _memberQuery      = "";
+        _memberResults    = [];
         _memberSearchDone = false;
     }
 
     private static string TypeBadge(string type) => type switch
     {
-        "Booked"    => "bg-success",
-        "Reserved"  => "bg-warning text-dark",
-        "Blocker"   => "bg-secondary",
-        "Rejected"  => "bg-danger",
-        _           => "bg-secondary"
+        "Booked"   => "bg-success",
+        "Reserved" => "bg-warning text-dark",
+        "Blocker"  => "bg-secondary",
+        "Rejected" => "bg-danger",
+        _          => "bg-secondary"
     };
 
     private static string TypeLabel(SporthalleWeb.Domain.Booking.SlotType type) => type switch
     {
-        SporthalleWeb.Domain.Booking.SlotType.Booked    => "Bestätigt",
-        SporthalleWeb.Domain.Booking.SlotType.Reserved  => "Angefragt",
-        SporthalleWeb.Domain.Booking.SlotType.Blocker   => "Blocker",
-        SporthalleWeb.Domain.Booking.SlotType.Rejected  => "Abgelehnt",
-        SporthalleWeb.Domain.Booking.SlotType.Recurring => "Serientermin",
+        SporthalleWeb.Domain.Booking.SlotType.Booked     => "Bestätigt",
+        SporthalleWeb.Domain.Booking.SlotType.Reserved   => "Angefragt",
+        SporthalleWeb.Domain.Booking.SlotType.Blocker    => "Blocker",
+        SporthalleWeb.Domain.Booking.SlotType.Rejected   => "Abgelehnt",
+        SporthalleWeb.Domain.Booking.SlotType.Recurring  => "Serientermin",
         _ => type.ToString()
     };
 }

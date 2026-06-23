@@ -1032,7 +1032,8 @@ window.SporthalleAdmin = (function () {
     },
 
     // ── Edit-Dialog Tageskalender ────────────────────────────────────────────────
-    initEditCalendarDay: function (containerId, dotNetRef, slotsJson, calStart, calEnd, selStart, selEnd) {
+    // Cells are rendered by Blazor; this function only attaches drag listeners.
+    initEditCalendarDay: function (containerId, dotNetRef) {
       if (_docEditMouseUp) {
         document.removeEventListener('mouseup', _docEditMouseUp);
         _docEditMouseUp = null;
@@ -1041,47 +1042,12 @@ window.SporthalleAdmin = (function () {
       var el = document.getElementById(containerId);
       if (!el) return;
 
-      var slots = [];
-      try { slots = JSON.parse(slotsJson || '[]'); } catch (e) {}
-      var totalSlots = (calEnd - calStart) * 2;
-
-      // Render 30-min slot rows into container
-      var html = '<div class="ec-day-grid">';
-      for (var i = 0; i < totalSlots; i++) {
-        var slotStartMin = calStart * 60 + i * 30;
-        var slotEndMin   = slotStartMin + 30;
-        var hh = Math.floor(slotStartMin / 60);
-        var mm = slotStartMin % 60;
-        var timeLabel = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
-
-        var bookedSlot = null;
-        for (var s = 0; s < slots.length; s++) {
-          if (slots[s].startMin < slotEndMin && slots[s].endMin > slotStartMin) {
-            bookedSlot = slots[s]; break;
-          }
-        }
-
-        var isBooked   = bookedSlot !== null;
-        var isSelected = selStart >= 0 && selEnd >= 0 && i >= selStart && i <= selEnd;
-        var isHour     = mm === 0;
-
-        var cls = 'ec-slot' +
-          (isBooked   ? ' ec-slot--booked'   : '') +
-          (isSelected ? ' ec-slot-selected'  : '') +
-          (isHour     ? ' ec-slot--hour'     : '');
-        var style = isBooked && bookedSlot.color
-          ? 'border-left:3px solid ' + bookedSlot.color + ';background:' + bookedSlot.color + '18;'
-          : '';
-
-        html += '<div class="' + cls + '" data-slot-idx="' + i + '"' +
-          (isBooked ? ' data-booked="1"' : '') +
-          (style    ? ' style="' + style + '"' : '') + '>' +
-          '<span class="ec-slot-time">' + timeLabel + '</span>' +
-          (isBooked && bookedSlot.title ? '<span class="ec-slot-label">' + bookedSlot.title + '</span>' : '') +
-          '</div>';
-      }
-      html += '</div>';
-      el.innerHTML = html;
+      // Remove any previous listeners stored on the element
+      if (el._ecDown) el.removeEventListener('mousedown', el._ecDown);
+      if (el._ecOver) el.removeEventListener('mouseover', el._ecOver);
+      if (el._ecTs)   el.removeEventListener('touchstart', el._ecTs);
+      if (el._ecTm)   el.removeEventListener('touchmove',  el._ecTm);
+      if (el._ecTe)   el.removeEventListener('touchend',   el._ecTe);
 
       var dragging = false;
       var startIdx = -1;
@@ -1096,7 +1062,7 @@ window.SporthalleAdmin = (function () {
         });
       }
 
-      el.addEventListener('mousedown', function (e) {
+      el._ecDown = function (e) {
         var cell = e.target.closest('[data-slot-idx]');
         if (!cell || cell.dataset.booked === '1') return;
         dragging = true;
@@ -1104,15 +1070,17 @@ window.SporthalleAdmin = (function () {
         endIdx = startIdx;
         highlight(startIdx, startIdx);
         e.preventDefault();
-      });
+      };
+      el.addEventListener('mousedown', el._ecDown);
 
-      el.addEventListener('mouseover', function (e) {
+      el._ecOver = function (e) {
         if (!dragging) return;
         var cell = e.target.closest('[data-slot-idx]');
         if (!cell) return;
         endIdx = parseInt(cell.dataset.slotIdx, 10);
         highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
-      });
+      };
+      el.addEventListener('mouseover', el._ecOver);
 
       function finishDrag() {
         if (!dragging) return;
@@ -1126,7 +1094,7 @@ window.SporthalleAdmin = (function () {
       _docEditMouseUp = finishDrag;
       document.addEventListener('mouseup', _docEditMouseUp);
 
-      el.addEventListener('touchstart', function (e) {
+      el._ecTs = function (e) {
         var t = e.touches[0];
         var under = document.elementFromPoint(t.clientX, t.clientY);
         var cell = under ? under.closest('[data-slot-idx]') : null;
@@ -1135,9 +1103,10 @@ window.SporthalleAdmin = (function () {
         startIdx = parseInt(cell.dataset.slotIdx, 10);
         endIdx = startIdx;
         highlight(startIdx, startIdx);
-      }, { passive: true });
+      };
+      el.addEventListener('touchstart', el._ecTs, { passive: true });
 
-      el.addEventListener('touchmove', function (e) {
+      el._ecTm = function (e) {
         if (!dragging) return;
         var t = e.touches[0];
         var under = document.elementFromPoint(t.clientX, t.clientY);
@@ -1145,14 +1114,16 @@ window.SporthalleAdmin = (function () {
         if (!cell) return;
         endIdx = parseInt(cell.dataset.slotIdx, 10);
         highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
-      }, { passive: true });
+      };
+      el.addEventListener('touchmove', el._ecTm, { passive: true });
 
-      el.addEventListener('touchend', finishDrag);
+      el._ecTe = finishDrag;
+      el.addEventListener('touchend', el._ecTe);
 
       setTimeout(function () {
         var firstSel = el.querySelector('.ec-slot-selected');
         if (firstSel) firstSel.scrollIntoView({ block: 'center', behavior: 'instant' });
-      }, 0);
+      }, 50);
     },
 
     destroyEditCalendar: function () {
