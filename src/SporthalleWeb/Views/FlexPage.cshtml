@@ -36,6 +36,21 @@
                 }
             </div>
         }
+        else if (alias == "dateiElement")
+        {
+            var group = new List<BlockListItem>();
+            while (idx < blocks.Count && blocks[idx].Content.ContentType.Alias == "dateiElement")
+            {
+                group.Add(blocks[idx]);
+                idx++;
+            }
+            <div class="datei-row">
+                @foreach (var g in group)
+                {
+                    @await Html.PartialAsync("~/Views/Partials/Blocks/dateiElement.cshtml", g)
+                }
+            </div>
+        }
         else
         {
             @await Html.PartialAsync($"~/Views/Partials/Blocks/{alias}.cshtml", block)

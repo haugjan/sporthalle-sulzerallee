@@ -1,0 +1,27 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var quelle       = Model.Content.Value<string>("quelle")       ?? "";
+    var titel        = Model.Content.Value<string>("titel")        ?? "";
+    var beschreibung = Model.Content.Value<string>("beschreibung") ?? "";
+    var dateiUrl     = Model.Content.Value<string>("dateiUrl")     ?? "";
+    var dateiLabel   = Model.Content.Value<string>("dateiLabel");
+    if (string.IsNullOrWhiteSpace(dateiLabel)) dateiLabel = "PDF öffnen";
+}
+<div class="de-card">
+  @if (!string.IsNullOrEmpty(quelle))
+  {
+    <div class="de-quelle">@quelle</div>
+  }
+  @if (!string.IsNullOrEmpty(titel))
+  {
+    <div class="de-titel">@titel</div>
+  }
+  @if (!string.IsNullOrEmpty(beschreibung))
+  {
+    <p class="de-beschreibung">@beschreibung</p>
+  }
+  @if (!string.IsNullOrEmpty(dateiUrl))
+  {
+    <a href="@dateiUrl" class="de-link" target="_blank" rel="noopener">@dateiLabel →</a>
+  }
+</div>
