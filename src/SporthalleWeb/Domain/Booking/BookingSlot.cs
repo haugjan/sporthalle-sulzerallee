@@ -134,4 +134,10 @@ public sealed class BookingSlot
         Slot = newSlot;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Reassign(int? newMemberId)
+    {
+        MemberId = newMemberId;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

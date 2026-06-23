@@ -1,4 +1,4 @@
-﻿@using Microsoft.JSInterop
+@using Microsoft.JSInterop
 @inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
 @inject SporthalleWeb.Application.Booking.HallConfigService Config
 @inject IJSRuntime JS
@@ -58,18 +58,66 @@
                             <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
                         </div>
 
-                        @if (_editHasMember)
-                        {
-                            <hr />
-                            <div class="mb-2">
-                                <label class="form-label fw-semibold">Mieter</label>
-                                <div class="d-flex flex-column gap-1">
-                                    <span>@_editMemberName</span>
-                                    <small class="text-muted">@_editEmail</small>
+                        <hr />
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold">Mieter</label>
+                            @if (_editHasMember)
+                            {
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+                                    <div>
+                                        <div>@_editMemberName</div>
+                                        <small class="text-muted">@_editEmail</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                            @onclick="ToggleMemberSearch">Ändern</button>
                                 </div>
-                                <small class="text-muted">Mieterdaten können im Umbraco Members-Bereich bearbeitet werden.</small>
-                            </div>
-                        }
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="text-muted">Kein Mieter zugewiesen</span>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                            @onclick="ToggleMemberSearch">Zuweisen</button>
+                                </div>
+                            }
+                            @if (_showMemberSearch)
+                            {
+                                <div class="mt-1">
+                                    <div class="input-group input-group-sm">
+                                        <input class="form-control" placeholder="Name oder E-Mail…"
+                                               @bind="_memberQuery" @bind:event="oninput" />
+                                        <button class="btn btn-outline-primary" type="button"
+                                                @onclick="SearchMembersAsync">Suchen</button>
+                                    </div>
+                                    @if (_memberResults.Count > 0)
+                                    {
+                                        <div class="ec-member-results">
+                                            @foreach (var m in _memberResults)
+                                            {
+                                                var cap = m;
+                                                <div class="ec-member-result" @onclick="() => SelectMember(cap)">
+                                                    <strong>@($"{cap.ContactFirstName} {cap.ContactLastName}".Trim())</strong>
+                                                    @if (!string.IsNullOrEmpty(cap.Name))
+                                                    {
+                                                        <span class="text-muted"> · @cap.Name</span>
+                                                    }
+                                                    <small class="d-block text-muted">@cap.Email</small>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (_memberSearchDone)
+                                    {
+                                        <small class="text-muted">Keine Mitglieder gefunden.</small>
+                                    }
+                                    @if (_editHasMember)
+                                    {
+                                        <button class="btn btn-sm btn-link text-danger p-0 mt-1" type="button"
+                                                @onclick="ClearMember">Mieter entfernen</button>
+                                    }
+                                </div>
+                            }
+                        </div>
 
                         @if (_editError is not null)
                         {
@@ -129,6 +177,7 @@
     private string _editNotes = "";
     private bool _editHasMember;
     private int? _editMemberId;
+    private int? _originalMemberId;
     private string _editEmail = "";
     private string _editMemberName = "";
     private string _editStartDate = "";
@@ -147,6 +196,11 @@
     private DotNetObjectReference<AdminEditDialogComponent>? _dotNetRef;
     private int? _calInitializedForSlotId;
 
+    private bool _showMemberSearch;
+    private string _memberQuery = "";
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
+    private bool _memberSearchDone;
+
     public void Dispose() => _dotNetRef?.Dispose();
 
     public async Task OpenAsync(int id)
@@ -154,6 +208,10 @@
         _editSlotId = id;
         _editLoading = true;
         _editError = null;
+        _showMemberSearch = false;
+        _memberQuery = "";
+        _memberResults = [];
+        _memberSearchDone = false;
         await InvokeAsync(StateHasChanged);
         var (slot, member) = await AdminService.FindSlotWithMemberAsync(id);
         if (slot is null) { _editSlotId = null; _editLoading = false; return; }
@@ -163,6 +221,7 @@
         _editNotes             = slot.Notes ?? "";
         _editHasMember   = member is not null;
         _editMemberId    = member?.Id;
+        _originalMemberId = member?.Id;
         _editEmail       = member?.Email ?? "";
         _editMemberName  = member is null ? "" : $"{member.ContactFirstName} {member.ContactLastName}".Trim();
         var startLocal = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
@@ -207,6 +266,10 @@
         _editSelEnd   = -1;
         _editConflict = false;
         _editError = null;
+        _showMemberSearch = false;
+        _memberQuery = "";
+        _memberResults = [];
+        _memberSearchDone = false;
     }
 
     private async Task SaveEditAsync()
@@ -226,6 +289,9 @@
             await AdminService.UpdateSlotAsync(_editSlotId.Value,
                 _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
                 AdminUser);
+
+            if (_editMemberId != _originalMemberId)
+                await AdminService.ReassignMemberAsync(_editSlotId.Value, _editMemberId, AdminUser);
 
             if (DateTime.TryParse(_editStartDate + "T" + _editStartTime, out var startLocal) &&
                 DateTime.TryParse(_editEndDate   + "T" + _editEndTime,   out var endLocal))
@@ -249,9 +315,13 @@
         {
             _calInitializedForSlotId = _editSlotId;
             var slotsJson = SerializeCalendarSlots();
-            await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendarDay",
-                $"ec-{_editSlotId}", _dotNetRef, slotsJson,
-                _calStart, _calEnd, _editSelStart, _editSelEnd);
+            try
+            {
+                await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendarDay",
+                    $"ec-{_editSlotId}", _dotNetRef, slotsJson,
+                    _calStart, _calEnd, _editSelStart, _editSelEnd);
+            }
+            catch { /* JS not yet loaded; next render will retry */ }
         }
     }
 
@@ -348,6 +418,45 @@
         CheckConflicts();
     }
 
+    private void ToggleMemberSearch()
+    {
+        _showMemberSearch = !_showMemberSearch;
+        _memberQuery = "";
+        _memberResults = [];
+        _memberSearchDone = false;
+    }
+
+    private async Task SearchMembersAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_memberQuery)) return;
+        _memberResults = await AdminService.SearchMembersAsync(_memberQuery.Trim());
+        _memberSearchDone = true;
+    }
+
+    private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
+    {
+        _editMemberId   = m.Id;
+        _editEmail      = m.Email;
+        _editMemberName = $"{m.ContactFirstName} {m.ContactLastName}".Trim();
+        _editHasMember  = true;
+        _showMemberSearch = false;
+        _memberQuery = "";
+        _memberResults = [];
+        _memberSearchDone = false;
+    }
+
+    private void ClearMember()
+    {
+        _editMemberId   = null;
+        _editEmail      = "";
+        _editMemberName = "";
+        _editHasMember  = false;
+        _showMemberSearch = false;
+        _memberQuery = "";
+        _memberResults = [];
+        _memberSearchDone = false;
+    }
+
     private static string TypeBadge(string type) => type switch
     {
         "Booked"    => "bg-success",
@@ -363,7 +472,7 @@
         SporthalleWeb.Domain.Booking.SlotType.Reserved  => "Angefragt",
         SporthalleWeb.Domain.Booking.SlotType.Blocker   => "Blocker",
         SporthalleWeb.Domain.Booking.SlotType.Rejected  => "Abgelehnt",
-        SporthalleWeb.Domain.Booking.SlotType.Recurring     => "Serientermin",
+        SporthalleWeb.Domain.Booking.SlotType.Recurring => "Serientermin",
         _ => type.ToString()
     };
 }

@@ -1032,11 +1032,7 @@ window.SporthalleAdmin = (function () {
     },
 
     // ── Edit-Dialog Tageskalender ────────────────────────────────────────────────
-    // Drag-to-select für den Bearbeiten-Dialog. Gibt Start/End-Slot-Index via
-    // DotNet-Callback zurück; Blazor prüft Konflikte und aktualisiert die Farben.
-
-    initEditCalendar: function (containerId, dotNetRef) {
-      // Alten Document-Listener vom vorherigen Edit-Dialog entfernen
+    initEditCalendarDay: function (containerId, dotNetRef, slotsJson, calStart, calEnd, selStart, selEnd) {
       if (_docEditMouseUp) {
         document.removeEventListener('mouseup', _docEditMouseUp);
         _docEditMouseUp = null;
@@ -1045,16 +1041,58 @@ window.SporthalleAdmin = (function () {
       var el = document.getElementById(containerId);
       if (!el) return;
 
+      var slots = [];
+      try { slots = JSON.parse(slotsJson || '[]'); } catch (e) {}
+      var totalSlots = (calEnd - calStart) * 2;
+
+      // Render 30-min slot rows into container
+      var html = '<div class="ec-day-grid">';
+      for (var i = 0; i < totalSlots; i++) {
+        var slotStartMin = calStart * 60 + i * 30;
+        var slotEndMin   = slotStartMin + 30;
+        var hh = Math.floor(slotStartMin / 60);
+        var mm = slotStartMin % 60;
+        var timeLabel = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+
+        var bookedSlot = null;
+        for (var s = 0; s < slots.length; s++) {
+          if (slots[s].startMin < slotEndMin && slots[s].endMin > slotStartMin) {
+            bookedSlot = slots[s]; break;
+          }
+        }
+
+        var isBooked   = bookedSlot !== null;
+        var isSelected = selStart >= 0 && selEnd >= 0 && i >= selStart && i <= selEnd;
+        var isHour     = mm === 0;
+
+        var cls = 'ec-slot' +
+          (isBooked   ? ' ec-slot--booked'   : '') +
+          (isSelected ? ' ec-slot-selected'  : '') +
+          (isHour     ? ' ec-slot--hour'     : '');
+        var style = isBooked && bookedSlot.color
+          ? 'border-left:3px solid ' + bookedSlot.color + ';background:' + bookedSlot.color + '18;'
+          : '';
+
+        html += '<div class="' + cls + '" data-slot-idx="' + i + '"' +
+          (isBooked ? ' data-booked="1"' : '') +
+          (style    ? ' style="' + style + '"' : '') + '>' +
+          '<span class="ec-slot-time">' + timeLabel + '</span>' +
+          (isBooked && bookedSlot.title ? '<span class="ec-slot-label">' + bookedSlot.title + '</span>' : '') +
+          '</div>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+
       var dragging = false;
       var startIdx = -1;
-      var endIdx = -1;
+      var endIdx   = -1;
 
       function getCells() { return Array.from(el.querySelectorAll('[data-slot-idx]')); }
 
       function highlight(lo, hi) {
         getCells().forEach(function (c) {
-          var i = parseInt(c.dataset.slotIdx, 10);
-          c.classList.toggle('ec-drag', i >= lo && i <= hi);
+          var idx = parseInt(c.dataset.slotIdx, 10);
+          c.classList.toggle('ec-drag', idx >= lo && idx <= hi);
         });
       }
 
@@ -1088,7 +1126,6 @@ window.SporthalleAdmin = (function () {
       _docEditMouseUp = finishDrag;
       document.addEventListener('mouseup', _docEditMouseUp);
 
-      // Touch-Support
       el.addEventListener('touchstart', function (e) {
         var t = e.touches[0];
         var under = document.elementFromPoint(t.clientX, t.clientY);
@@ -1112,12 +1149,9 @@ window.SporthalleAdmin = (function () {
 
       el.addEventListener('touchend', finishDrag);
 
-      // Nach Init: auf die aktuelle Selektion scrollen
       setTimeout(function () {
         var firstSel = el.querySelector('.ec-slot-selected');
-        if (firstSel) {
-          firstSel.scrollIntoView({ block: 'center', behavior: 'instant' });
-        }
+        if (firstSel) firstSel.scrollIntoView({ block: 'center', behavior: 'instant' });
       }, 0);
     },
 

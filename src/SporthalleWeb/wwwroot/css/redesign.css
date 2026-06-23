@@ -91,6 +91,7 @@ body {
 .nav-link:hover  { color: var(--dust); }
 .nav-link--active { color: var(--dust); }
 .nav-btn-dust {
+  display: inline-block;
   font-family: 'Manrope', sans-serif;
   font-size: 0.65rem; font-weight: 700;
   letter-spacing: 0.18em; text-transform: uppercase;
@@ -100,8 +101,9 @@ body {
   transition: background 0.15s;
   white-space: nowrap;
 }
-.nav-btn-dust:hover { background: var(--dust-dark); }
+.nav-btn-dust:hover { background: var(--dust-dark); color: white; }
 .nav-btn-outline {
+  display: inline-block;
   font-family: 'Manrope', sans-serif;
   font-size: 0.65rem; font-weight: 700;
   letter-spacing: 0.18em; text-transform: uppercase;

@@ -133,6 +133,18 @@ public sealed class BookingAdminService(
         return (slot, member);
     }
 
+    public Task<IReadOnlyList<HallMember>> SearchMembersAsync(string query) =>
+        members.SearchAsync(query);
+
+    public async Task ReassignMemberAsync(int slotId, int? memberId, string adminUser)
+    {
+        var slot = await slotRepo.FindByIdAsync(slotId)
+            ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
+        slot.Reassign(memberId);
+        await slotRepo.UpdateAsync(slot);
+        await audit.LogAsync("BookingSlot", slotId, "Reassigned", adminUser, null, new { memberId });
+    }
+
     public async Task RescheduleSlotAsync(int slotId, DateTime startUtc, DateTime endUtc, string adminUser)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
