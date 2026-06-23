@@ -57,7 +57,7 @@ public sealed class UmbracoMemberAdapter(
             ?? throw new DomainException("Member konnte nach der Erstellung nicht gefunden werden.");
 
         member.SetValue("renterType", cmd.RenterType.Value.ToString());
-        member.SetValue("name", cmd.Name ?? "");
+        member.SetValue("orgName",cmd.Name ?? "");
         member.SetValue("contactFirstName", cmd.ContactFirstName);
         member.SetValue("contactLastName", cmd.ContactLastName);
         member.SetValue("billingAddress", cmd.BillingAddress);
@@ -84,7 +84,7 @@ public sealed class UmbracoMemberAdapter(
             ?? throw new DomainException($"Member {memberId} nicht gefunden.");
 
         member.Name = $"{contactFirstName} {contactLastName}".Trim();
-        member.SetValue("name", name ?? "");
+        member.SetValue("orgName",name ?? "");
         member.SetValue("contactFirstName", contactFirstName);
         member.SetValue("contactLastName", contactLastName);
         member.SetValue("billingAddress", billingAddress);
@@ -108,7 +108,7 @@ public sealed class UmbracoMemberAdapter(
         {
             var firstName = member.GetValue<string>("contactFirstName") ?? "";
             var lastName  = member.GetValue<string>("contactLastName") ?? "";
-            var orgName   = member.GetValue<string>("name") ?? "";
+            var orgName   = member.GetValue<string>("orgName") ?? "";
             var email     = member.Email ?? "";
             var fullName  = $"{firstName} {lastName}".Trim();
 
@@ -229,7 +229,7 @@ public sealed class UmbracoMemberAdapter(
         Id: int.Parse(user.Id),
         Email: user.Email ?? "",
         RenterType: new RenterType(member.GetValue<string>("renterType") ?? "Privatperson"),
-        Name: member.GetValue<string>("name").NullIfEmpty(),
+        Name: member.GetValue<string>("orgName").NullIfEmpty(),
         ContactFirstName: member.GetValue<string>("contactFirstName") ?? "",
         ContactLastName: member.GetValue<string>("contactLastName") ?? "",
         BillingAddress: member.GetValue<string>("billingAddress") ?? "",

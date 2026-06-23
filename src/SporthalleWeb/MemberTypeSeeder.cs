@@ -55,7 +55,7 @@ public sealed class MemberTypeSeeder(
         const string groupName = "Renter Info";
 
         AddIfMissing(memberType, textBox,   "renterType",          "Renter Type",           mandatory: true,  sort: 0,  groupAlias, groupName);
-        AddIfMissing(memberType, textBox,   "name",                "Name",                  mandatory: false, sort: 1,  groupAlias, groupName);
+        AddIfMissing(memberType, textBox,   "orgName",             "Organisation / Name",   mandatory: false, sort: 1,  groupAlias, groupName);
         AddIfMissing(memberType, textBox,   "contactFirstName",    "Contact First Name",    mandatory: true,  sort: 2,  groupAlias, groupName);
         AddIfMissing(memberType, textBox,   "contactLastName",     "Contact Last Name",     mandatory: true,  sort: 3,  groupAlias, groupName);
         AddIfMissing(memberType, textBox,   "billingAddress",      "Billing Address",       mandatory: true,  sort: 4,  groupAlias, groupName);
