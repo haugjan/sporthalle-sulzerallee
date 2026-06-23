@@ -889,36 +889,6 @@
 }
 
 /* ── Edit-Dialog Tageskalender ── */
-.ec-day-grid {
-  display: flex;
-  flex-direction: column;
-}
-
-.ec-slot {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.18rem 0.5rem;
-  min-height: 22px;
-  cursor: pointer;
-  border-bottom: 1px solid #f3f3f3;
-  user-select: none;
-  font-size: 0.8rem;
-}
-
-.ec-slot--hour {
-  border-top: 1px solid #dee2e6;
-}
-
-.ec-slot:hover:not([data-booked]) {
-  background: #f0f7ff;
-}
-
-.ec-slot--booked {
-  cursor: default;
-  opacity: 0.9;
-}
-
 .ec-slot-selected {
   background: #d0e8ff !important;
 }
@@ -927,25 +897,8 @@
   background: #b8daff !important;
 }
 
-.ec-slot-time {
-  flex: 0 0 3.2rem;
-  font-size: 0.73rem;
-  color: #aaa;
-  font-variant-numeric: tabular-nums;
-}
-
-.ec-slot--hour .ec-slot-time {
-  color: #555;
-  font-weight: 600;
-}
-
-.ec-slot-label {
-  flex: 1;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #333;
+.ec-cal-booked {
+  cursor: default !important;
 }
 
 /* ── Member search in edit dialog ── */

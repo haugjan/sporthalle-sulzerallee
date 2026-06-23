@@ -125,13 +125,13 @@
                         }
                     </div>
 
-                    <!-- Right: time picker — cells rendered by Blazor, drag wired by JS -->
+                    <!-- Right: time picker — same grid structure as the main weekly calendar -->
                     <div style="flex:1;overflow-y:auto;padding:1rem">
                         <label class="form-label fw-semibold">
                             Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
                         </label>
-                        <div id="ec-@_editSlotId" class="ec-day-grid"
-                             style="border:1px solid #dee2e6;border-radius:6px;overflow-y:auto;overflow-x:hidden;user-select:none;min-height:300px">
+                        <div id="ec-@_editSlotId"
+                             style="display:grid;grid-template-columns:48px 1fr;gap:1px;background:#e0e0e0;border-radius:6px;overflow:hidden;user-select:none">
                             @for (var i = 0; i < _slotOverlays.Length; i++)
                             {
                                 var slotMin = _calStart * 60 + i * 30;
@@ -142,22 +142,18 @@
                                 var ov = _slotOverlays[i];
                                 var booked = ov is not null;
                                 var hour = mm == 0;
-                                var cls = "ec-slot"
-                                    + (booked ? " ec-slot--booked"  : "")
-                                    + (sel    ? " ec-slot-selected" : "")
-                                    + (hour   ? " ec-slot--hour"    : "");
+                                var cellCls = "cal-cell"
+                                    + (hour   ? " hour-start"       : "")
+                                    + (booked ? " ec-cal-booked"    : "")
+                                    + (sel    ? " ec-slot-selected" : "");
                                 var inlineStyle = booked
                                     ? $"border-left:3px solid {ov!.Color};background:{ov.Color}18;"
                                     : "";
-                                <div class="@cls" data-slot-idx="@i"
+                                <div class="cal-time @(hour ? "hour-start" : "")">@(hour ? $"{hh:00}:00" : "")</div>
+                                <div class="@cellCls" data-slot-idx="@i"
                                      data-booked="@(booked ? "1" : "")"
-                                     style="@inlineStyle">
-                                    <span class="ec-slot-time">@($"{hh:00}:{mm:00}")</span>
-                                    @if (booked && !string.IsNullOrEmpty(ov!.Title))
-                                    {
-                                        <span class="ec-slot-label">@ov.Title</span>
-                                    }
-                                </div>
+                                     style="@inlineStyle"
+                                     title="@(booked ? ov!.Title : "")"></div>
                             }
                         </div>
 
