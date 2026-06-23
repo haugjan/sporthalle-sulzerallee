@@ -84,6 +84,6 @@ public class PassiveMemberDbRecord
 
     [Column("Notes")]
     [NullSetting(NullSetting = NullSettings.Null)]
-    [SpecialDbType(SpecialDbTypes.NVARCHARMAX)]
+    [Length(4000)]
     public string? Notes { get; set; }
 }

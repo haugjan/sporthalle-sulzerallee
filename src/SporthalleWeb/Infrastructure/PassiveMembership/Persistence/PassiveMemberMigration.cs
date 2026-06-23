@@ -65,7 +65,7 @@ public class FixPassiveMemberAutoIncrementMigration : AsyncMigrationBase
             .WithColumn("DisplayName").AsString(200).Nullable()
             .WithColumn("CreatedAt").AsDateTime().NotNullable()
             .WithColumn("PaidAt").AsDateTime().Nullable()
-            .WithColumn("Notes").AsCustom("nvarchar(max)").Nullable()
+            .WithColumn("Notes").AsString(int.MaxValue).Nullable()
             .Do();
 
         Create.Index("IX_PassivMitglieder_FieldNumber")
