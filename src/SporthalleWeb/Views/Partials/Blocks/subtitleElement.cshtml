@@ -1,0 +1,20 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var label = Model.Content.Value<string>("label") ?? "";
+    var titel = Model.Content.Value<string>("titel") ?? "";
+}
+@if (!string.IsNullOrEmpty(label) || !string.IsNullOrEmpty(titel))
+{
+  <section class="se-section">
+    <div class="se-container">
+      @if (!string.IsNullOrEmpty(label))
+      {
+        <span class="se-label">@label</span>
+      }
+      @if (!string.IsNullOrEmpty(titel))
+      {
+        <h2 class="se-title">@Html.Raw(titel.Replace("\n", "<br />"))</h2>
+      }
+    </div>
+  </section>
+}

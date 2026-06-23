@@ -1,0 +1,10 @@
+.pme-section {
+  padding: 2rem 0;
+}
+.pme-container {
+  max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;
+}
+.pme-iframe {
+  width: 100%; min-height: 700px;
+  border: none; display: block;
+}

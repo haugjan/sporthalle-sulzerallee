@@ -126,6 +126,31 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         return _fileService.CreateTemplateWithIdentity(name, alias, content, null, Constants.Security.SuperUserId);
     }
 
+    private void PatchFlexPageContentTypeConfig(Guid templateKey)
+    {
+        var configPath = System.IO.Path.Combine(
+            _hostEnvironment.ContentRootPath, "uSync", "v17", "ContentTypes", "flexpage.config");
+        if (!System.IO.File.Exists(configPath)) return;
+
+        var xml = System.IO.File.ReadAllText(configPath);
+        var keyStr = templateKey.ToString("D").ToUpperInvariant();
+
+        if (xml.Contains(keyStr)) return;
+
+        xml = System.Text.RegularExpressions.Regex.Replace(
+            xml,
+            @"<DefaultTemplate>[^<]*</DefaultTemplate>",
+            "<DefaultTemplate>FlexPage</DefaultTemplate>");
+        xml = System.Text.RegularExpressions.Regex.Replace(
+            xml,
+            @"<AllowedTemplates\s*/>|<AllowedTemplates>.*?</AllowedTemplates>",
+            $"<AllowedTemplates>\n      <Template Key=\"{keyStr}\">FlexPage</Template>\n    </AllowedTemplates>",
+            System.Text.RegularExpressions.RegexOptions.Singleline);
+
+        System.IO.File.WriteAllText(configPath, xml);
+        _logger.LogInformation("ContentSeeder: patched flexpage.config with template key {Key}.", keyStr);
+    }
+
     private void EnsureContentTypeTemplates(ITemplate? homeTemplate, ITemplate? contentPageTemplate)
     {
         var passivMitgliedschaftTemplate = EnsureTemplate("PassivMitgliedschaft", "Passiv Mitgliedschaft");
@@ -157,6 +182,12 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
                 {
                     toAdd.Add(new ContentTypeSort(passivType.Key, sortOrder++, passivType.Alias));
                     _logger.LogInformation("ContentSeeder: adding passivMitgliedschaft as allowed child of homePage.");
+                }
+                var flexPageType = _contentTypeService.Get("flexPage");
+                if (flexPageType != null && !allowedAliases.Contains(flexPageType.Alias))
+                {
+                    toAdd.Add(new ContentTypeSort(flexPageType.Key, sortOrder++, flexPageType.Alias));
+                    _logger.LogInformation("ContentSeeder: adding flexPage as allowed child of homePage.");
                 }
                 if (toAdd.Count > 0)
                 {
@@ -193,6 +224,20 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
                 _contentTypeService.Save(passivMitgliedschaft, Constants.Security.SuperUserId);
                 _logger.LogInformation("ContentSeeder: assigned template to passivMitgliedschaft content type.");
             }
+        }
+
+        var flexPageTemplate = EnsureTemplate("FlexPage", "Flex Page");
+        if (flexPageTemplate != null)
+        {
+            var flexPage = _contentTypeService.Get("flexPage");
+            if (flexPage != null && !flexPage.AllowedTemplates.Any(t => t.Alias == flexPageTemplate.Alias))
+            {
+                flexPage.AllowedTemplates = flexPage.AllowedTemplates.Append(flexPageTemplate).ToArray();
+                flexPage.SetDefaultTemplate(flexPageTemplate);
+                _contentTypeService.Save(flexPage, Constants.Security.SuperUserId);
+                _logger.LogInformation("ContentSeeder: assigned template to flexPage content type.");
+            }
+            PatchFlexPageContentTypeConfig(flexPageTemplate.Key);
         }
     }
 

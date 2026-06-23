@@ -1,0 +1,47 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var label       = Model.Content.Value<string>("label")       ?? "";
+    var titel       = Model.Content.Value<string>("titel")       ?? "";
+    var preis       = Model.Content.Value<string>("preis")       ?? "";
+    var preisEinheit = Model.Content.Value<string>("preisEinheit") ?? "";
+    var vorteileTxt = Model.Content.Value<string>("vorteile")    ?? "";
+    var ctaText     = Model.Content.Value<string>("ctaText")     ?? "";
+    var ctaUrl      = Model.Content.Value<string>("ctaUrl")      ?? "#";
+
+    var vorteile = vorteileTxt
+        .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+        .Select(l => l.Trim())
+        .Where(l => !string.IsNullOrEmpty(l))
+        .ToArray();
+}
+<div class="pe-card">
+  @if (!string.IsNullOrEmpty(label))
+  {
+    <span class="pe-badge">@label</span>
+  }
+  @if (!string.IsNullOrEmpty(titel))
+  {
+    <div class="pe-title">@titel</div>
+  }
+  @if (!string.IsNullOrEmpty(preis))
+  {
+    <div class="pe-price">@preis</div>
+  }
+  @if (!string.IsNullOrEmpty(preisEinheit))
+  {
+    <span class="pe-price-unit">@preisEinheit</span>
+  }
+  @if (vorteile.Length > 0)
+  {
+    <ul class="pe-benefits">
+      @foreach (var v in vorteile)
+      {
+        <li>@v</li>
+      }
+    </ul>
+  }
+  @if (!string.IsNullOrEmpty(ctaText))
+  {
+    <a href="@ctaUrl" class="pe-cta">@ctaText</a>
+  }
+</div>

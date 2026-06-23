@@ -1,0 +1,21 @@
+.se-section {
+  padding: 4rem 2.5rem 2rem;
+}
+.se-container {
+  max-width: 1280px; margin: 0 auto;
+}
+.se-label {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--dust);
+  margin-bottom: 0.9rem;
+}
+.se-title {
+  font-family: 'Anton', Impact, sans-serif;
+  font-weight: 400;
+  font-size: clamp(3.5rem, 9vw, 8rem);
+  line-height: 0.82; letter-spacing: 0.01em;
+  text-transform: uppercase; color: var(--ink);
+}

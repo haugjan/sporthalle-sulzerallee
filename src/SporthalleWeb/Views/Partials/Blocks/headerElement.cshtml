@@ -1,0 +1,19 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@using Umbraco.Cms.Core.Models
+@{
+    var titel  = Model.Content.Value<string>("titel") ?? "";
+    var bildObj = Model.Content.GetProperty("bild")?.GetValue() as IPublishedContent;
+    var bildUrl = bildObj?.GetCropUrl() ?? "";
+}
+@if (!string.IsNullOrEmpty(titel))
+{
+  <section class="bhe-section">
+    @if (!string.IsNullOrEmpty(bildUrl))
+    {
+      <div class="bhe-bg" style="background-image:url('@bildUrl');"></div>
+    }
+    <div class="bhe-content">
+      <h1 class="bhe-title">@Html.Raw(titel.Replace("\n", "<br />"))</h1>
+    </div>
+  </section>
+}

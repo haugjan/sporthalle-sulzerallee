@@ -1,0 +1,13 @@
+.fte-section {
+  padding: 2.5rem 2.5rem;
+}
+.fte-container {
+  max-width: 800px; margin: 0 auto;
+}
+.fte-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.05rem; line-height: 1.85;
+  color: #444;
+}
+.fte-text p { margin-bottom: 1.2em; }
+.fte-text p:last-child { margin-bottom: 0; }

@@ -1,8 +1,3 @@
-/* ── KONTAKT ELEMENT ─────────────────────────────────────────────────
-   Branding: Becks-font (Anton als Web-Ersatz) mit Dust-Textur auf Rot,
-   Manrope für Labels und Fliesstext. Farbe: RGB 235/80/75 (Dust).
-   ─────────────────────────────────────────────────────────────────── */
-
 .ke-section {
   padding: 6rem 0;
   background: #fff;
@@ -14,14 +9,16 @@
   padding: 0 2.5rem;
 }
 
-.ke-grid {
+.ke-outer-grid {
   display: grid;
+  grid-template-columns: 1fr;
+  gap: 5rem;
+}
+.ke-outer-grid--with-image {
   grid-template-columns: 1fr 1fr;
-  gap: 6rem;
   align-items: start;
 }
 
-/* ── Spalten-Label (kleines Uppercase-Label in Dust-Rot) ── */
 .ke-label {
   display: block;
   font-family: 'Manrope', sans-serif;
@@ -30,38 +27,26 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--dust, rgb(235, 80, 75));
-  margin-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
-/* ── Spalten-Überschrift (Anton + Grain-Textur = "Becks mit Dust") ──
-   Gleiche Technik wie section h2 in sporthalle.css: SVG-Rauschen wird
-   als background-image mit soft-light auf die Dust-Farbe gemischt und
-   via background-clip als Textur in den Schriftzug eingeblendet.       */
 .ke-heading {
   font-family: 'Anton', Impact, sans-serif;
-  font-size: clamp(3rem, 5.5vw, 6rem);
-  line-height: 0.85;
+  font-size: clamp(3rem, 5vw, 6rem);
+  line-height: 1.0;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  color: var(--dust, rgb(235, 80, 75));
   margin: 0 0 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-color: rgb(235, 80, 75);
-  background-size: 200px 200px;
-  background-blend-mode: soft-light;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent; /* Fallback */
 }
 
-/* ── Organisations-Block (roter Längsbalken links) ── */
-.ke-org-block {
+.ke-intro-block {
   border-left: 3px solid var(--dust, rgb(235, 80, 75));
   padding-left: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.ke-org-name {
+.ke-intro-header {
   display: block;
   font-family: 'Manrope', sans-serif;
   font-size: 1rem;
@@ -70,21 +55,20 @@
   margin-bottom: 0.3rem;
 }
 
-.ke-org-desc {
+.ke-intro-text {
   font-family: 'Manrope', sans-serif;
   font-size: 0.9rem;
   line-height: 1.65;
   color: rgb(100, 100, 100);
 }
 
-/* ── Info-Zeilen (Adresse, E-Mail, Öffnungszeiten, Social) ── */
 .ke-rule {
   border: none;
   border-top: 1px solid #e5e7eb;
   margin: 1.1rem 0;
 }
 
-.ke-info-label {
+.ke-pair-label {
   display: block;
   font-family: 'Manrope', sans-serif;
   font-size: 0.65rem;
@@ -95,119 +79,48 @@
   margin-bottom: 0.4rem;
 }
 
-.ke-info-text {
+.ke-pair-value {
   font-family: 'Manrope', sans-serif;
   font-size: 1rem;
   line-height: 1.6;
   color: var(--ink, rgb(16, 16, 16));
 }
 
-.ke-email-link {
-  color: var(--ink, rgb(16, 16, 16));
-  text-decoration: none;
-  transition: color 0.15s;
+.ke-pair-value a,
+.ke-intro-text a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--dust, rgb(235, 80, 75));
+  text-underline-offset: 3px;
 }
 
-.ke-email-link:hover {
+.ke-pair-value a:hover,
+.ke-intro-text a:hover {
   color: var(--dust, rgb(235, 80, 75));
 }
 
-/* ── Kontaktformular ── */
-.ke-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
+.ke-image-col {
+  position: sticky;
+  top: calc(68px + 2rem);
 }
 
-.ke-form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.ke-form-label {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ink, rgb(16, 16, 16));
-}
-
-.ke-required {
-  color: var(--dust, rgb(235, 80, 75));
-}
-
-.ke-form-input {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.95rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  color: var(--ink, rgb(16, 16, 16));
-  outline: none;
-  transition: border-color 0.15s;
+.ke-image {
   width: 100%;
-  border-radius: 0;
-  -webkit-appearance: none;
-  appearance: none;
+  display: block;
+  object-fit: cover;
 }
 
-.ke-form-input::placeholder {
-  color: #9ca3af;
-}
-
-.ke-form-input:focus {
-  border-color: var(--dust, rgb(235, 80, 75));
-}
-
-.ke-form-textarea {
-  resize: vertical;
-  min-height: 150px;
-}
-
-.ke-form-footer {
-  margin-top: 0.4rem;
-}
-
-/* Submit-Button: Dust-Rot, kein Radius — wie Brandbook-Buttons */
-.ke-btn-dust {
-  display: inline-block;
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 1rem 2.25rem;
-  background: var(--dust, rgb(235, 80, 75));
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s;
-  border-radius: 0;
-}
-
-.ke-btn-dust:hover {
-  background: var(--dust-dark, rgb(210, 60, 55));
-}
-
-.ke-form-note {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.82rem;
-  color: #9ca3af;
-  margin-top: 0.85rem;
-  margin-bottom: 0;
-}
-
-/* ── Responsive ── */
 @media (max-width: 900px) {
-  .ke-grid {
+  .ke-outer-grid--with-image {
     grid-template-columns: 1fr;
-    gap: 3.5rem;
+    gap: 3rem;
+  }
+  .ke-image-col {
+    position: static;
   }
 }
 
 @media (max-width: 600px) {
-  .ke-section  { padding: 4rem 0; }
+  .ke-section { padding: 4rem 0; }
   .ke-container { padding: 0 1.25rem; }
 }

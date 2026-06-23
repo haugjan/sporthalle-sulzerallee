@@ -1,0 +1,31 @@
+.ae-section {
+  padding: 2.5rem 2.5rem 4rem;
+}
+.ae-container {
+  max-width: 800px; margin: 0 auto;
+}
+.ae-item {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 0 1.25rem;
+  padding: 2rem 0;
+  border-top: 1px solid #e8e8e8;
+}
+.ae-item:last-child { border-bottom: 1px solid #e8e8e8; }
+.ae-num {
+  font-family: 'Anton', Impact, sans-serif;
+  font-weight: 400;
+  font-size: 2.25rem; line-height: 1;
+  color: var(--dust);
+}
+.ae-body {}
+.ae-item-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 0.4rem;
+}
+.ae-item-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.95rem; line-height: 1.7;
+  color: var(--dust);
+}

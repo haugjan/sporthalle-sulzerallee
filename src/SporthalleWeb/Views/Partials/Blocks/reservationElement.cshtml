@@ -1,0 +1,149 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+<section class="res-element">
+  <div class="reservierung-section">
+    <div class="reservierung-layout">
+
+      <div class="reservierung-cal-col">
+        <div class="week-nav">
+          <button type="button" id="prev-week" aria-label="Vorwoche">&#8249;</button>
+          <span id="week-label"></span>
+          <button type="button" id="next-week" aria-label="Nächste Woche">&#8250;</button>
+        </div>
+        <div class="calendar-scroll-wrapper">
+          <div id="calendar-grid"></div>
+        </div>
+        <div class="calendar-legend">
+          <div class="legend-item"><span class="legend-dot confirmed"></span> Belegt</div>
+          <div class="legend-item"><span class="legend-dot provisional"></span> Angefragt</div>
+          <div class="legend-item"><span class="legend-dot free"></span> Frei</div>
+        </div>
+      </div>
+
+      <div class="reservierung-panel-col">
+        <div class="slot-panel" id="slot-panel">
+          <div id="slot-panel-hint">
+            Zeitraum im Kalender aufziehen, um einen Termin zu wählen.
+          </div>
+          <div id="slot-panel-detail" hidden>
+            <h3>Ausgewählter Termin</h3>
+            <p id="slot-date-label" class="slot-panel__date"></p>
+            <div class="slot-panel__times">
+              <div class="slot-panel__time-item">
+                <span class="slot-panel__time-label">Von</span>
+                <span class="slot-panel__time-val" id="slot-von">–</span>
+              </div>
+              <span class="slot-panel__time-dash">bis</span>
+              <div class="slot-panel__time-item">
+                <span class="slot-panel__time-label">Bis</span>
+                <span class="slot-panel__time-val" id="slot-bis">–</span>
+              </div>
+            </div>
+            <div class="slot-panel__notice slot-panel__notice--warn" id="slot-short-notice" hidden>
+              <p id="slot-short-notice-text">Für Reservationen mit zu kurzem Vorlauf bitte direkt per E-Mail melden:</p>
+              <a href="mailto:reservierung@sporthalle-sulzerallee.ch">reservierung@sporthalle-sulzerallee.ch</a>
+            </div>
+            <div class="slot-panel__notice slot-panel__notice--warn" id="slot-beyond-cutoff" hidden>
+              <p>Für Reservationen weit im Voraus bitte direkt per E-Mail melden:</p>
+              <a href="mailto:reservierung@sporthalle-sulzerallee.ch">reservierung@sporthalle-sulzerallee.ch</a>
+            </div>
+            <button class="btn-buchen" id="btn-jetzt-buchen">Jetzt buchen</button>
+          </div>
+        </div>
+        <div class="preis-panel" id="preis-panel" hidden>
+          <h4>Preise</h4>
+          <p id="preis-panel-text"></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="bm-overlay" id="booking-modal" hidden aria-modal="true" role="dialog" aria-labelledby="bm-title-text">
+    <div class="bm-card">
+      <div class="bm-header">
+        <span class="bm-title" id="bm-title-text">Buchung abschliessen</span>
+        <button class="bm-close" id="bm-close" aria-label="Schliessen">&#x2715;</button>
+      </div>
+      <div class="bm-slot-summary" id="bm-slot-summary"></div>
+      <div class="bm-body" id="bm-body">
+        <h3>Deine Angaben</h3>
+        <div class="bm-form">
+          <div class="bm-field bm-field--2col">
+            <label>Anlass *
+              <input type="text" id="bm-anlass" placeholder="z.B. Unihockeytraining, Plauschturnier, Gymnastik" />
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label>Mietertyp *
+              <select id="bm-renter-type">
+                <option value="Privatperson">Privatperson</option>
+                <option value="Verein">Verein</option>
+                <option value="Firma">Firma</option>
+                <option value="Behörde">Behörde</option>
+              </select>
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col" id="bm-org-row" hidden>
+            <label><span id="bm-org-label">Vereinsname</span> *
+              <input type="text" id="bm-org-name" autocomplete="organization" />
+            </label>
+          </div>
+          <div class="bm-field">
+            <label><span id="bm-firstname-label">Vorname</span> *
+              <input type="text" id="bm-firstname" autocomplete="given-name" placeholder="Vorname" />
+            </label>
+          </div>
+          <div class="bm-field">
+            <label><span id="bm-lastname-label">Nachname</span> *
+              <input type="text" id="bm-lastname" autocomplete="family-name" placeholder="Nachname" />
+            </label>
+          </div>
+          <div class="bm-field">
+            <label>Mobilnummer *
+              <input type="tel" id="bm-phone" autocomplete="tel" placeholder="+41 79 000 00 00" />
+            </label>
+          </div>
+          <div class="bm-field">
+            <label>E-Mail *
+              <input type="email" id="bm-email" autocomplete="email" placeholder="name@beispiel.ch" />
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label>Strasse *
+              <input type="text" id="bm-billing-street" autocomplete="street-address" placeholder="Musterstrasse 1" />
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label>Adresszusatz
+              <input type="text" id="bm-billing-extra" autocomplete="address-line2" placeholder="c/o, Postfach (optional)" />
+            </label>
+          </div>
+          <div class="bm-field bm-field--plz">
+            <label>PLZ *
+              <input type="text" id="bm-billing-plz" autocomplete="postal-code" placeholder="8400" />
+            </label>
+            <label>Ort *
+              <input type="text" id="bm-billing-city" autocomplete="address-level2" placeholder="Winterthur" />
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label>Bemerkungen
+              <textarea id="bm-notizen" rows="3" placeholder="Weitere Angaben (optional)"></textarea>
+            </label>
+          </div>
+          <div id="bm-error" class="bm-error" hidden></div>
+        </div>
+      </div>
+      <div class="bm-footer" id="bm-footer">
+        <button class="bm-btn-secondary" id="bm-cancel">Abbrechen</button>
+        <button class="bm-btn-primary" id="bm-submit">Buchungsanfrage senden</button>
+      </div>
+      <div class="bm-success" id="bm-success" hidden>
+        <div class="bm-success-icon">&#x2713;</div>
+        <h3>Anfrage eingegangen!</h3>
+        <p>Wir prüfen deinen Termin und melden uns per E-Mail bei dir.</p>
+        <button class="bm-btn-primary" id="bm-done">Fertig</button>
+      </div>
+    </div>
+  </div>
+</section>

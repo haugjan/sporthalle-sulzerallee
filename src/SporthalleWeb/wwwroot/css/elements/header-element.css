@@ -1,0 +1,23 @@
+.bhe-section {
+  position: relative;
+  background: #111;
+  overflow: hidden;
+  margin-top: -68px; /* overlap fixed nav */
+  padding: calc(136px + 5rem) 2.5rem 6rem;
+}
+.bhe-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  filter: brightness(0.45);
+}
+.bhe-content {
+  position: relative; z-index: 1;
+  max-width: 1280px; margin: 0 auto;
+}
+.bhe-title {
+  font-family: 'Anton', Impact, sans-serif;
+  font-weight: 400;
+  font-size: clamp(3.5rem, 10vw, 9rem);
+  line-height: 0.85; letter-spacing: 0.02em;
+  text-transform: uppercase; color: #fff;
+}

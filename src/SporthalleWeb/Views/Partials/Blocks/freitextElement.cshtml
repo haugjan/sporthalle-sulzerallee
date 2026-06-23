@@ -1,0 +1,22 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var text = Model.Content.Value<string>("text") ?? "";
+    var paragraphs = text
+        .Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
+        .Select(p => p.Trim())
+        .Where(p => !string.IsNullOrEmpty(p))
+        .ToArray();
+}
+@if (paragraphs.Length > 0)
+{
+  <section class="fte-section">
+    <div class="fte-container">
+      <div class="fte-text">
+        @foreach (var para in paragraphs)
+        {
+          <p>@Html.Raw(para.Replace("\r\n", "<br />").Replace("\n", "<br />"))</p>
+        }
+      </div>
+    </div>
+  </section>
+}

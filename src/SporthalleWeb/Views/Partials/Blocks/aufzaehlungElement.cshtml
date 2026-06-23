@@ -1,0 +1,37 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var raw = Model.Content.Value<string>("eintraege") ?? "";
+    var blocks = raw
+        .Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+    var items = blocks
+        .Select(block => {
+            var lines = block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var itemTitle = lines.Length > 0 ? lines[0].Trim() : "";
+            var itemText  = lines.Length > 1 ? string.Join(" ", lines.Skip(1).Select(l => l.Trim()).Where(l => !string.IsNullOrEmpty(l))) : "";
+            return (itemTitle, itemText);
+        })
+        .Where(e => !string.IsNullOrWhiteSpace(e.itemTitle))
+        .ToArray();
+}
+@if (items.Length > 0)
+{
+  <section class="ae-section">
+    <div class="ae-container">
+      @for (int i = 0; i < items.Length; i++)
+      {
+        var (itemTitle, itemText) = items[i];
+        <div class="ae-item">
+          <div class="ae-num">@(i + 1)</div>
+          <div class="ae-body">
+            <div class="ae-item-title">@itemTitle</div>
+            @if (!string.IsNullOrEmpty(itemText))
+            {
+              <div class="ae-item-text">@itemText</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+}

@@ -1,18 +1,52 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @using Umbraco.Cms.Core.Models.Blocks
 @{
-    Layout = "_SiteLayout.cshtml";
+    Layout = "~/Views/Shared/_SiteLayout.cshtml";
     ViewBag.PageTitle = Model.Name + " – Sporthalle Sulzerallee";
-    var blocks = Model.Value<BlockListModel>("content");
+    var blocks = Model.Value<BlockListModel>("content")?.ToList() ?? new List<BlockListItem>();
+    var aliases = blocks.Select(b => b.Content.ContentType.Alias).ToHashSet();
+    var hasRes  = aliases.Contains("reservationElement");
+    var hasBhe  = aliases.Contains("headerElement");
 }
-
-<main>
-  @if (blocks != null && blocks.Any())
-  {
-    foreach (var block in blocks)
+@section Head {
+    @if (hasRes)
     {
-      var alias = block.Content.ContentType.Alias;
-      @await Html.PartialAsync($"~/Views/Partials/Blocks/{alias}.cshtml", block)
+        <link rel="stylesheet" href="/css/reservierung.css" />
     }
-  }
+}
+<main class="flexpage-main" style="@(hasBhe ? "" : "padding-top:68px;")">
+@{
+    int idx = 0;
+    while (idx < blocks.Count)
+    {
+        var block = blocks[idx];
+        var alias = block.Content.ContentType.Alias;
+        if (alias == "produktElement")
+        {
+            var group = new List<BlockListItem>();
+            while (idx < blocks.Count && blocks[idx].Content.ContentType.Alias == "produktElement")
+            {
+                group.Add(blocks[idx]);
+                idx++;
+            }
+            <div class="produkt-row">
+                @foreach (var g in group)
+                {
+                    @await Html.PartialAsync("~/Views/Partials/Blocks/produktElement.cshtml", g)
+                }
+            </div>
+        }
+        else
+        {
+            @await Html.PartialAsync($"~/Views/Partials/Blocks/{alias}.cshtml", block)
+            idx++;
+        }
+    }
+}
 </main>
+@section Scripts {
+    @if (hasRes)
+    {
+        <script src="/js/reservierung.js"></script>
+    }
+}
