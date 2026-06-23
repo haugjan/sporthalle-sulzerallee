@@ -286,6 +286,7 @@
     private bool   _showNameOnFloor;
     private string _displayName = "";
     private bool   _consent;
+    private bool   _captchaInitialized;
 
     protected override async Task OnInitializedAsync()
     {
@@ -299,8 +300,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_step == Step.Captcha)
+        if (_step == Step.Captcha && !_captchaInitialized)
+        {
+            _captchaInitialized = true;
             await JS.InvokeVoidAsync("pmInitTurnstile", TurnstileSiteKey, "pm-turnstile");
+        }
     }
 
     // In collapsed state the SVG has pointer-events:none (CSS), so clicks reach
@@ -324,10 +328,11 @@
 
     private void CloseWizard()
     {
-        _step          = Step.None;
-        _selectedField = null;
-        _stepError     = null;
-        _submitError   = null;
+        _step               = Step.None;
+        _selectedField      = null;
+        _stepError          = null;
+        _submitError        = null;
+        _captchaInitialized = false;
     }
 
     private void NextStep()
@@ -352,6 +357,7 @@
     private void PrevStep()
     {
         _stepError = null;
+        if (_step == Step.Captcha) _captchaInitialized = false;
         _step = _step switch
         {
             Step.Level   => Step.Field,
@@ -367,12 +373,12 @@
     {
         _submitError = null;
         var token = await JS.InvokeAsync<string?>("pmGetTurnstileToken");
-        if (string.IsNullOrEmpty(token)) { _submitError = "Bitte das CAPTCHA lösen."; return; }
+        if (string.IsNullOrEmpty(token)) { _captchaInitialized = false; _submitError = "Bitte das CAPTCHA lösen."; return; }
 
         try
         {
             var valid = await CaptchaPort.VerifyAsync(token, "");
-            if (!valid) { _submitError = "Das CAPTCHA konnte nicht bestätigt werden. Bitte versuche es erneut."; return; }
+            if (!valid) { _captchaInitialized = false; _submitError = "Das CAPTCHA konnte nicht bestätigt werden. Bitte versuche es erneut."; return; }
         }
         catch (Exception ex)
         {
@@ -399,11 +405,12 @@
             _selectedField  = null;
             _success        = true;
         }
-        catch (FieldAlreadyTakenException) { _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes."; }
-        catch (DomainException ex)         { _submitError = ex.Message; }
+        catch (FieldAlreadyTakenException) { _captchaInitialized = false; _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes."; }
+        catch (DomainException ex)         { _captchaInitialized = false; _submitError = ex.Message; }
         catch (Exception ex)
         {
             Logger.LogError(ex, "PassivMember registration failed for field {Field}", _selectedField);
+            _captchaInitialized = false;
             _submitError = "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
         }
         finally { _submitting = false; }

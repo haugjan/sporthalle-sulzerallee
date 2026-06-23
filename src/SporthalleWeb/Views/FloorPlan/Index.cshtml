@@ -25,7 +25,12 @@
         var _pmTurnstileToken = null;
         window.pmInitTurnstile = function(siteKey, containerId) {
             _pmTurnstileToken = null;
-            if (window.turnstile && document.getElementById(containerId)) {
+            var container = document.getElementById(containerId);
+            if (!container || !window.turnstile) return;
+            if (container.querySelector('iframe')) {
+                // Widget already rendered — reset it to get a fresh token via the existing callback.
+                window.turnstile.reset('#' + containerId);
+            } else {
                 window.turnstile.render('#' + containerId, {
                     sitekey: siteKey,
                     callback: function(token) { _pmTurnstileToken = token; }
