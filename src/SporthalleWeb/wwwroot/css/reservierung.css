@@ -888,18 +888,6 @@
   }
 }
 
-/* ── Edit-Dialog Tageskalender ── */
-.ec-slot-selected {
-  background: #d0e8ff !important;
-}
-
-.ec-drag {
-  background: #b8daff !important;
-}
-
-.ec-cal-booked {
-  cursor: default !important;
-}
 
 /* ── Member search in edit dialog ── */
 .ec-member-results {

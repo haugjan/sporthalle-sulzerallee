@@ -63,7 +63,7 @@
             case "Blocker":
                 <AdminBlockerComponent AdminUser="@AdminUser" />
                 break;
-            case "Serientermine":
+            case "Serie":
                 <AdminRecurringComponent AdminUser="@AdminUser" />
                 break;
             case "Erfassen":
@@ -80,7 +80,7 @@
 @code {
     [Parameter] public string AdminUser { get; set; } = "admin";
 
-    private static readonly string[] _tabs = ["Anfragen", "Buchungen", "Blocker", "Serientermine", "Erfassen", "Konfiguration"];
+    private static readonly string[] _tabs = ["Anfragen", "Buchungen", "Blocker", "Serie", "Erfassen", "Konfiguration"];
     private string _activeTab = "Anfragen";
     private int _pendingCount;
 

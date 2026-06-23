@@ -5,9 +5,16 @@
 @{
     var root = Umbraco.ContentAtRoot()?.FirstOrDefault();
     var navChildren = root?.Children()?.ToList() ?? new List<IPublishedContent>();
-    var contentPages = navChildren.Where(c => c.ContentType.Alias is "contentPage" or "flexPage").ToList();
-    var passiv = navChildren.FirstOrDefault(c => c.ContentType.Alias == "passivMitgliedschaft");
-    var reservierung = navChildren.FirstOrDefault(c => c.ContentType.Alias == "reservierung");
+    var navPages = navChildren
+        .Where(c => c.ContentType.Alias is "contentPage" or "flexPage" or "reservierung" or "passivMitgliedschaft")
+        .Select(c => new {
+            Page = c,
+            Cls = (c.Url() ?? "").Contains("passivmitglied", StringComparison.OrdinalIgnoreCase) ? "nav-btn-dust"
+                : (c.Url() ?? "").Contains("reservierung", StringComparison.OrdinalIgnoreCase) ||
+                  (c.Url() ?? "").Contains("reservation", StringComparison.OrdinalIgnoreCase) ? "nav-btn-outline"
+                : "nav-link"
+        })
+        .ToList();
 
     var rootBlocks = root?.Value<BlockListModel>("content");
     var heroBlock = rootBlocks?.FirstOrDefault(b => b.Content.ContentType.Alias == "heroElement");
@@ -57,20 +64,23 @@
       </span>
     </a>
     <ul class="nav-links">
-      @foreach (var cp in contentPages)
+      @foreach (var item in navPages)
       {
-        var isActive = Context.Request.Path.Value?.TrimEnd('/').Equals(cp.Url()?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ?? false;
-        <li><a href="@cp.Url()" class="nav-link @(isActive ? "is-active" : "")"
-               style="@(transparentNav ? "color:rgba(255,255,255,0.8);" : "")">@cp.Name</a></li>
-      }
-      @if (passiv != null)
-      {
-        <li><a href="@passiv.Url()" class="nav-btn-dust">Werde Passivmitglied</a></li>
-      }
-      @if (reservierung != null)
-      {
-        <li><a href="@reservierung.Url()" class="nav-btn-outline"
-               style="@(transparentNav ? "border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.75);" : "")">Reservierung</a></li>
+        var isActive = Context.Request.Path.Value?.TrimEnd('/').Equals(item.Page.Url()?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ?? false;
+        if (item.Cls == "nav-link")
+        {
+          <li><a href="@item.Page.Url()" class="nav-link @(isActive ? "is-active" : "")"
+                 style="@(transparentNav ? "color:rgba(255,255,255,0.8);" : "")">@item.Page.Name</a></li>
+        }
+        else if (item.Cls == "nav-btn-dust")
+        {
+          <li><a href="@item.Page.Url()" class="nav-btn-dust">@item.Page.Name</a></li>
+        }
+        else
+        {
+          <li><a href="@item.Page.Url()" class="nav-btn-outline"
+                 style="@(transparentNav ? "border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.75);" : "")">@item.Page.Name</a></li>
+        }
       }
     </ul>
     <button class="nav-toggle" id="navToggle" aria-label="Navigation">
@@ -81,21 +91,22 @@
   </div>
   <div class="mobile-menu" id="mobileMenu">
     <ul>
-      @foreach (var cp in contentPages)
+      @{ var mobileShownSep = false; }
+      @foreach (var item in navPages)
       {
-        <li><a href="@cp.Url()">@cp.Name</a></li>
-      }
-      @if (passiv != null || reservierung != null)
-      {
-        <li class="sep"></li>
-      }
-      @if (passiv != null)
-      {
-        <li><a href="@passiv.Url()" style="color:var(--dust);">Werde Passivmitglied →</a></li>
-      }
-      @if (reservierung != null)
-      {
-        <li><a href="@reservierung.Url()">Reservierung →</a></li>
+        if (item.Cls != "nav-link" && !mobileShownSep)
+        {
+          <li class="sep"></li>
+          mobileShownSep = true;
+        }
+        if (item.Cls == "nav-btn-dust")
+        {
+          <li><a href="@item.Page.Url()" style="color:var(--dust);">@item.Page.Name →</a></li>
+        }
+        else
+        {
+          <li><a href="@item.Page.Url()">@item.Page.Name @(item.Cls != "nav-link" ? "→" : "")</a></li>
+        }
       }
     </ul>
   </div>
@@ -122,24 +133,20 @@
       <div>
         <span class="footer-col-title">Seiten</span>
         <ul class="footer-links">
-          @foreach (var cp in contentPages)
+          @foreach (var item in navPages.Where(i => i.Cls == "nav-link"))
           {
-            <li><a href="@cp.Url()">@cp.Name</a></li>
+            <li><a href="@item.Page.Url()">@item.Page.Name</a></li>
           }
         </ul>
       </div>
-      @if (passiv != null || reservierung != null)
+      @if (navPages.Any(i => i.Cls != "nav-link"))
       {
         <div>
           <span class="footer-col-title">Mitmachen</span>
           <ul class="footer-links">
-            @if (passiv != null)
+            @foreach (var item in navPages.Where(i => i.Cls != "nav-link"))
             {
-              <li><a href="@passiv.Url()">Werde Passivmitglied</a></li>
-            }
-            @if (reservierung != null)
-            {
-              <li><a href="@reservierung.Url()">Halle reservieren</a></li>
+              <li><a href="@item.Page.Url()">@item.Page.Name</a></li>
             }
           </ul>
         </div>

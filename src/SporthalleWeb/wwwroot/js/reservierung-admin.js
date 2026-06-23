@@ -15,6 +15,8 @@ window.SporthalleAdmin = (function () {
   var _dotNet = null;
   var _handlers = [];
   var _docEditMouseUp = null;
+  var _docEditMouseMove = null;
+  var editSelEl = null;
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -1032,97 +1034,172 @@ window.SporthalleAdmin = (function () {
     },
 
     // ── Edit-Dialog Tageskalender ────────────────────────────────────────────────
-    // Cells are rendered by Blazor; this function only attaches drag listeners.
-    initEditCalendarDay: function (containerId, dotNetRef) {
+    // JS renders the full single-day grid (cal-time + cal-cell rows, booking overlays,
+    // and selection overlay). Blazor container stays empty to avoid DOM ownership conflict.
+    initEditCalendarDay: function (containerId, dotNetRef, slots, calStart, calEnd, selStart, selEnd) {
+      // Clean up previous listeners
       if (_docEditMouseUp) {
         document.removeEventListener('mouseup', _docEditMouseUp);
         _docEditMouseUp = null;
       }
+      if (_docEditMouseMove) {
+        document.removeEventListener('mousemove', _docEditMouseMove);
+        _docEditMouseMove = null;
+      }
+      editSelEl = null;
 
       var el = document.getElementById(containerId);
       if (!el) return;
 
-      // Remove any previous listeners stored on the element
       if (el._ecDown) el.removeEventListener('mousedown', el._ecDown);
-      if (el._ecOver) el.removeEventListener('mouseover', el._ecOver);
       if (el._ecTs)   el.removeEventListener('touchstart', el._ecTs);
       if (el._ecTm)   el.removeEventListener('touchmove',  el._ecTm);
       if (el._ecTe)   el.removeEventListener('touchend',   el._ecTe);
 
-      var dragging = false;
-      var startIdx = -1;
-      var endIdx   = -1;
+      var CELL_STEP_EDIT = 21; // 20px cell + 1px gap
+      var totalBlocks = (calEnd - calStart) * 2;
 
-      function getCells() { return Array.from(el.querySelectorAll('[data-slot-idx]')); }
+      // ── Render grid ────────────────────────────────────────────────────────
+      el.innerHTML = '';
+      el.style.cssText = 'display:grid;grid-template-columns:48px 1fr;gap:1px;background:#e0e0e0;border-radius:6px;overflow:hidden;position:relative;user-select:none';
 
-      function highlight(lo, hi) {
-        getCells().forEach(function (c) {
-          var idx = parseInt(c.dataset.slotIdx, 10);
-          c.classList.toggle('ec-drag', idx >= lo && idx <= hi);
-        });
+      var bookedBlocks = {};
+      for (var b = 0; b < totalBlocks; b++) {
+        var isHour = b % 2 === 0;
+        var totalMin = calStart * 60 + b * 30;
+        var hh = Math.floor(totalMin / 60);
+
+        var timeCell = document.createElement('div');
+        timeCell.className = 'cal-time' + (isHour ? ' hour-start' : '');
+        timeCell.textContent = isHour ? String(hh).padStart(2, '0') + ':00' : '';
+        el.appendChild(timeCell);
+
+        var bodyCell = document.createElement('div');
+        bodyCell.className = 'cal-cell' + (isHour ? ' hour-start' : '');
+        el.appendChild(bodyCell);
       }
 
+      // ── Booking overlays ──────────────────────────────────────────────────
+      slots.forEach(function (slot) {
+        var startBlock = Math.round((slot.startMin - calStart * 60) / 30);
+        var endBlock   = Math.round((slot.endMin   - calStart * 60) / 30);
+        startBlock = Math.max(0, startBlock);
+        endBlock   = Math.min(totalBlocks, endBlock);
+        var numBlocks = endBlock - startBlock;
+        if (numBlocks <= 0) return;
+
+        for (var i = startBlock; i < endBlock; i++) bookedBlocks[i] = true;
+
+        var top    = startBlock * CELL_STEP_EDIT;
+        var height = numBlocks * CELL_STEP_EDIT - 1;
+        var ov = document.createElement('div');
+        ov.className = 'booking-overlay booking-overlay--confirmed';
+        ov.style.cssText = 'position:absolute;top:' + top + 'px;left:49px;right:0;height:' + height + 'px;background:' + slot.color + ';border-radius:5px;overflow:hidden;z-index:2;pointer-events:none;box-sizing:border-box;display:flex;align-items:center;padding:0 6px';
+        if (height >= 20 && slot.title) {
+          var lbl = document.createElement('span');
+          lbl.className = 'bol-title';
+          lbl.style.cssText = 'font-size:0.68rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+          lbl.textContent = slot.title;
+          ov.appendChild(lbl);
+        }
+        el.appendChild(ov);
+      });
+
+      // ── Selection overlay helpers ─────────────────────────────────────────
+      function blockFromClientY(clientY) {
+        var rect = el.getBoundingClientRect();
+        var relY = clientY - rect.top;
+        return Math.max(0, Math.min(totalBlocks - 1, Math.floor(relY / CELL_STEP_EDIT)));
+      }
+
+      function renderSel(lo, hi) {
+        if (editSelEl) { editSelEl.remove(); editSelEl = null; }
+        if (lo < 0 || hi < lo) return;
+        var top    = lo * CELL_STEP_EDIT;
+        var height = (hi - lo + 1) * CELL_STEP_EDIT - 1;
+        var durationMin = (hi - lo + 1) * 30;
+        var durationText = durationMin >= 60
+          ? (durationMin % 60 === 0
+              ? (durationMin / 60) + ' h'
+              : Math.floor(durationMin / 60) + ' h ' + (durationMin % 60) + ' min')
+          : durationMin + ' min';
+        var sel = document.createElement('div');
+        sel.className = 'cal-selection';
+        sel.style.cssText = 'position:absolute;top:' + top + 'px;left:49px;right:0;height:' + height + 'px';
+        sel.innerHTML = '<span class="cal-selection__label">' + durationText + '</span>';
+        el.appendChild(sel);
+        editSelEl = sel;
+      }
+
+      var dragging = false;
+      var selStartB = selStart;
+      var selEndB   = selEnd;
+
+      // Draw initial selection
+      renderSel(selStartB, selEndB);
+
+      // ── Drag listeners ────────────────────────────────────────────────────
       el._ecDown = function (e) {
-        var cell = e.target.closest('[data-slot-idx]');
-        if (!cell || cell.dataset.booked === '1') return;
+        if (!e.target.classList.contains('cal-cell')) return;
+        var block = blockFromClientY(e.clientY);
+        if (bookedBlocks[block]) return;
         dragging = true;
-        startIdx = parseInt(cell.dataset.slotIdx, 10);
-        endIdx = startIdx;
-        highlight(startIdx, startIdx);
+        selStartB = block;
+        selEndB   = block;
+        renderSel(selStartB, selEndB);
         e.preventDefault();
       };
       el.addEventListener('mousedown', el._ecDown);
 
-      el._ecOver = function (e) {
+      _docEditMouseMove = function (e) {
         if (!dragging) return;
-        var cell = e.target.closest('[data-slot-idx]');
-        if (!cell) return;
-        endIdx = parseInt(cell.dataset.slotIdx, 10);
-        highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
+        selEndB = blockFromClientY(e.clientY);
+        renderSel(Math.min(selStartB, selEndB), Math.max(selStartB, selEndB));
       };
-      el.addEventListener('mouseover', el._ecOver);
+      document.addEventListener('mousemove', _docEditMouseMove);
 
-      function finishDrag() {
+      _docEditMouseUp = function () {
         if (!dragging) return;
         dragging = false;
-        getCells().forEach(function (c) { c.classList.remove('ec-drag'); });
-        var lo = Math.min(startIdx, endIdx);
-        var hi = Math.max(startIdx, endIdx);
+        var lo = Math.min(selStartB, selEndB);
+        var hi = Math.max(selStartB, selEndB);
         dotNetRef.invokeMethodAsync('OnCalendarDragEnd', lo, hi);
-      }
-
-      _docEditMouseUp = finishDrag;
+      };
       document.addEventListener('mouseup', _docEditMouseUp);
 
       el._ecTs = function (e) {
         var t = e.touches[0];
         var under = document.elementFromPoint(t.clientX, t.clientY);
-        var cell = under ? under.closest('[data-slot-idx]') : null;
-        if (!cell || cell.dataset.booked === '1') return;
+        if (!under || !under.classList.contains('cal-cell')) return;
+        var block = blockFromClientY(t.clientY);
+        if (bookedBlocks[block]) return;
         dragging = true;
-        startIdx = parseInt(cell.dataset.slotIdx, 10);
-        endIdx = startIdx;
-        highlight(startIdx, startIdx);
+        selStartB = block;
+        selEndB   = block;
+        renderSel(selStartB, selEndB);
       };
       el.addEventListener('touchstart', el._ecTs, { passive: true });
 
       el._ecTm = function (e) {
         if (!dragging) return;
         var t = e.touches[0];
-        var under = document.elementFromPoint(t.clientX, t.clientY);
-        var cell = under ? under.closest('[data-slot-idx]') : null;
-        if (!cell) return;
-        endIdx = parseInt(cell.dataset.slotIdx, 10);
-        highlight(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx));
+        selEndB = blockFromClientY(t.clientY);
+        renderSel(Math.min(selStartB, selEndB), Math.max(selStartB, selEndB));
       };
       el.addEventListener('touchmove', el._ecTm, { passive: true });
 
-      el._ecTe = finishDrag;
+      el._ecTe = function () {
+        if (!dragging) return;
+        dragging = false;
+        var lo = Math.min(selStartB, selEndB);
+        var hi = Math.max(selStartB, selEndB);
+        dotNetRef.invokeMethodAsync('OnCalendarDragEnd', lo, hi);
+      };
       el.addEventListener('touchend', el._ecTe);
 
+      // Scroll initial selection into view
       setTimeout(function () {
-        var firstSel = el.querySelector('.ec-slot-selected');
-        if (firstSel) firstSel.scrollIntoView({ block: 'center', behavior: 'instant' });
+        if (editSelEl) editSelEl.scrollIntoView({ block: 'center', behavior: 'instant' });
       }, 50);
     },
 
@@ -1131,6 +1208,11 @@ window.SporthalleAdmin = (function () {
         document.removeEventListener('mouseup', _docEditMouseUp);
         _docEditMouseUp = null;
       }
+      if (_docEditMouseMove) {
+        document.removeEventListener('mousemove', _docEditMouseMove);
+        _docEditMouseMove = null;
+      }
+      if (editSelEl) { editSelEl.remove(); editSelEl = null; }
     }
   };
 })();
