@@ -941,22 +941,23 @@ button.dp-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1.5px solid #ddd;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #aaa;
   border-radius: 5px;
   background: none;
-  color: #777;
+  color: #444;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 button.dp-toggle-btn:hover,
 button.dp-toggle-btn.dp-active {
   border-color: #EB504B;
   color: #EB504B;
+  background: #fff5f5;
 }
 
 .dp-popup {
