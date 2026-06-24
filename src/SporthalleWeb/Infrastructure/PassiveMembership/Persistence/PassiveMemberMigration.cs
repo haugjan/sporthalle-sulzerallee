@@ -101,7 +101,7 @@ public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
             Alter.Table("PassivMitglieder").AddColumn("Status").AsString(20).NotNullable().WithDefaultValue("Confirmed").Do();
 
         if (!ColumnExists("PassivMitglieder", "ConfirmedAt"))
-            Alter.Table("PassivMitglieder").AddColumn("ConfirmedAt").AsDateTime2().Nullable().Do();
+            Alter.Table("PassivMitglieder").AddColumn("ConfirmedAt").AsDateTime().Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "ConfirmedBy"))
             Alter.Table("PassivMitglieder").AddColumn("ConfirmedBy").AsString(200).Nullable().Do();
@@ -123,7 +123,7 @@ public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "ExportedToAccountingAt"))
-            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime2().Nullable().Do();
+            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime().Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "ExportedToAccountingBy"))
             Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingBy").AsString(200).Nullable().Do();
