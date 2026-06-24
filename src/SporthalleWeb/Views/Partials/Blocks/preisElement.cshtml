@@ -1,16 +1,18 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
 @{
     var label      = Model.Content.Value<string>("label")      ?? "";
+    var labelFarbe = Model.Content.Value<string>("labelFarbe") ?? "";
     var titel      = Model.Content.Value<string>("titel")      ?? "";
     var preis      = Model.Content.Value<string>("preis")      ?? "";
     var preisLabel = Model.Content.Value<string>("preisLabel") ?? "";
     var text       = Model.Content.Value<string>("text")       ?? "";
     var lines      = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var badgeStyle = string.IsNullOrEmpty(labelFarbe) ? "" : $"background:{labelFarbe};color:#fff;";
 }
 <div class="pre-card">
   @if (!string.IsNullOrEmpty(label))
   {
-    <span class="pre-badge">@label</span>
+    <span class="pre-badge" style="@badgeStyle">@label</span>
   }
   @if (!string.IsNullOrEmpty(titel))
   {

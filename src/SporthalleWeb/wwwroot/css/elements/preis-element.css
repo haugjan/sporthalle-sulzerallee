@@ -1,6 +1,6 @@
 .preis-row {
   max-width: 1200px; margin: 0 auto;
-  padding: 4rem 2.5rem;
+  padding: 2rem 2.5rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
