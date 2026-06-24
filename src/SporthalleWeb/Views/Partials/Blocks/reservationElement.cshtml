@@ -166,7 +166,7 @@
               <textarea id="bm-notizen" rows="3" placeholder="Weitere Angaben (optional)"></textarea>
             </label>
           </div>
-          <div id="bm-turnstile" class="bm-turnstile" data-sitekey="@(Config["Turnstile:SiteKey"] ?? "1x00000000000000000000AA")"></div>
+          <div id="bm-turnstile" class="bm-turnstile" data-sitekey="@(Config["Turnstile:SiteKey"] is { Length: > 0 } k ? k : "1x00000000000000000000AA")"></div>
 
           <div id="bm-error" class="bm-error" hidden></div>
         </div>
