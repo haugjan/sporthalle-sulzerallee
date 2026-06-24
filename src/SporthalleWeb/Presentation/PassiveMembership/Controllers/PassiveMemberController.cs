@@ -193,12 +193,27 @@ public class PassiveMemberController : ControllerBase
     }
 
     [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
-    [HttpPost("admin/{id:int}/accounting")]
-    public async Task<IActionResult> SetAccounting(int id, [FromBody] SetAccountingRequest req)
+    [HttpPost("admin/{id:int}/accounting/mark")]
+    public async Task<IActionResult> MarkAccounting(int id, [FromBody] MarkAccountingRequest req)
     {
         try
         {
-            await _adminService.SetExportedToAccountingAsync(id, req.Exported);
+            await _adminService.MarkAsExportedToAccountingAsync(id, req.By);
+            return Ok();
+        }
+        catch (MemberNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = Constants.Security.BackOfficeAuthenticationType)]
+    [HttpPost("admin/{id:int}/accounting/unmark")]
+    public async Task<IActionResult> UnmarkAccounting(int id)
+    {
+        try
+        {
+            await _adminService.UnmarkAsExportedToAccountingAsync(id);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -243,4 +258,4 @@ public class PassiveMemberController : ControllerBase
 
 public record UpdateNotesRequest(string? Notes);
 public record ConfirmMemberRequest(bool IsPaid);
-public record SetAccountingRequest(bool Exported);
+public record MarkAccountingRequest(string By);

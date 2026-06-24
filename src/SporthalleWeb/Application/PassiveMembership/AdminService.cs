@@ -46,11 +46,19 @@ public sealed class AdminService(
         await repo.UpdateAsync(member);
     }
 
-    public async Task SetExportedToAccountingAsync(int memberId, bool exported)
+    public async Task MarkAsExportedToAccountingAsync(int memberId, string by)
     {
         var member = await repo.FindByIdAsync(memberId)
             ?? throw new MemberNotFoundException(memberId);
-        member.SetExportedToAccounting(exported);
+        member.MarkAsExportedToAccounting(by);
+        await repo.UpdateAsync(member);
+    }
+
+    public async Task UnmarkAsExportedToAccountingAsync(int memberId)
+    {
+        var member = await repo.FindByIdAsync(memberId)
+            ?? throw new MemberNotFoundException(memberId);
+        member.UnmarkAsExportedToAccounting();
         await repo.UpdateAsync(member);
     }
 

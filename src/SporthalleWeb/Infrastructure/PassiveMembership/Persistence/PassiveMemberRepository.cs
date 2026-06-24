@@ -96,7 +96,9 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         ConfirmedBy = m.ConfirmedBy,
         PaidAt = m.PaidAt,
         PaidBy = m.PaidBy,
-        ExportedToAccounting = m.ExportedToAccounting,
+        ExportedToAccounting = m.ExportedToAccountingAt.HasValue,
+        ExportedToAccountingAt = m.ExportedToAccountingAt,
+        ExportedToAccountingBy = m.ExportedToAccountingBy,
         Notes = m.Notes,
     };
 
@@ -109,5 +111,6 @@ public class PassiveMemberRepository : IPassiveMemberRepository
             r.CreatedAt, r.Status,
             r.ConfirmedAt, r.ConfirmedBy,
             r.PaidAt, r.PaidBy,
-            r.ExportedToAccounting, r.Notes);
+            r.ExportedToAccountingAt, r.ExportedToAccountingBy,
+            r.Notes);
 }

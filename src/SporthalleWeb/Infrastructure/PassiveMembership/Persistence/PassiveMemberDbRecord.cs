@@ -82,6 +82,15 @@ public class PassiveMemberDbRecord
     [Column("ExportedToAccounting")]
     public bool ExportedToAccounting { get; set; }
 
+    [Column("ExportedToAccountingAt")]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public DateTime? ExportedToAccountingAt { get; set; }
+
+    [Column("ExportedToAccountingBy")]
+    [Length(200)]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public string? ExportedToAccountingBy { get; set; }
+
     [Column("Notes")]
     [NullSetting(NullSetting = NullSettings.Null)]
     [Length(4000)]

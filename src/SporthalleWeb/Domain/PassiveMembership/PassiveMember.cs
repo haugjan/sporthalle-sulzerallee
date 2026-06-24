@@ -7,9 +7,11 @@ public sealed class PassiveMember
     public string FirstName { get; private set; } = "";
     public string LastName { get; private set; } = "";
     public string AddressLine { get; private set; } = "";
+    public string? AddressLine2 { get; private set; }
     public string PostalCode { get; private set; } = "";
     public string City { get; private set; } = "";
     public string Country { get; private set; } = "Schweiz";
+    public string? Phone { get; private set; }
     public MemberEmail Email { get; private set; } = null!;
     public MembershipLevel Level { get; private set; } = null!;
     public bool ShowNameOnFloor { get; private set; }
@@ -20,7 +22,9 @@ public sealed class PassiveMember
     public string? ConfirmedBy { get; private set; }
     public DateTime? PaidAt { get; private set; }
     public string? PaidBy { get; private set; }
-    public bool ExportedToAccounting { get; private set; }
+    public DateTime? ExportedToAccountingAt { get; private set; }
+    public string? ExportedToAccountingBy { get; private set; }
+    public bool ExportedToAccounting => ExportedToAccountingAt.HasValue;
     public string? Notes { get; private set; }
 
     private PassiveMember() { }
@@ -30,8 +34,10 @@ public sealed class PassiveMember
         string firstName,
         string lastName,
         string addressLine,
+        string? addressLine2,
         string postalCode,
         string city,
+        string? phone,
         MemberEmail email,
         MembershipLevel level,
         bool showNameOnFloor,
@@ -46,9 +52,11 @@ public sealed class PassiveMember
             FirstName = firstName.Trim(),
             LastName = lastName.Trim(),
             AddressLine = addressLine.Trim(),
+            AddressLine2 = string.IsNullOrWhiteSpace(addressLine2) ? null : addressLine2.Trim(),
             PostalCode = postalCode.Trim(),
             City = city.Trim(),
             Country = "Schweiz",
+            Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
             Email = email,
             Level = level,
             ShowNameOnFloor = showNameOnFloor,
@@ -60,22 +68,25 @@ public sealed class PassiveMember
 
     public static PassiveMember Reconstitute(
         int id, int fieldNumber, string firstName, string lastName,
-        string addressLine, string postalCode, string city, string country,
-        string email, string levelKey,
+        string addressLine, string? addressLine2, string postalCode, string city, string country,
+        string? phone, string email, string levelKey,
         bool showNameOnFloor, string? displayName,
         DateTime createdAt, string status,
         DateTime? confirmedAt, string? confirmedBy,
         DateTime? paidAt, string? paidBy,
-        bool exportedToAccounting, string? notes) => new PassiveMember
+        DateTime? exportedToAccountingAt, string? exportedToAccountingBy,
+        string? notes) => new PassiveMember
     {
         Id = id,
         FieldNumber = new FieldNumber(fieldNumber),
         FirstName = firstName,
         LastName = lastName,
         AddressLine = addressLine,
+        AddressLine2 = addressLine2,
         PostalCode = postalCode,
         City = city,
         Country = country,
+        Phone = phone,
         Email = new MemberEmail(email),
         Level = MembershipLevel.FromKey(levelKey),
         ShowNameOnFloor = showNameOnFloor,
@@ -86,7 +97,8 @@ public sealed class PassiveMember
         ConfirmedBy = confirmedBy,
         PaidAt = paidAt,
         PaidBy = paidBy,
-        ExportedToAccounting = exportedToAccounting,
+        ExportedToAccountingAt = exportedToAccountingAt,
+        ExportedToAccountingBy = exportedToAccountingBy,
         Notes = notes,
     };
 
@@ -116,7 +128,17 @@ public sealed class PassiveMember
         PaidBy = null;
     }
 
-    public void SetExportedToAccounting(bool value) => ExportedToAccounting = value;
+    public void MarkAsExportedToAccounting(string by)
+    {
+        ExportedToAccountingAt = DateTime.UtcNow;
+        ExportedToAccountingBy = by;
+    }
+
+    public void UnmarkAsExportedToAccounting()
+    {
+        ExportedToAccountingAt = null;
+        ExportedToAccountingBy = null;
+    }
 
     public void UpdateNotes(string? notes) => Notes = notes?.Trim();
 }

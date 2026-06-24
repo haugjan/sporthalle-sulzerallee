@@ -16,7 +16,8 @@ public class PassiveMemberMigrationPlan : MigrationPlan
             .To<CreatePassiveMemberTableMigration>("passivmitglieder-v1")
             .To<FixPassiveMemberAutoIncrementMigration>("passivmitglieder-v2")
             .To<AddMemberStatusColumnsMigration>("passivmitglieder-v3")
-            .To<EnsureMemberStatusColumnsMigration>("passivmitglieder-v4");
+            .To<EnsureMemberStatusColumnsMigration>("passivmitglieder-v4")
+            .To<AddAccountingTimestampColumnsMigration>("passivmitglieder-v5");
     }
 }
 
@@ -109,6 +110,22 @@ public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
 
         if (!ColumnExists("PassivMitglieder", "ExportedToAccounting"))
             Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ExportedToAccounting\" INTEGER NOT NULL DEFAULT 0");
+
+        return Task.CompletedTask;
+    }
+}
+
+public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
+{
+    public AddAccountingTimestampColumnsMigration(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (!ColumnExists("PassivMitglieder", "ExportedToAccountingAt"))
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ExportedToAccountingAt\" TEXT NULL");
+
+        if (!ColumnExists("PassivMitglieder", "ExportedToAccountingBy"))
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ExportedToAccountingBy\" TEXT NULL");
 
         return Task.CompletedTask;
     }
