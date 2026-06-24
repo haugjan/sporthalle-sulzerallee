@@ -26,6 +26,11 @@ public class PassiveMemberDbRecord
     [Length(300)]
     public string AddressLine { get; set; } = "";
 
+    [Column("AddressLine2")]
+    [Length(300)]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public string? AddressLine2 { get; set; }
+
     [Column("PostalCode")]
     [Length(20)]
     public string PostalCode { get; set; } = "";
@@ -37,6 +42,11 @@ public class PassiveMemberDbRecord
     [Column("Country")]
     [Length(100)]
     public string Country { get; set; } = "Schweiz";
+
+    [Column("Phone")]
+    [Length(50)]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public string? Phone { get; set; }
 
     [Column("Email")]
     [Length(200)]

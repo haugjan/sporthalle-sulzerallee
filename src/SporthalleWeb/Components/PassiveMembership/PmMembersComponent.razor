@@ -48,7 +48,12 @@ else
             </td>
             <td class="text-nowrap">@m.FirstName @m.LastName</td>
             <td><a href="mailto:@m.Email.Value" class="text-decoration-none">@m.Email.Value</a></td>
-            <td class="text-muted" style="font-size:0.8rem;">@m.AddressLine<br />@m.PostalCode @m.City</td>
+            <td class="text-muted" style="font-size:0.8rem;">
+              @m.AddressLine
+              @if (!string.IsNullOrEmpty(m.AddressLine2)) { <br /><span>@m.AddressLine2</span> }
+              <br />@m.PostalCode @m.City
+              @if (!string.IsNullOrEmpty(m.Phone)) { <br /><span>Tel. @m.Phone</span> }
+            </td>
             <td class="text-nowrap" style="font-size:0.8rem;">
               @m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")<br />
               <span class="text-muted">@m.CreatedAt.ToLocalTime().ToString("HH:mm")</span>

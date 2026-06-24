@@ -61,8 +61,8 @@ public class PassiveMemberController : ControllerBase
         {
             var cmd = new RegisterMemberCommand(
                 req.FieldNumber, req.FirstName, req.LastName,
-                req.AddressLine, req.PostalCode, req.City,
-                req.Email, req.LevelKey,
+                req.AddressLine, req.AddressLine2, req.PostalCode, req.City,
+                req.Phone, req.Email, req.LevelKey,
                 req.ShowNameOnFloor, req.DisplayName, req.Consent);
 
             var member = await _registerMember.ExecuteAsync(cmd);

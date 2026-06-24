@@ -83,9 +83,11 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         FirstName = m.FirstName,
         LastName = m.LastName,
         AddressLine = m.AddressLine,
+        AddressLine2 = m.AddressLine2,
         PostalCode = m.PostalCode,
         City = m.City,
         Country = m.Country,
+        Phone = m.Phone,
         Email = m.Email.Value,
         MembershipLevel = m.Level.Key,
         ShowNameOnFloor = m.ShowNameOnFloor,
@@ -105,8 +107,8 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     private static PassiveMember ToEntity(PassiveMemberDbRecord r) =>
         PassiveMember.Reconstitute(
             r.Id, r.FieldNumber, r.FirstName, r.LastName,
-            r.AddressLine, r.PostalCode, r.City, r.Country,
-            r.Email, r.MembershipLevel,
+            r.AddressLine, r.AddressLine2, r.PostalCode, r.City, r.Country,
+            r.Phone, r.Email, r.MembershipLevel,
             r.ShowNameOnFloor, r.DisplayName,
             r.CreatedAt, r.Status,
             r.ConfirmedAt, r.ConfirmedBy,

@@ -183,6 +183,10 @@
               <label>Strasse und Hausnummer *</label>
               <input class="pm-input" @bind="_addressLine" placeholder="Musterstrasse 1" />
             </div>
+            <div class="pm-form-group">
+              <label>Adresszusatz</label>
+              <input class="pm-input" @bind="_addressLine2" placeholder="c/o, Postfach, …" />
+            </div>
             <div class="pm-form-row">
               <div class="pm-form-group">
                 <label>PLZ *</label>
@@ -192,6 +196,10 @@
                 <label>Ort *</label>
                 <input class="pm-input" @bind="_city" placeholder="Zürich" />
               </div>
+            </div>
+            <div class="pm-form-group">
+              <label>Telefonnummer</label>
+              <input class="pm-input" type="tel" @bind="_phone" placeholder="+41 79 123 45 67" />
             </div>
             @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
@@ -276,15 +284,17 @@
     private bool _submitting;
     private bool _success;
 
-    private string _levelKey    = "";
-    private string _firstName   = "";
-    private string _lastName    = "";
-    private string _email       = "";
-    private string _addressLine = "";
-    private string _postalCode  = "";
-    private string _city        = "";
+    private string _levelKey     = "";
+    private string _firstName    = "";
+    private string _lastName     = "";
+    private string _email        = "";
+    private string _addressLine  = "";
+    private string _addressLine2 = "";
+    private string _postalCode   = "";
+    private string _city         = "";
+    private string _phone        = "";
     private bool   _showNameOnFloor;
-    private string _displayName = "";
+    private string _displayName  = "";
     private bool   _consent;
     private bool   _captchaInitialized;
 
@@ -397,7 +407,10 @@
             var cmd = new RegisterMemberCommand(
                 _selectedField!.Value,
                 _firstName, _lastName,
-                _addressLine, _postalCode, _city,
+                _addressLine,
+                string.IsNullOrWhiteSpace(_addressLine2) ? null : _addressLine2,
+                _postalCode, _city,
+                string.IsNullOrWhiteSpace(_phone) ? null : _phone,
                 _email, _levelKey,
                 _showNameOnFloor,
                 _showNameOnFloor ? _displayName : null,

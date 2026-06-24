@@ -37,8 +37,8 @@ public sealed class AbaninjaCsvAdapter : IAbaninjaCsvPort
             var cols = new List<string>
             {
                 "", $"PM{m.Id:D4}", "", "", m.FirstName, m.LastName,
-                m.Email.Value, "", "", "",
-                m.AddressLine, "", "", "",
+                m.Email.Value, "", m.Phone ?? "", "",
+                m.AddressLine, "", "", m.AddressLine2 ?? "",
                 m.PostalCode, m.City, m.Country,
                 notes, "CHF", "PassivMitglied"
             };
