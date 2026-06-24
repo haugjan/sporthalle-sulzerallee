@@ -5,10 +5,12 @@
     var heading  = Model.Value<string>("pageHeading") ?? Model.Name;
     var body     = Model.Value<string>("bodyContent");
     var imageUrl = Model.Value<string>("pageImage");
+    var hasImage = !string.IsNullOrWhiteSpace(imageUrl);
     ViewBag.PageTitle = heading + " – Sporthalle Sulzerallee";
+    ViewBag.TransparentNav = hasImage;
 }
 <style>
-  .content-page { padding-top: calc(var(--nav-h, 68px) + 3rem); padding-bottom: 5rem; }
+  .content-page { padding-bottom: 5rem; }
   .content-page-header { margin-bottom: 2.5rem; }
   .content-page-heading {
     font-family: 'Anton', Impact, sans-serif;
@@ -16,21 +18,30 @@
     line-height: 0.85; letter-spacing: 0.02em;
     text-transform: uppercase; color: var(--ink, #1a1a1a);
   }
-  .content-page-image { width: 100%; max-height: 420px; object-fit: cover; margin-bottom: 2.5rem; }
   .content-body { font-family: 'Manrope', sans-serif; font-size: 1.05rem; line-height: 1.8; color: #333; max-width: 720px; }
   .content-body p { margin-bottom: 1.2em; }
 </style>
 
-<main class="content-page">
-  <div class="container">
-    @if (!string.IsNullOrEmpty(imageUrl))
-    {
-      <img src="@imageUrl" alt="" class="content-page-image" />
-    }
-    <div class="content-page-header">
-      <h1 class="content-page-heading">@heading</h1>
-      <div style="width:3rem;height:3px;background:var(--dust,#eb504b);margin-top:1rem;"></div>
+@if (hasImage)
+{
+  <div class="page-header">
+    <div class="page-header-bg" style="background-image:url('@imageUrl')"></div>
+    <div class="page-header-fade"></div>
+    <div class="page-header-body">
+      <h1 class="page-header-title">@heading</h1>
     </div>
+  </div>
+}
+
+<main class="content-page" style="padding-top:@(hasImage ? "3rem" : "calc(68px + 3rem)");">
+  <div class="container">
+    @if (!hasImage)
+    {
+      <div class="content-page-header">
+        <h1 class="content-page-heading">@heading</h1>
+        <div style="width:3rem;height:3px;background:var(--dust,#eb504b);margin-top:1rem;"></div>
+      </div>
+    }
     @if (!string.IsNullOrEmpty(body))
     {
       <div class="content-body">@Html.Raw(body)</div>

@@ -1,30 +1,43 @@
 ﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "~/Views/Shared/_SiteLayout.cshtml";
     var heading = Model.Value<string>("pageHeading") ?? "Passivmitgliedschaft";
     var imageUrl = Model.Value<string>("pageImage");
     var introText = Model.Value<string>("introText");
     var outroText = Model.Value<string>("outroText");
+    var hasImage = !string.IsNullOrWhiteSpace(imageUrl);
     static bool HasText(string? html) =>
         !string.IsNullOrWhiteSpace(System.Text.RegularExpressions.Regex.Replace(html ?? "", "<[^>]*>", ""));
-    ViewBag.Title = heading + " – Sporthalle Sulzerallee";
+    ViewBag.PageTitle = heading + " – Sporthalle Sulzerallee";
+    ViewBag.TransparentNav = hasImage;
 }
 
 @section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/css/passivmitglied.css" />
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 }
 
-<div class="page-passivmitglied">
-
+@if (hasImage)
+{
   <div class="page-header">
-    @if (!string.IsNullOrEmpty(imageUrl))
-    {
-      <img src="@imageUrl" alt="" aria-hidden="true" />
-    }
-    <h2>@heading</h2>
+    <div class="page-header-bg" style="background-image:url('@imageUrl')"></div>
+    <div class="page-header-fade"></div>
+    <div class="page-header-body">
+      <h1 class="page-header-title">@heading</h1>
+    </div>
   </div>
-  <div class="page-header-bar"></div>
+}
+
+<div class="page-passivmitglied" style="@(hasImage ? "" : "padding-top:68px;")">
+
+  @if (!hasImage)
+  {
+    <div class="container" style="padding-top:3rem;padding-bottom:2rem;">
+      <h1 style="font-family:'Anton',Impact,sans-serif;font-size:clamp(3rem,8vw,6rem);line-height:0.85;letter-spacing:0.02em;text-transform:uppercase;color:var(--ink,#1a1a1a);">@heading</h1>
+      <div style="width:3rem;height:3px;background:var(--dust,#eb504b);margin-top:1rem;"></div>
+    </div>
+  }
 
   @if (HasText(introText))
   {

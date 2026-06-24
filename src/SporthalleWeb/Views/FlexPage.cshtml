@@ -7,6 +7,7 @@
     var aliases = blocks.Select(b => b.Content.ContentType.Alias).ToHashSet();
     var hasRes  = aliases.Contains("reservationElement");
     var hasBhe  = aliases.Contains("headerElement");
+    ViewBag.TransparentNav = hasBhe;
 }
 @section Head {
     @if (hasRes)
