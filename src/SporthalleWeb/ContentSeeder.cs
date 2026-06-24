@@ -49,7 +49,6 @@ public sealed class ContentSeeder : INotificationAsyncHandler<UmbracoApplication
         _logger.LogInformation("ContentSeeder: HandleAsync called.");
 
         var (homeTemplate, contentPageTemplate) = EnsureTemplates();
-        EnsureTemplate("Reservierung", "Reservierung");
 
         // Check published TemplateId BEFORE saving content types: saving a content type
         // with a default template sets the draft node's TemplateId as a side effect,
