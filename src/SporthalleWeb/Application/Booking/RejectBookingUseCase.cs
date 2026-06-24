@@ -9,14 +9,14 @@ public sealed class RejectBookingUseCase(
     IMemberManagerPort members,
     IBookingEmailPort email)
 {
-    public async Task ExecuteAsync(int slotId, string reason, string adminUser, string? customEmailBody = null)
+    public async Task ExecuteAsync(int slotId, string reason, string adminUser, string? customEmailBody = null, bool sendEmail = true)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
             ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
         if (slot.Type != SlotType.Reserved)
             throw new DomainException("Nur reservierte Buchungen können abgelehnt werden.");
 
-        if (slot.MemberId.HasValue)
+        if (sendEmail && slot.MemberId.HasValue)
         {
             var member = await members.FindByIdAsync(slot.MemberId.Value);
             if (member is not null)

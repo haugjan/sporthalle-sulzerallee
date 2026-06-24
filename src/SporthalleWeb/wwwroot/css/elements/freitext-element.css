@@ -1,8 +1,11 @@
 .fte-section {
-  padding: 2.5rem 2.5rem;
+  padding: 0.5rem 0;
 }
 .fte-container {
-  max-width: 800px; margin: 0 auto;
+  max-width: 1200px; margin: 0 auto; padding: 0 2.5rem;
+}
+.fte-text {
+  max-width: 720px;
 }
 .fte-text {
   font-family: 'Manrope', sans-serif;

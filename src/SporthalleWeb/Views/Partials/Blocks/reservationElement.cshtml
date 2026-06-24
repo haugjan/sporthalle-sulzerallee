@@ -1,4 +1,11 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{
+    var preisLabel = Model.Content.Value<string>("preisLabel") ?? "";
+    var preisTitel = Model.Content.Value<string>("preisTitel") ?? "";
+    var preisText  = Model.Content.Value<string>("preisText")  ?? "";
+    var hasPreis   = !string.IsNullOrWhiteSpace(preisTitel) || !string.IsNullOrWhiteSpace(preisText);
+}
 <section class="res-element">
   <div class="reservierung-section">
     <div class="reservierung-layout">
@@ -40,11 +47,11 @@
             </div>
             <div class="slot-panel__notice slot-panel__notice--warn" id="slot-short-notice" hidden>
               <p id="slot-short-notice-text">Für Reservationen mit zu kurzem Vorlauf bitte direkt per E-Mail melden:</p>
-              <a href="mailto:reservierung@sporthalle-sulzerallee.ch">reservierung@sporthalle-sulzerallee.ch</a>
+              <a href="mailto:reservation@sporthalle-sulzerallee.ch">reservation@sporthalle-sulzerallee.ch</a>
             </div>
             <div class="slot-panel__notice slot-panel__notice--warn" id="slot-beyond-cutoff" hidden>
               <p>Für Reservationen weit im Voraus bitte direkt per E-Mail melden:</p>
-              <a href="mailto:reservierung@sporthalle-sulzerallee.ch">reservierung@sporthalle-sulzerallee.ch</a>
+              <a href="mailto:reservation@sporthalle-sulzerallee.ch">reservation@sporthalle-sulzerallee.ch</a>
             </div>
             <button class="btn-buchen" id="btn-jetzt-buchen">Jetzt buchen</button>
           </div>
@@ -53,6 +60,23 @@
           <h4>Preise</h4>
           <p id="preis-panel-text"></p>
         </div>
+        @if (hasPreis)
+        {
+          <div class="preis-panel preis-panel--static">
+            @if (!string.IsNullOrWhiteSpace(preisLabel))
+            {
+              <span class="preis-panel__label">@preisLabel</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(preisTitel))
+            {
+              <h4>@preisTitel</h4>
+            }
+            @if (!string.IsNullOrWhiteSpace(preisText))
+            {
+              <p>@preisText</p>
+            }
+          </div>
+        }
       </div>
 
     </div>
@@ -131,6 +155,8 @@
               <textarea id="bm-notizen" rows="3" placeholder="Weitere Angaben (optional)"></textarea>
             </label>
           </div>
+          <div id="bm-turnstile" class="bm-turnstile" data-sitekey="@(Config["Turnstile:SiteKey"] ?? "1x00000000000000000000AA")"></div>
+
           <div id="bm-error" class="bm-error" hidden></div>
         </div>
       </div>

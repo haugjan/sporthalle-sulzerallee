@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SporthalleWeb.Application.Booking;
 using SporthalleWeb.Domain.Booking;
 using SporthalleWeb.Domain.Booking.Ports;
+using SporthalleWeb.Domain.Shared;
 using SporthalleWeb.Presentation.Booking.Dtos;
 
 namespace SporthalleWeb.Presentation.Booking.Controllers;
@@ -27,7 +28,8 @@ public sealed class BookingController(
     IBookingSlotRepository slotRepo,
     IBookingCsvPort csvExport,
     IMemberManagerPort memberManager,
-    IHallConfigurationPort hallConfig) : ControllerBase
+    IHallConfigurationPort hallConfig,
+    ICaptchaPort captcha) : ControllerBase
 {
     // ── Konfiguration ─────────────────────────────────────────────────────────
 
@@ -56,6 +58,9 @@ public sealed class BookingController(
     [HttpPost("gast-buchung")]
     public async Task<IActionResult> GuestBooking([FromBody] GuestBookingRequest req)
     {
+        if (!await captcha.VerifyAsync(req.CaptchaToken, HttpContext.Connection.RemoteIpAddress?.ToString()))
+            return BadRequest(new { error = "CAPTCHA-Überprüfung fehlgeschlagen. Bitte die Seite neu laden." });
+
         if (string.IsNullOrWhiteSpace(req.GuestEmail) || !req.GuestEmail.Contains('@'))
             return BadRequest(new { error = "Ungültige E-Mail-Adresse." });
         if (req.EndUtc <= req.StartUtc || (req.EndUtc - req.StartUtc).TotalMinutes < 60)
@@ -403,4 +408,5 @@ public sealed record GuestBookingRequest(
     DateTime StartUtc,
     DateTime EndUtc,
     string Title,
-    string? Notizen);
+    string? Notizen,
+    string? CaptchaToken);

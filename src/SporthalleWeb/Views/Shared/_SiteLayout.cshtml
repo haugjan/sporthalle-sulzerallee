@@ -6,7 +6,7 @@
     var root = Umbraco.ContentAtRoot()?.FirstOrDefault();
     var navChildren = root?.Children()?.ToList() ?? new List<IPublishedContent>();
     var navPages = navChildren
-        .Where(c => c.ContentType.Alias is "contentPage" or "flexPage" or "gridPage" or "reservierung" or "passivMitgliedschaft")
+        .Where(c => c.ContentType.Alias is "contentPage" or "flexPage" or "reservierung" or "passivMitgliedschaft")
         .Select(c => new {
             Page = c,
             Cls = (c.Url() ?? "").Contains("passivmitglied", StringComparison.OrdinalIgnoreCase) ? "nav-btn-dust"

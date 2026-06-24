@@ -1,0 +1,35 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    string Url(string alias)
+    {
+        var obj = Model.Content.GetProperty(alias)?.GetValue() as Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent;
+        return obj?.GetCropUrl() ?? "";
+    }
+    string Cap(string alias) => Model.Content.Value<string>(alias) ?? "";
+
+    var bilder = new[]
+    {
+        (url: Url("bild1"), cap: Cap("bildunterschrift1")),
+        (url: Url("bild2"), cap: Cap("bildunterschrift2")),
+        (url: Url("bild3"), cap: Cap("bildunterschrift3")),
+    };
+
+    var visible = bilder.Where(b => !string.IsNullOrEmpty(b.url)).ToArray();
+}
+@if (visible.Length > 0)
+{
+  <section class="bie-section">
+    <div class="bie-grid bie-grid--@visible.Length">
+      @foreach (var b in visible)
+      {
+        <figure class="bie-figure">
+          <img src="@b.url" alt="@b.cap" class="bie-img" loading="lazy" />
+          @if (!string.IsNullOrEmpty(b.cap))
+          {
+            <figcaption class="bie-caption">@b.cap</figcaption>
+          }
+        </figure>
+      }
+    </div>
+  </section>
+}

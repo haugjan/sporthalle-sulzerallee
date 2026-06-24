@@ -1,14 +1,14 @@
 .ae-section {
-  padding: 2.5rem 2.5rem 4rem;
+  padding: 0.5rem 0 3rem;
 }
 .ae-container {
-  max-width: 800px; margin: 0 auto;
+  max-width: 1200px; margin: 0 auto; padding: 0 2.5rem;
 }
 .ae-item {
   display: grid;
   grid-template-columns: 3.5rem 1fr;
   gap: 0 1.25rem;
-  padding: 2rem 0;
+  padding: 0.75rem 0;
   border-top: 1px solid #e8e8e8;
 }
 .ae-item:last-child { border-bottom: 1px solid #e8e8e8; }
@@ -17,6 +17,10 @@
   font-weight: 400;
   font-size: 2.25rem; line-height: 1;
   color: var(--dust);
+}
+.ae-num--bullet {
+  font-size: 1.75rem;
+  line-height: 1.15;
 }
 .ae-body {}
 .ae-item-title {

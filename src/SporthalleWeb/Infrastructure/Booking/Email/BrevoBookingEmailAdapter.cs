@@ -87,7 +87,7 @@ public sealed class BrevoBookingEmailAdapter(
                 greeting: $"Guten Tag {contactName}",
                 body: body,
                 detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
-                note: customEmailBody is null ? "Bei Fragen wenden Sie sich bitte an reservierung@sporthalle-sulzerallee.ch." : null));
+                note: customEmailBody is null ? "Bei Fragen wenden Sie sich bitte an reservation@sporthalle-sulzerallee.ch." : null));
     }
 
     public Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
@@ -102,7 +102,7 @@ public sealed class BrevoBookingEmailAdapter(
                 title: "Buchungsanfrage abgelehnt",
                 greeting: $"Guten Tag {contactName}",
                 body: body,
-                note: customEmailBody is null ? "Bitte kontaktieren Sie uns unter reservierung@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin." : null));
+                note: customEmailBody is null ? "Bitte kontaktieren Sie uns unter reservation@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin." : null));
     }
 
     private static string ContactName(HallMember member) =>
@@ -146,7 +146,7 @@ public sealed class BrevoBookingEmailAdapter(
                   <td style="background:#f8f8f8;border-top:1px solid #e8e8e8;padding:20px 40px;">
                     <p style="margin:0;font-size:12px;color:#888;line-height:1.6;">
                       Sporthalle Sulzerallee · Sulzerallee · 8404 Winterthur<br>
-                      <a href="mailto:reservierung@sporthalle-sulzerallee.ch" style="color:#EB504B;text-decoration:none;">reservierung@sporthalle-sulzerallee.ch</a>
+                      <a href="mailto:reservation@sporthalle-sulzerallee.ch" style="color:#EB504B;text-decoration:none;">reservation@sporthalle-sulzerallee.ch</a>
                     </p>
                   </td>
                 </tr>

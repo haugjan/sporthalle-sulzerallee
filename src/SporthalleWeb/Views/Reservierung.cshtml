@@ -1,4 +1,5 @@
 ﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
   Layout = "~/Views/Shared/_Layout.cshtml";
   var heading   = Model.Value<string>("pageHeading") ?? Model.Name;
@@ -49,7 +50,18 @@
       <div class="reservierung-cal-col">
         <div class="week-nav">
           <button type="button" id="prev-week" aria-label="Vorwoche">&#8249;</button>
-          <span id="week-label"></span>
+          <div class="week-nav-center">
+            <span id="week-label"></span>
+            <button type="button" id="dp-toggle" class="dp-toggle-btn" aria-label="Datum wählen" title="Zu Datum springen">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </button>
+            <div id="date-picker" class="dp-popup"></div>
+          </div>
           <button type="button" id="next-week" aria-label="Nächste Woche">&#8250;</button>
         </div>
         <div class="calendar-scroll-wrapper">
@@ -86,11 +98,11 @@
             </div>
             <div class="slot-panel__notice slot-panel__notice--warn" id="slot-short-notice" hidden>
               <p id="slot-short-notice-text">Für Reservationen mit zu kurzem Vorlauf bitte direkt per E-Mail melden:</p>
-              <a href="mailto:reservierung@sporthalle-sulzerallee.ch">reservierung@sporthalle-sulzerallee.ch</a>
+              <a href="mailto:reservation@sporthalle-sulzerallee.ch">reservation@sporthalle-sulzerallee.ch</a>
             </div>
             <div class="slot-panel__notice slot-panel__notice--warn" id="slot-beyond-cutoff" hidden>
               <p>Für Reservationen weit im Voraus bitte direkt per E-Mail melden:</p>
-              <a href="mailto:reservierung@sporthalle-sulzerallee.ch">reservierung@sporthalle-sulzerallee.ch</a>
+              <a href="mailto:reservation@sporthalle-sulzerallee.ch">reservation@sporthalle-sulzerallee.ch</a>
             </div>
             <button class="btn-buchen" id="btn-jetzt-buchen">Jetzt buchen</button>
           </div>
@@ -206,6 +218,8 @@
             </label>
           </div>
 
+          <div id="bm-turnstile" class="bm-turnstile" data-sitekey="@(Config["Turnstile:SiteKey"] ?? "1x00000000000000000000AA")"></div>
+
           <div id="bm-error" class="bm-error" hidden></div>
         </div>
       </div>
@@ -229,4 +243,5 @@
 
 @section Scripts {
   <script src="/js/reservierung.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 }

@@ -12,6 +12,7 @@ public sealed class GetWeekSlotsQuery(IBookingSlotRepository slotRepo)
         var slots = await slotRepo.GetForWeekAsync(fromUtc, toUtc);
 
         return slots
+            .Where(s => s.Type != SlotType.Rejected)
             .Select(s => new WeekSlotDto(
                 Id: s.Id,
                 StartUtc: s.Slot.StartUtc,

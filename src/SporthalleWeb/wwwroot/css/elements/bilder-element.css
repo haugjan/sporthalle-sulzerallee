@@ -1,0 +1,44 @@
+.bie-section {
+  padding: 2.5rem 0 4rem;
+}
+.bie-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+  display: grid;
+  gap: 1.25rem;
+}
+.bie-grid--1 { grid-template-columns: 1fr; }
+.bie-grid--2 { grid-template-columns: repeat(2, 1fr); }
+.bie-grid--3 { grid-template-columns: repeat(3, 1fr); }
+
+.bie-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bie-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+.bie-img-natural {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+.bie-caption {
+  margin-top: 0.5rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.85rem;
+  color: #666;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .bie-grid--2,
+  .bie-grid--3 { grid-template-columns: 1fr; }
+}

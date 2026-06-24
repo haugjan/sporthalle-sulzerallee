@@ -3,9 +3,13 @@
     var quelle       = Model.Content.Value<string>("quelle")       ?? "";
     var titel        = Model.Content.Value<string>("titel")        ?? "";
     var beschreibung = Model.Content.Value<string>("beschreibung") ?? "";
-    var dateiUrl     = Model.Content.Value<string>("dateiUrl")     ?? "";
     var dateiLabel   = Model.Content.Value<string>("dateiLabel");
-    if (string.IsNullOrWhiteSpace(dateiLabel)) dateiLabel = "PDF öffnen";
+    if (string.IsNullOrWhiteSpace(dateiLabel)) dateiLabel = "Datei herunterladen";
+
+    var dateiMedia = Model.Content.GetProperty("datei")?.GetValue() as Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent;
+    var dateiUrl   = dateiMedia?.Url()
+                  ?? Model.Content.Value<string>("dateiUrl")
+                  ?? "";
 }
 <div class="de-card">
   @if (!string.IsNullOrEmpty(quelle))
@@ -22,6 +26,6 @@
   }
   @if (!string.IsNullOrEmpty(dateiUrl))
   {
-    <a href="@dateiUrl" class="de-link" target="_blank" rel="noopener">@dateiLabel →</a>
+    <a href="@dateiUrl" class="de-link" download>@dateiLabel →</a>
   }
 </div>

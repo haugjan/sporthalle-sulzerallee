@@ -23,6 +23,9 @@
   var selectedSlot = null;
   var isDragging = false;
 
+  // Turnstile CAPTCHA
+  var _bmTsId = null;
+
   // Datepicker-State
   var dpCurrentMonth = null;
   var dpOpen = false;
@@ -545,6 +548,30 @@
   }
 
 
+  // ── Turnstile CAPTCHA ─────────────────────────────────────────────────────
+
+  function initBmTurnstile(retries) {
+    var r = retries || 0;
+    var container = document.getElementById('bm-turnstile');
+    if (!container) return;
+    var siteKey = container.dataset.sitekey;
+    if (!siteKey) return;
+    if (!window.turnstile) {
+      if (r < 30) setTimeout(function () { initBmTurnstile(r + 1); }, 100);
+      return;
+    }
+    if (_bmTsId !== null) {
+      window.turnstile.reset(_bmTsId);
+      return;
+    }
+    _bmTsId = window.turnstile.render('#bm-turnstile', { sitekey: siteKey });
+  }
+
+  function getBmTurnstileToken() {
+    var el = document.querySelector('#bm-turnstile [name="cf-turnstile-response"]');
+    return el ? el.value : '';
+  }
+
   // ── Buchungs-Modal ────────────────────────────────────────────────────────
 
   var ORG_LABELS = { 'Verein': 'Vereinsname', 'Firma': 'Firmenname', 'Behörde': 'Behördenname' };
@@ -590,6 +617,8 @@
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
 
+    initBmTurnstile();
+
     setTimeout(function () {
       var f = document.getElementById('bm-anlass');
       if (f) f.focus();
@@ -600,6 +629,7 @@
     var modal = document.getElementById('booking-modal');
     if (modal) modal.setAttribute('hidden', '');
     document.body.style.overflow = '';
+    if (_bmTsId !== null && window.turnstile) window.turnstile.reset(_bmTsId);
   }
 
   function showModalError(msg) {
@@ -629,8 +659,12 @@
     var anlass = getVal('bm-anlass');
     var notizen = getVal('bm-notizen');
 
+    var captchaToken = getBmTurnstileToken();
+
     var errEl = document.getElementById('bm-error');
     if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+
+    if (!captchaToken) { showModalError('Bitte das CAPTCHA ausfüllen.'); return; }
 
     if (isOrg && !orgName) {
       showModalError('Bitte gib den ' + (ORG_LABELS[renterType] || 'Organisationsnamen') + ' ein.');
@@ -665,7 +699,8 @@
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
         title: anlass,
-        notizen: notizen || null
+        notizen: notizen || null,
+        captchaToken: captchaToken
       })
     })
     .then(function (res) {
@@ -683,6 +718,7 @@
         if (body) body.hidden = true;
         if (footer) footer.hidden = true;
         if (success) success.hidden = false;
+        if (_bmTsId !== null && window.turnstile) window.turnstile.reset(_bmTsId);
         clearSelectionOverlay();
         selectedSlot = null;
         loadWeek();

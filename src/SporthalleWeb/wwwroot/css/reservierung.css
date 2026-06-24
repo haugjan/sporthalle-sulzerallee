@@ -475,6 +475,18 @@
   white-space: pre-wrap;
 }
 
+.preis-panel--static { margin-top: 1rem; }
+
+.preis-panel__label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dust, rgb(235,80,75));
+  margin-bottom: 0.35rem;
+}
+
 /* ── Buchungs-Modal ────────────────────────────────────────────────────── */
 
 .bm-overlay {
@@ -633,6 +645,11 @@
 }
 
 .bm-field textarea { resize: vertical; min-height: 70px; }
+
+.bm-turnstile {
+  grid-column: 1 / -1;
+  margin: 0.25rem 0;
+}
 
 .bm-error {
   grid-column: 1 / -1;
@@ -906,4 +923,212 @@
 
 .ec-member-result:hover {
   background: #f0f7ff;
+}
+
+/* ── Datepicker ─────────────────────────────────────────────────────────── */
+
+.week-nav-center {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+/* specificity matches .week-nav button (0,1,1) so later-in-file wins */
+button.dp-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid #ddd;
+  border-radius: 5px;
+  background: none;
+  color: #777;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+button.dp-toggle-btn:hover,
+button.dp-toggle-btn.dp-active {
+  border-color: #EB504B;
+  color: #EB504B;
+}
+
+.dp-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 0.9rem;
+  min-width: 254px;
+}
+
+.dp-popup.dp-open {
+  display: block;
+}
+
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.dp-month-label {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #222;
+}
+
+/* .dp-popup .dp-nav-btn has specificity (0,2,0) > .week-nav button (0,1,1) */
+.dp-popup .dp-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #EB504B;
+  padding: 2px 5px;
+  border-radius: 4px;
+  width: auto;
+  height: auto;
+  transition: background 0.12s;
+}
+
+.dp-popup .dp-nav-btn:hover {
+  background: rgba(235, 80, 75, 0.1);
+  border: none;
+  color: #EB504B;
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-weekday {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #aaa;
+  padding: 2px 0 4px;
+}
+
+.dp-day {
+  text-align: center;
+  padding: 5px 1px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  cursor: default;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.dp-day--empty {
+  visibility: hidden;
+}
+
+.dp-day--bookable {
+  color: #333;
+  cursor: pointer;
+}
+
+.dp-day--bookable:hover {
+  background: #EB504B;
+  color: #fff;
+}
+
+.dp-day--past {
+  color: #d0d0d0;
+}
+
+.dp-day--short-notice {
+  background: rgba(251, 191, 36, 0.18);
+  color: #7a5000;
+  cursor: pointer;
+}
+
+.dp-day--short-notice:hover {
+  background: rgba(251, 191, 36, 0.42);
+}
+
+.dp-day--beyond-cutoff {
+  color: #c0c0c0;
+}
+
+.dp-day--in-week.dp-day--bookable,
+.dp-day--in-week.dp-day--short-notice {
+  background: rgba(235, 80, 75, 0.1);
+}
+
+.dp-day--in-week.dp-day--bookable:hover {
+  background: #EB504B;
+  color: #fff;
+}
+
+.dp-day--in-week.dp-day--short-notice:hover {
+  background: rgba(251, 191, 36, 0.42);
+}
+
+.dp-day--today.dp-day--bookable {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px #EB504B;
+}
+
+.dp-day--today.dp-day--short-notice {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px rgba(251, 191, 36, 0.8);
+}
+
+.dp-legend {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  color: #777;
+}
+
+.dp-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dp-legend-dot--sn {
+  background: rgba(251, 191, 36, 0.55);
+}
+
+.dp-legend-dot--bc {
+  background: #d8d8d8;
+}
+
+@media (max-width: 600px) {
+  .dp-popup {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
 }

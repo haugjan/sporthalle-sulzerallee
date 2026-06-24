@@ -1,0 +1,15 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var bildObj = Model.Content.GetProperty("bild")?.GetValue() as Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent;
+    var bildUrl = bildObj?.GetCropUrl() ?? "";
+}
+@if (!string.IsNullOrEmpty(bildUrl))
+{
+  <section class="bie-section">
+    <div class="bie-grid bie-grid--1">
+      <figure class="bie-figure">
+        <img src="@bildUrl" alt="" class="bie-img-natural" loading="lazy" />
+      </figure>
+    </div>
+  </section>
+}

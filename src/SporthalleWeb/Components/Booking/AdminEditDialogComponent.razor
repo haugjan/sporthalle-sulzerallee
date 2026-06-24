@@ -13,6 +13,14 @@
                 <strong>@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Blocker bearbeiten" : "Buchung bearbeiten")</strong>
                 <span class="badge @TypeBadge(_editSlotType.ToString())">@TypeLabel(_editSlotType)</span>
             </div>
+            @if (_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Recurring)
+            {
+                <div class="alert alert-info mb-0 rounded-0 border-0 border-bottom"
+                     style="border-color:#bee5eb!important;font-size:0.875rem;padding:.6rem 1rem">
+                    <strong>Nur dieser Einzeltermin wird bearbeitet.</strong>
+                    Um die gesamte Serie anzupassen, wechsle zum Tab <strong>Serie</strong>.
+                </div>
+            }
             @if (_editLoading)
             {
                 <div class="card-body"><p>Lade…</p></div>
@@ -130,7 +138,8 @@
                         <label class="form-label fw-semibold">
                             Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen)</small>
                         </label>
-                        <div id="ec-@_editSlotId"
+                        <div @ref="_calContainerRef"
+                             id="ec-@_editSlotId"
                              style="border-radius:6px;overflow:hidden;min-height:300px;user-select:none">
                         </div>
 
@@ -195,6 +204,8 @@
     private int _calEnd   = 23;
     private DotNetObjectReference<AdminEditDialogComponent>? _dotNetRef;
     private int? _calInitializedForSlotId;
+    private ElementReference _calContainerRef;
+    private int _calInitRetries;
 
     private bool _showMemberSearch;
     private string _memberQuery = "";
@@ -240,6 +251,7 @@
         _editSelEnd   = -1;
         _editConflict = false;
         _calInitializedForSlotId = null;
+        _calInitRetries = 0;
         _dotNetRef ??= DotNetObjectReference.Create(this);
         var stMin = startLocal.Hour * 60 + startLocal.Minute;
         var etMin = endLocal.Hour * 60 + endLocal.Minute;
@@ -334,10 +346,18 @@
             try
             {
                 await JS.InvokeVoidAsync("SporthalleAdmin.initEditCalendarDay",
-                    $"ec-{_editSlotId}", _dotNetRef, GetCalendarSlotsForJs(),
+                    _calContainerRef, _dotNetRef, GetCalendarSlotsForJs(),
                     _calStart, _calEnd, _editSelStart, _editSelEnd);
             }
-            catch { _calInitializedForSlotId = null; /* retry next render */ }
+            catch
+            {
+                _calInitializedForSlotId = null;
+                if (_calInitRetries < 3)
+                {
+                    _calInitRetries++;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
         }
     }
 

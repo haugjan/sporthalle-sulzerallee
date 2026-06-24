@@ -1,6 +1,8 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
 @{
     var raw = Model.Content.Value<string>("eintraege") ?? "";
+    var numbered = !Model.Content.HasValue("nummeriert") || Model.Content.Value<bool>("nummeriert");
+
     var blocks = raw
         .Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -22,7 +24,7 @@
       {
         var (itemTitle, itemText) = items[i];
         <div class="ae-item">
-          <div class="ae-num">@(i + 1)</div>
+          <div class="ae-num @(numbered ? "" : "ae-num--bullet")">@(numbered ? (i + 1).ToString() : "•")</div>
           <div class="ae-body">
             <div class="ae-item-title">@itemTitle</div>
             @if (!string.IsNullOrEmpty(itemText))
