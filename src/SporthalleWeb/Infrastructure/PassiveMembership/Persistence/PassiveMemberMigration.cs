@@ -91,8 +91,6 @@ public class AddMemberStatusColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-// v4 adds Status and related columns using raw SQLite DDL to avoid Fluent Migrator
-// provider translation issues with boolean defaults.
 public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
 {
     public EnsureMemberStatusColumnsMigration(IMigrationContext context) : base(context) { }
@@ -100,19 +98,19 @@ public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "Status"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Status\" TEXT NOT NULL DEFAULT 'Confirmed'").Do();
+            Alter.Table("PassivMitglieder").AddColumn("Status").AsString(20).NotNullable().WithDefaultValue("Confirmed").Do();
 
         if (!ColumnExists("PassivMitglieder", "ConfirmedAt"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ConfirmedAt\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("ConfirmedAt").AsDateTime2().Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "ConfirmedBy"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ConfirmedBy\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("ConfirmedBy").AsString(200).Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "PaidBy"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"PaidBy\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("PaidBy").AsString(200).Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "ExportedToAccounting"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ExportedToAccounting\" INTEGER NOT NULL DEFAULT 0").Do();
+            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccounting").AsBoolean().NotNullable().WithDefaultValue(false).Do();
 
         return Task.CompletedTask;
     }
@@ -125,10 +123,10 @@ public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "ExportedToAccountingAt"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ExportedToAccountingAt\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime2().Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "ExportedToAccountingBy"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"ExportedToAccountingBy\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingBy").AsString(200).Nullable().Do();
 
         return Task.CompletedTask;
     }
@@ -141,10 +139,10 @@ public class AddPhoneAndAddressLine2Migration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "Phone"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "AddressLine2"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
 
         return Task.CompletedTask;
     }
@@ -157,10 +155,10 @@ public class EnsurePhoneAndAddressLine2Migration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "Phone"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "AddressLine2"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
 
         return Task.CompletedTask;
     }
@@ -173,10 +171,10 @@ public class EnsurePhoneAndAddressLine2ColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "Phone"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
 
         if (!ColumnExists("PassivMitglieder", "AddressLine2"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL").Do();
+            Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
 
         return Task.CompletedTask;
     }
