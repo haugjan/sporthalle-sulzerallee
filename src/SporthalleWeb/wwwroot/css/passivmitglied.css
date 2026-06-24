@@ -1,3 +1,11 @@
+/* ===== Iframe-Breakout bei erweiterter Ansicht ===== */
+#pm-hallenboden-frame.is-expanded {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 /* ===== Success-Meldung nach dem Modul ===== */
 .pm-success-wrap {
   padding: 0 2rem 2rem;

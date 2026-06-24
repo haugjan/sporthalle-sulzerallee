@@ -59,4 +59,11 @@
 
 @section Scripts {
     <script src="/js/passivmitglied.js" defer></script>
+    <script>
+        window.addEventListener('message', function (e) {
+            if (!e.data || e.data.type !== 'pm-expand') return;
+            var frame = document.getElementById('pm-hallenboden-frame');
+            if (frame) frame.classList.toggle('is-expanded', !!e.data.expanded);
+        });
+    </script>
 }

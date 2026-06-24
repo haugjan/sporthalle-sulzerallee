@@ -320,21 +320,27 @@
     // In collapsed state the SVG has pointer-events:none (CSS), so clicks reach
     // #pm-svg-container and expand the plan. In expanded state, cell <g> elements
     // stop propagation, so this only fires on clicks in empty SVG space (harmless).
-    private void OnContainerClick()
+    private async Task SetExpanded(bool value)
     {
-        if (!_expanded) _expanded = true;
+        _expanded = value;
+        await JS.InvokeVoidAsync("pmNotifyExpand", value);
     }
 
-    private void CellClicked(int fieldNum, bool isOccupied)
+    private async Task OnContainerClick()
     {
-        if (!_expanded) { _expanded = true; return; } // fallback guard
+        if (!_expanded) await SetExpanded(true);
+    }
+
+    private async Task CellClicked(int fieldNum, bool isOccupied)
+    {
+        if (!_expanded) { await SetExpanded(true); return; }
         if (isOccupied) return;
         _selectedField = fieldNum;
         _step          = Step.Field;
         _stepError     = null;
     }
 
-    private void ToggleExpand() => _expanded = !_expanded;
+    private async Task ToggleExpand() => await SetExpanded(!_expanded);
 
     private async Task CloseWizard()
     {

@@ -44,6 +44,9 @@
             _pmWidgetId = null;
         };
         window.pmGetTurnstileToken = function() { return _pmTurnstileToken; };
+        window.pmNotifyExpand = function(expanded) {
+            window.parent.postMessage({ type: 'pm-expand', expanded: !!expanded }, '*');
+        };
     </script>
 </body>
 </html>
