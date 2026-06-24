@@ -42,9 +42,11 @@ else
                         <div class="form-text">Mindestvorlauf in Tagen. Kürzere Anfragen verweisen auf E-Mail.</div>
                     </div>
                     <div class="col-sm-4">
-                        <label class="form-label fw-semibold">Maximaler Vorlauf (Tage)</label>
-                        <input type="number" class="form-control" @bind="_buchungenMaxTage" min="0" max="3650" />
-                        <div class="form-text">Online-Buchungen bis maximal X Tage im Voraus. 0 = unbegrenzt.</div>
+                        <label class="form-label fw-semibold">Online-Buchungen bis Datum</label>
+                        <input type="date" class="form-control"
+                               value="@_buchungenCutoffDatum"
+                               @onchange="@(e => _buchungenCutoffDatum = e.Value?.ToString() ?? "")" />
+                        <div class="form-text">Buchungen nur bis zu diesem Datum möglich. Leer = unbegrenzt.</div>
                     </div>
                 </div>
             </div>
@@ -115,7 +117,7 @@ else
     private string _kalenderBeginnTime = "07:00";
     private string _kalenderEndeTime = "23:00";
     private int _vorlaufzeitTage = 3;
-    private int _buchungenMaxTage = 0;
+    private string _buchungenCutoffDatum = "";
     private string _mailReservationAdresse = "";
     private string _mailReservationText = "";
     private string _mailBestaetigungAdresse = "";
@@ -127,7 +129,7 @@ else
         _kalenderBeginnTime      = IntToTime(Parse(cfg, "kalender_beginn", 7));
         _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
         _vorlaufzeitTage         = Parse(cfg, "vorlaufzeit_tage", 3);
-        _buchungenMaxTage        = Parse(cfg, "buchungen_max_tage", 0);
+        _buchungenCutoffDatum    = cfg.GetValueOrDefault("buchungs_cutoff_datum") ?? "";
         _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
         _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
@@ -151,7 +153,7 @@ else
                 ["kalender_beginn"]           = TimeToInt(_kalenderBeginnTime).ToString(),
                 ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _vorlaufzeitTage.ToString(),
-                ["buchungen_max_tage"]        = _buchungenMaxTage > 0 ? _buchungenMaxTage.ToString() : null,
+                ["buchungs_cutoff_datum"]     = string.IsNullOrWhiteSpace(_buchungenCutoffDatum) ? null : _buchungenCutoffDatum,
                 ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
                 ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),

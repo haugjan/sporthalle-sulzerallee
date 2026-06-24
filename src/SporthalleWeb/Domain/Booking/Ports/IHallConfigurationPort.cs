@@ -6,7 +6,7 @@ public interface IHallConfigurationPort
     Task<int> GetOpeningHourStartAsync();
     Task<int> GetOpeningHourEndAsync();
     Task<int> GetShortNoticeDaysAsync();
-    Task<int?> GetMaxBookingDaysAsync();
+    Task<DateOnly?> GetBookingCutoffDateAsync();
     Task<IReadOnlyList<int>> GetBookableDurationsAsync();
     Task<IReadOnlyList<string>> GetEventTypesAsync();
     Task<string?> GetPreisTextAsync();

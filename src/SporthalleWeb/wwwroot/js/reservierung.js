@@ -12,7 +12,7 @@
 
   var DAYS_TO_SHOW = 7;
   var VORLAUFZEIT_TAGE = 3; // min days advance notice; overridden from API
-  var BUCHUNGEN_MAX_TAGE = null; // max days ahead for public booking; null = no limit
+  var BUCHUNGS_CUTOFF_DATUM = null; // fixed cutoff date (Date object); null = no limit
   var currentMonday = getMonday(new Date());
   var lastSlots = [];
   var resizeTimer;
@@ -93,12 +93,10 @@
   }
 
   function isBeyondMaxDays(date) {
-    if (!BUCHUNGEN_MAX_TAGE) return false;
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    var cutoff = new Date(today);
-    cutoff.setDate(cutoff.getDate() + BUCHUNGEN_MAX_TAGE);
-    return date > cutoff;
+    if (!BUCHUNGS_CUTOFF_DATUM) return false;
+    var d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d > BUCHUNGS_CUTOFF_DATUM;
   }
 
   function blockToTimeLabel(blockIdx) {
@@ -787,7 +785,13 @@
           if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
           if (cfg.vorlaufzeitTage !== undefined) VORLAUFZEIT_TAGE = cfg.vorlaufzeitTage;
-          BUCHUNGEN_MAX_TAGE = cfg.buchungenMaxTage || null;
+          if (cfg.buchungenCutoffDatum) {
+            var parts = cfg.buchungenCutoffDatum.split('-');
+            BUCHUNGS_CUTOFF_DATUM = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+            BUCHUNGS_CUTOFF_DATUM.setHours(0, 0, 0, 0);
+          } else {
+            BUCHUNGS_CUTOFF_DATUM = null;
+          }
           if (cfg.preisText) {
             var panel = document.getElementById('preis-panel');
             var text = document.getElementById('preis-panel-text');
@@ -881,13 +885,13 @@
     }
     html += '</div>';
 
-    if (VORLAUFZEIT_TAGE > 0 || BUCHUNGEN_MAX_TAGE) {
+    if (VORLAUFZEIT_TAGE > 0 || BUCHUNGS_CUTOFF_DATUM) {
       html += '<div class="dp-legend">';
       if (VORLAUFZEIT_TAGE > 0) {
         html += '<span class="dp-legend-item"><span class="dp-legend-dot dp-legend-dot--sn"></span>Kurzfristig (&lt;' + VORLAUFZEIT_TAGE + 'T)</span>';
       }
-      if (BUCHUNGEN_MAX_TAGE) {
-        html += '<span class="dp-legend-item"><span class="dp-legend-dot dp-legend-dot--bc"></span>Max. Vorausbuchung</span>';
+      if (BUCHUNGS_CUTOFF_DATUM) {
+        html += '<span class="dp-legend-item"><span class="dp-legend-dot dp-legend-dot--bc"></span>Buchung nicht mehr möglich</span>';
       }
       html += '</div>';
     }

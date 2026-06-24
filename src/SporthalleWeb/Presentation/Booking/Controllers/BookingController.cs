@@ -41,7 +41,7 @@ public sealed class BookingController(
         var dauern = await hallConfig.GetBookableDurationsAsync();
         var preisText = await hallConfig.GetPreisTextAsync();
         var vorlaufzeitTage = await hallConfig.GetShortNoticeDaysAsync();
-        var buchungenMaxTage = await hallConfig.GetMaxBookingDaysAsync();
+        var cutoffDate = await hallConfig.GetBookingCutoffDateAsync();
         return Ok(new
         {
             oeffnungVon,
@@ -49,7 +49,7 @@ public sealed class BookingController(
             buchbareDauern = dauern,
             preisText,
             vorlaufzeitTage,
-            buchungenMaxTage
+            buchungenCutoffDatum = cutoffDate?.ToString("yyyy-MM-dd")
         });
     }
 
@@ -76,13 +76,9 @@ public sealed class BookingController(
         if (startLocal.Hour < openingHour)
             return BadRequest(new { error = $"Buchungsstart darf nicht vor {openingHour}:00 Uhr liegen." });
 
-        var maxTage = await hallConfig.GetMaxBookingDaysAsync();
-        if (maxTage.HasValue)
-        {
-            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(maxTage.Value);
-            if (DateOnly.FromDateTime(startLocal) > cutoff)
-                return BadRequest(new { error = $"Online-Buchungen sind nur bis zu {maxTage.Value} Tage im Voraus möglich." });
-        }
+        var cutoffDate = await hallConfig.GetBookingCutoffDateAsync();
+        if (cutoffDate.HasValue && DateOnly.FromDateTime(startLocal) > cutoffDate.Value)
+            return BadRequest(new { error = $"Online-Buchungen sind nur bis {cutoffDate.Value:dd.MM.yyyy} möglich." });
 
         try
         {
@@ -296,13 +292,9 @@ public sealed class BookingController(
 
         var zurichAuth = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
         var startLocalAuth = TimeZoneInfo.ConvertTimeFromUtc(req.StartUtc, zurichAuth);
-        var maxTageAuth = await hallConfig.GetMaxBookingDaysAsync();
-        if (maxTageAuth.HasValue)
-        {
-            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(maxTageAuth.Value);
-            if (DateOnly.FromDateTime(startLocalAuth) > cutoff)
-                return BadRequest(new { error = $"Online-Buchungen sind nur bis zu {maxTageAuth.Value} Tage im Voraus möglich." });
-        }
+        var cutoffDateAuth = await hallConfig.GetBookingCutoffDateAsync();
+        if (cutoffDateAuth.HasValue && DateOnly.FromDateTime(startLocalAuth) > cutoffDateAuth.Value)
+            return BadRequest(new { error = $"Online-Buchungen sind nur bis {cutoffDateAuth.Value:dd.MM.yyyy} möglich." });
 
         try
         {
