@@ -105,7 +105,7 @@ public class AddRecurringSlotsV5 : AsyncMigrationBase
             Create.Table<RecurringSlotRecord>().Do();
 
         if (TableExists("BookingSlots") && !ColumnExists("BookingSlots", "RecurringSlotId"))
-            Execute.Sql("ALTER TABLE \"BookingSlots\" ADD COLUMN \"RecurringSlotId\" INTEGER NULL").Do();
+            Execute.Sql("ALTER TABLE \"BookingSlots\" ADD \"RecurringSlotId\" INTEGER NULL").Do();
 
         return Task.CompletedTask;
     }
@@ -120,14 +120,14 @@ public class AddIsBlockerAndMemberIdToRecurringSlotsV7 : AsyncMigrationBase
     {
         if (TableExists("RecurringSlots") && !ColumnExists("RecurringSlots", "IsBlocker"))
         {
-            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD COLUMN \"IsBlocker\" INTEGER NOT NULL DEFAULT 0").Do();
+            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"IsBlocker\" INTEGER NOT NULL DEFAULT 0").Do();
             Execute.Sql(
                 "UPDATE \"RecurringSlots\" SET \"IsBlocker\" = 1 WHERE \"Id\" IN " +
                 "(SELECT DISTINCT \"RecurringSlotId\" FROM \"BookingSlots\" " +
                 " WHERE \"Type\" = 'Blocker' AND \"RecurringSlotId\" IS NOT NULL)").Do();
         }
         if (TableExists("RecurringSlots") && !ColumnExists("RecurringSlots", "MemberId"))
-            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD COLUMN \"MemberId\" INTEGER NULL").Do();
+            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"MemberId\" INTEGER NULL").Do();
         return Task.CompletedTask;
     }
 }
