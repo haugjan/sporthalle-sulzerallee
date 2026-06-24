@@ -19,7 +19,8 @@ public class PassiveMemberMigrationPlan : MigrationPlan
             .To<EnsureMemberStatusColumnsMigration>("passivmitglieder-v4")
             .To<AddAccountingTimestampColumnsMigration>("passivmitglieder-v5")
             .To<AddPhoneAndAddressLine2Migration>("passivmitglieder-v6")
-            .To<EnsurePhoneAndAddressLine2Migration>("passivmitglieder-v7");
+            .To<EnsurePhoneAndAddressLine2Migration>("passivmitglieder-v7")
+            .To<EnsurePhoneAndAddressLine2ColumnsMigration>("passivmitglieder-v8");
     }
 }
 
@@ -140,10 +141,10 @@ public class AddPhoneAndAddressLine2Migration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "Phone"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL").Do();
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL");
 
         if (!ColumnExists("PassivMitglieder", "AddressLine2"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL").Do();
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL");
 
         return Task.CompletedTask;
     }
@@ -156,10 +157,28 @@ public class EnsurePhoneAndAddressLine2Migration : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         if (!ColumnExists("PassivMitglieder", "Phone"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL").Do();
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL");
 
         if (!ColumnExists("PassivMitglieder", "AddressLine2"))
-            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL").Do();
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL");
+
+        return Task.CompletedTask;
+    }
+}
+
+// Reparatur: v6/v7 hat .Do() nach Execute.Sql() verwendet, was die SQL-Ausführung
+// verhinderte. Diese Migration fügt die Spalten nach, falls sie fehlen.
+public class EnsurePhoneAndAddressLine2ColumnsMigration : AsyncMigrationBase
+{
+    public EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (!ColumnExists("PassivMitglieder", "Phone"))
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"Phone\" TEXT NULL");
+
+        if (!ColumnExists("PassivMitglieder", "AddressLine2"))
+            Execute.Sql("ALTER TABLE \"PassivMitglieder\" ADD COLUMN \"AddressLine2\" TEXT NULL");
 
         return Task.CompletedTask;
     }
