@@ -222,15 +222,15 @@
           </div>
 
           <div class="bm-field">
-            <label>Serie von *
-              <input type="date" id="admin-bm-serie-von-datum" />
-            </label>
+            <label class="d-block">Serie von *</label>
+            <DateInputComponent Value="_serieVon" ValueChanged="@(d => { if (d.HasValue) _serieVon = d.Value; })"
+                                HiddenInputId="admin-bm-serie-von-datum" />
           </div>
 
           <div class="bm-field">
-            <label>Serie bis *
-              <input type="date" id="admin-bm-serie-bis-datum" />
-            </label>
+            <label class="d-block">Serie bis *</label>
+            <DateInputComponent Value="_serieBis" ValueChanged="@(d => { if (d.HasValue) _serieBis = d.Value; })"
+                                HiddenInputId="admin-bm-serie-bis-datum" />
           </div>
 
           <div class="bm-field bm-field--2col" id="admin-bm-serie-color-row">
@@ -288,6 +288,9 @@
 
 @code {
     [Parameter] public string AdminUser { get; set; } = "admin";
+
+    private DateOnly _serieVon = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _serieBis = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
 
     private DotNetObjectReference<AdminCreateComponent>? _objRef;
 

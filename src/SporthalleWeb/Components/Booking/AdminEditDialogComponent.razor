@@ -33,11 +33,9 @@
                     <div style="flex:0 0 42%;overflow-y:auto;padding:1rem;border-right:1px solid #dee2e6">
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Tag</label>
-                            <input type="text" class="form-control" style="max-width:140px"
-                                   value="@FormatDateDisplay(_editStartDate)"
-                                   placeholder="TT.MM.JJJJ" maxlength="10"
-                                   @onchange="OnEditDayChangedAsync" />
+                            <label class="form-label fw-semibold d-block">Tag</label>
+                            <DateInputComponent Value="@(DateOnly.TryParse(_editStartDate, out var _epd) ? _epd : (DateOnly?)null)"
+                                                ValueChanged="OnEditDatePickedAsync" />
                         </div>
 
                         <div class="mb-3">
@@ -414,18 +412,10 @@
         _calendarSlotsForDay = await AdminService.GetSlotsForPeriodAsync(day, day, includeRejected: false);
     }
 
-    private string FormatDateDisplay(string iso) =>
-        DateOnly.TryParse(iso, out var d) ? d.ToString("dd.MM.yyyy") : iso;
-
-    private async Task OnEditDayChangedAsync(ChangeEventArgs e)
+    private async Task OnEditDatePickedAsync(DateOnly? d)
     {
-        var input = e.Value?.ToString() ?? "";
-        if (DateOnly.TryParseExact(input, "dd.MM.yyyy", DeCh,
-                System.Globalization.DateTimeStyles.None, out var d)
-            || DateOnly.TryParse(input, out d))
-        {
-            _editStartDate = d.ToString("yyyy-MM-dd");
-        }
+        if (!d.HasValue) return;
+        _editStartDate           = d.Value.ToString("yyyy-MM-dd");
         _editEndDate             = _editStartDate;
         _editSelStart            = -1;
         _editSelEnd              = -1;
