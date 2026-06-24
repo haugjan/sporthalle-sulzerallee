@@ -210,15 +210,19 @@
           </div>
 
           <div class="bm-field">
-            <label>Zeit von *
-              <input type="time" id="admin-bm-serie-start-time" step="1800" />
-            </label>
+            <label class="d-block">Zeit von *</label>
+            <TimePickerComponent HiddenInputId="admin-bm-serie-start-time"
+                                 Value="@_serieStartTime"
+                                 ValueChanged="@(v => _serieStartTime = v)"
+                                 Step="30" />
           </div>
 
           <div class="bm-field">
-            <label>Zeit bis *
-              <input type="time" id="admin-bm-serie-end-time" step="1800" />
-            </label>
+            <label class="d-block">Zeit bis *</label>
+            <TimePickerComponent HiddenInputId="admin-bm-serie-end-time"
+                                 Value="@_serieEndTime"
+                                 ValueChanged="@(v => _serieEndTime = v)"
+                                 Step="30" />
           </div>
 
           <div class="bm-field">
@@ -291,6 +295,8 @@
 
     private DateOnly _serieVon = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _serieBis = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private string _serieStartTime = "08:00";
+    private string _serieEndTime = "10:00";
 
     private DotNetObjectReference<AdminCreateComponent>? _objRef;
 
@@ -392,6 +398,14 @@
             contactLastName = m.ContactLastName,
         });
         return JsonSerializer.Serialize(result);
+    }
+
+    [JSInvokable]
+    public void SetSerieTimes(string start, string end)
+    {
+        _serieStartTime = start;
+        _serieEndTime = end;
+        StateHasChanged();
     }
 
     [JSInvokable]

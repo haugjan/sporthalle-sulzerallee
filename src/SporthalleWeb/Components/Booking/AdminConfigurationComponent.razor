@@ -17,15 +17,15 @@ else
                 <div class="row g-3">
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Beginn)</label>
-                        <input type="time" class="form-control"
-                               value="@_kalenderBeginnTime"
-                               @onchange="@(e => _kalenderBeginnTime = e.Value?.ToString() ?? "07:00")" />
+                        <TimePickerComponent Value="@_kalenderBeginnTime"
+                                             ValueChanged="@(v => _kalenderBeginnTime = v)"
+                                             Step="60" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Öffnungszeit (Ende)</label>
-                        <input type="time" class="form-control"
-                               value="@_kalenderEndeTime"
-                               @onchange="@(e => _kalenderEndeTime = e.Value?.ToString() ?? "23:00")" />
+                        <TimePickerComponent Value="@_kalenderEndeTime"
+                                             ValueChanged="@(v => _kalenderEndeTime = v)"
+                                             Step="60" />
                     </div>
                 </div>
             </div>

@@ -574,8 +574,11 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-serie-von-datum', toLocalDateStr(selectedSlot.day));
     setEl('admin-bm-serie-bis-datum', toLocalDateStr(selectedSlot.day));
     setEl('admin-bm-serie-wochentag', String(selectedSlot.day.getDay()));
-    setEl('admin-bm-serie-start-time', minutesToTimeStr(selectedSlot.startMin));
-    setEl('admin-bm-serie-end-time', minutesToTimeStr(selectedSlot.endMin));
+    var startTime = minutesToTimeStr(selectedSlot.startMin);
+    var endTime = minutesToTimeStr(selectedSlot.endMin);
+    setEl('admin-bm-serie-start-time', startTime);
+    setEl('admin-bm-serie-end-time', endTime);
+    if (_dotNet) _dotNet.invokeMethodAsync('SetSerieTimes', startTime, endTime);
     selectSerieColor('#F1C40F');
   }
 

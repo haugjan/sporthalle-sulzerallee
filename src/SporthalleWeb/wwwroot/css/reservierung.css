@@ -1035,6 +1035,10 @@ button.dp-toggle-btn.dp-active {
   cursor: default;
   min-width: 0;
   box-sizing: border-box;
+  border: none;
+  background: none;
+  font-family: inherit;
+  outline: none;
 }
 
 .dp-day--empty {
@@ -1189,12 +1193,45 @@ button.dp-toggle-btn.dp-active {
 }
 
 .date-nav-dp-btn {
-  width: 32px;
-  height: 32px;
+  width: 32px !important;
+  height: 32px !important;
 }
 
+button.dp-toggle-btn:focus,
+button.dp-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* din-popup: overrides dp-popup's centering transform */
 .din-popup {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
+  transform: none;
 }
+
+/* Blazor component uses dp-nav / dp-weekdays / dp-days / dp-wday
+   (JS datepicker uses dp-header / dp-grid / dp-weekday) */
+.dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.dp-weekdays,
+.dp-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-wday {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #aaa;
+  padding: 2px 0 4px;
+}
+

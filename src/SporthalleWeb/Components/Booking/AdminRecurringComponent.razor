@@ -75,13 +75,15 @@
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold">Von (Zeit) *</label>
-                        <input type="text" class="form-control" value="@_fStartTime.ToString("HH:mm")"
-                               placeholder="HH:mm" maxlength="5" @onchange="OnStartTimeChanged" />
+                        <TimePickerComponent Value="@_fStartTime.ToString("HH:mm")"
+                                             ValueChanged="SetStartTime"
+                                             Step="15" />
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold">Bis (Zeit) *</label>
-                        <input type="text" class="form-control" value="@_fEndTime.ToString("HH:mm")"
-                               placeholder="HH:mm" maxlength="5" @onchange="OnEndTimeChanged" />
+                        <TimePickerComponent Value="@_fEndTime.ToString("HH:mm")"
+                                             ValueChanged="SetEndTime"
+                                             Step="15" />
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label fw-semibold d-block">Serie von *</label>
@@ -522,17 +524,15 @@ else
 
     private static readonly System.Globalization.CultureInfo Ic = System.Globalization.CultureInfo.InvariantCulture;
 
-    private void OnStartTimeChanged(ChangeEventArgs e)
+    private void SetStartTime(string v)
     {
-        if (TimeOnly.TryParseExact(e.Value?.ToString()?.Trim() ?? string.Empty, "HH:mm", Ic,
-                System.Globalization.DateTimeStyles.None, out var t))
+        if (TimeOnly.TryParseExact(v, "HH:mm", Ic, System.Globalization.DateTimeStyles.None, out var t))
             _fStartTime = t;
     }
 
-    private void OnEndTimeChanged(ChangeEventArgs e)
+    private void SetEndTime(string v)
     {
-        if (TimeOnly.TryParseExact(e.Value?.ToString()?.Trim() ?? string.Empty, "HH:mm", Ic,
-                System.Globalization.DateTimeStyles.None, out var t))
+        if (TimeOnly.TryParseExact(v, "HH:mm", Ic, System.Globalization.DateTimeStyles.None, out var t))
             _fEndTime = t;
     }
 
