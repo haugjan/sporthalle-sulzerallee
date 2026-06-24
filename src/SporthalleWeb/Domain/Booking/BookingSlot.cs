@@ -62,10 +62,11 @@ public sealed class BookingSlot
 
     public static BookingSlot CreateSerie(
         TimeSlot slot, string title, string? color, string? notes, string createdBy, int recurringSlotId,
-        SlotType type = SlotType.Recurring) =>
+        SlotType type = SlotType.Recurring, int? memberId = null) =>
         new()
         {
             Type = type,
+            MemberId = memberId,
             Slot = slot,
             Title = title,
             Color = color,

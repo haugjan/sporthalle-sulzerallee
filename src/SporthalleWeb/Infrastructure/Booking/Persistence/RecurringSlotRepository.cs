@@ -69,7 +69,9 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
             notes: r.Notes,
             createdBy: r.CreatedBy,
             createdAt: DateTime.SpecifyKind(r.CreatedAt, DateTimeKind.Utc),
-            updatedAt: DateTime.SpecifyKind(r.UpdatedAt, DateTimeKind.Utc));
+            updatedAt: DateTime.SpecifyKind(r.UpdatedAt, DateTimeKind.Utc),
+            isBlocker: r.IsBlocker,
+            memberId: r.MemberId);
 
     private static RecurringSlotRecord MapToRecord(RecurringSlot s) =>
         new()
@@ -82,6 +84,8 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
             SeriesEnd = s.SeriesEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             Color = s.Color,
             Notes = s.Notes,
+            IsBlocker = s.IsBlocker,
+            MemberId = s.MemberId,
             CreatedBy = s.CreatedBy,
             CreatedAt = s.CreatedAt,
             UpdatedAt = s.UpdatedAt

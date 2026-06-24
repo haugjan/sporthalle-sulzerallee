@@ -16,6 +16,8 @@ public sealed class RecurringSlot
     public DateOnly SeriesEnd { get; private set; }
     public string? Color { get; private set; }
     public string? Notes { get; private set; }
+    public bool IsBlocker { get; private set; }
+    public int? MemberId { get; private set; }
     public string CreatedBy { get; private set; } = "";
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -24,7 +26,8 @@ public sealed class RecurringSlot
 
     public static RecurringSlot Create(
         string title, DayOfWeek wochentag, TimeOnly startTime, TimeOnly endTime,
-        DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes, string createdBy) =>
+        DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes, string createdBy,
+        bool isBlocker = false, int? memberId = null) =>
         new()
         {
             Title = title,
@@ -36,6 +39,8 @@ public sealed class RecurringSlot
             Color = color,
             Notes = notes,
             CreatedBy = createdBy,
+            IsBlocker = isBlocker,
+            MemberId = memberId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -43,7 +48,8 @@ public sealed class RecurringSlot
     public static RecurringSlot FromPersistence(
         int id, string title, int wochentag, string startTime, string endTime,
         string seriesStart, string seriesEnd, string? color, string? notes,
-        string createdBy, DateTime createdAt, DateTime updatedAt) =>
+        string createdBy, DateTime createdAt, DateTime updatedAt,
+        bool isBlocker = false, int? memberId = null) =>
         new()
         {
             Id = id,
@@ -57,12 +63,15 @@ public sealed class RecurringSlot
             Notes = notes,
             CreatedBy = createdBy,
             CreatedAt = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc),
-            UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Utc)
+            UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Utc),
+            IsBlocker = isBlocker,
+            MemberId = memberId
         };
 
     public void Update(
         string title, DayOfWeek wochentag, TimeOnly startTime, TimeOnly endTime,
-        DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes)
+        DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes,
+        bool isBlocker, int? memberId)
     {
         Title = title;
         Wochentag = wochentag;
@@ -72,6 +81,8 @@ public sealed class RecurringSlot
         SeriesEnd = seriesEnd;
         Color = color;
         Notes = notes;
+        IsBlocker = isBlocker;
+        MemberId = memberId;
         UpdatedAt = DateTime.UtcNow;
     }
 

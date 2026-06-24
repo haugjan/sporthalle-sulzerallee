@@ -19,7 +19,8 @@ public class BookingMigrationPlan : MigrationPlan
             .To<SimplifyDataModelV3>("v1.2.0")
             .To<AddHallConfigTableV4>("v1.3.0")
             .To<AddRecurringSlotsV5>("v1.4.0")
-            .To<RenameSerieToRecurringV6>("v1.5.0");
+            .To<RenameSerieToRecurringV6>("v1.5.0")
+            .To<AddIsBlockerAndMemberIdToRecurringSlotsV7>("v1.6.0");
     }
 }
 
@@ -106,6 +107,27 @@ public class AddRecurringSlotsV5 : AsyncMigrationBase
         if (TableExists("BookingSlots") && !ColumnExists("BookingSlots", "RecurringSlotId"))
             Execute.Sql("ALTER TABLE \"BookingSlots\" ADD COLUMN \"RecurringSlotId\" INTEGER NULL").Do();
 
+        return Task.CompletedTask;
+    }
+}
+
+// v1.6.0 — Add IsBlocker and MemberId columns to RecurringSlots; backfill IsBlocker from BookingSlots.
+public class AddIsBlockerAndMemberIdToRecurringSlotsV7 : AsyncMigrationBase
+{
+    public AddIsBlockerAndMemberIdToRecurringSlotsV7(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (TableExists("RecurringSlots") && !ColumnExists("RecurringSlots", "IsBlocker"))
+        {
+            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD COLUMN \"IsBlocker\" INTEGER NOT NULL DEFAULT 0").Do();
+            Execute.Sql(
+                "UPDATE \"RecurringSlots\" SET \"IsBlocker\" = 1 WHERE \"Id\" IN " +
+                "(SELECT DISTINCT \"RecurringSlotId\" FROM \"BookingSlots\" " +
+                " WHERE \"Type\" = 'Blocker' AND \"RecurringSlotId\" IS NOT NULL)").Do();
+        }
+        if (TableExists("RecurringSlots") && !ColumnExists("RecurringSlots", "MemberId"))
+            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD COLUMN \"MemberId\" INTEGER NULL").Do();
         return Task.CompletedTask;
     }
 }

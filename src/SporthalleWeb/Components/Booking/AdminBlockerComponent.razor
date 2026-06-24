@@ -48,6 +48,7 @@ else
                 <tr>
                     <th style="white-space:nowrap">Erstellt</th>
                     <th style="white-space:nowrap">Termin</th>
+                    <th>Art</th>
                     <th>Bezeichnung</th>
                     <th>Bemerkungen</th>
                     <th>Aktionen</th>
@@ -65,6 +66,16 @@ else
                         <td style="white-space:nowrap">
                             @FormatSlot(b.Slot.StartUtc, b.Slot.EndUtc)<br />
                             <small class="text-muted">@((int)(b.Slot.EndUtc - b.Slot.StartUtc).TotalMinutes) min</small>
+                        </td>
+                        <td>
+                            @if (b.RecurringSlotId.HasValue)
+                            {
+                                <span class="badge bg-secondary" style="font-size:0.75rem">Serie</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted" style="font-size:0.85rem">Einzel</span>
+                            }
                         </td>
                         <td>@(b.Title ?? "–")</td>
                         <td style="max-width:250px">

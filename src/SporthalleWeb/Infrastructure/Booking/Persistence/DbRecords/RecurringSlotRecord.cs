@@ -51,6 +51,14 @@ public class RecurringSlotRecord
     [SpecialDbType(SpecialDbTypes.NVARCHARMAX)]
     public string? Notes { get; set; }
 
+    [Column("IsBlocker")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    public bool IsBlocker { get; set; }
+
+    [Column("MemberId")]
+    [NullSetting(NullSetting = NullSettings.Null)]
+    public int? MemberId { get; set; }
+
     [Column("CreatedBy")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
     [Length(200)]

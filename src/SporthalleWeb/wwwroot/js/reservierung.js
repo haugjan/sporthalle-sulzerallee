@@ -23,6 +23,12 @@
   var selectedSlot = null;
   var isDragging = false;
 
+  // Datepicker-State
+  var dpCurrentMonth = null;
+  var dpOpen = false;
+  var DP_MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
   // ── Datum-Hilfsfunktionen ─────────────────────────────────────────────────
 
   function getMonday(d) {
@@ -290,7 +296,7 @@
   }
 
   function getOverlayMod(slot) {
-    if (slot.type === 'Booked' || slot.type === 'Blocker') return 'confirmed';
+    if (slot.type === 'Booked' || slot.type === 'Blocker' || slot.type === 'Recurring') return 'confirmed';
     return 'provisional'; // Reserved
   }
 
@@ -724,6 +730,10 @@
   function navigateWeek(delta) {
     currentMonday = addDays(currentMonday, delta * DAYS_TO_SHOW);
     updateWeekLabel();
+    if (dpOpen) {
+      dpCurrentMonth = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), 1);
+      renderDatePicker();
+    }
     loadWeek();
   }
 
@@ -754,6 +764,117 @@
         callback();
       })
       .catch(function () { callback(); });
+  }
+
+  // ── Datepicker ────────────────────────────────────────────────────────────
+
+  function isInCurrentWeek(date) {
+    var monday = getMonday(new Date(date));
+    return toLocalDateStr(monday) === toLocalDateStr(currentMonday);
+  }
+
+  function openDatePicker() {
+    dpCurrentMonth = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), 1);
+    renderDatePicker();
+    var popup = document.getElementById('date-picker');
+    if (popup) popup.classList.add('dp-open');
+    var toggle = document.getElementById('dp-toggle');
+    if (toggle) toggle.classList.add('dp-active');
+    dpOpen = true;
+  }
+
+  function closeDatePicker() {
+    var popup = document.getElementById('date-picker');
+    if (popup) popup.classList.remove('dp-open');
+    var toggle = document.getElementById('dp-toggle');
+    if (toggle) toggle.classList.remove('dp-active');
+    dpOpen = false;
+  }
+
+  function toggleDatePicker() {
+    if (dpOpen) closeDatePicker(); else openDatePicker();
+  }
+
+  function jumpToDate(date) {
+    currentMonday = getMonday(date);
+    updateWeekLabel();
+    closeDatePicker();
+    loadWeek();
+  }
+
+  function renderDatePicker() {
+    var popup = document.getElementById('date-picker');
+    if (!popup || !dpCurrentMonth) return;
+
+    var year = dpCurrentMonth.getFullYear();
+    var month = dpCurrentMonth.getMonth();
+
+    var html = '<div class="dp-header">';
+    html += '<button type="button" class="dp-nav-btn" id="dp-prev-month">&#8249;</button>';
+    html += '<span class="dp-month-label">' + DP_MONTH_NAMES[month] + ' ' + year + '</span>';
+    html += '<button type="button" class="dp-nav-btn" id="dp-next-month">&#8250;</button>';
+    html += '</div><div class="dp-grid">';
+
+    ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(function (d) {
+      html += '<div class="dp-weekday">' + d + '</div>';
+    });
+
+    var firstDay = new Date(year, month, 1);
+    var startPad = (firstDay.getDay() + 6) % 7;
+    for (var p = 0; p < startPad; p++) html += '<div class="dp-day dp-day--empty"></div>';
+
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (var d = 1; d <= daysInMonth; d++) {
+      var date = new Date(year, month, d);
+      var past = isPastDay(date);
+      var sn   = !past && isShortNotice(date);
+      var bc   = !past && !sn && isBeyondMaxDays(date);
+      var inW  = isInCurrentWeek(date);
+      var tod  = isToday(date);
+
+      var cls = 'dp-day';
+      if (past)    cls += ' dp-day--past';
+      else if (sn) cls += ' dp-day--short-notice';
+      else if (bc) cls += ' dp-day--beyond-cutoff';
+      else         cls += ' dp-day--bookable';
+      if (inW) cls += ' dp-day--in-week';
+      if (tod) cls += ' dp-day--today';
+
+      var attr = (!past && !bc) ? (' data-date="' + toLocalDateStr(date) + '"') : '';
+      html += '<div class="' + cls + '"' + attr + '>' + d + '</div>';
+    }
+    html += '</div>';
+
+    if (VORLAUFZEIT_TAGE > 0 || BUCHUNGEN_MAX_TAGE) {
+      html += '<div class="dp-legend">';
+      if (VORLAUFZEIT_TAGE > 0) {
+        html += '<span class="dp-legend-item"><span class="dp-legend-dot dp-legend-dot--sn"></span>Kurzfristig (&lt;' + VORLAUFZEIT_TAGE + 'T)</span>';
+      }
+      if (BUCHUNGEN_MAX_TAGE) {
+        html += '<span class="dp-legend-item"><span class="dp-legend-dot dp-legend-dot--bc"></span>Max. Vorausbuchung</span>';
+      }
+      html += '</div>';
+    }
+
+    popup.innerHTML = html;
+
+    document.getElementById('dp-prev-month').addEventListener('click', function (e) {
+      e.stopPropagation();
+      dpCurrentMonth = new Date(dpCurrentMonth.getFullYear(), dpCurrentMonth.getMonth() - 1, 1);
+      renderDatePicker();
+    });
+    document.getElementById('dp-next-month').addEventListener('click', function (e) {
+      e.stopPropagation();
+      dpCurrentMonth = new Date(dpCurrentMonth.getFullYear(), dpCurrentMonth.getMonth() + 1, 1);
+      renderDatePicker();
+    });
+
+    popup.querySelectorAll('.dp-day[data-date]').forEach(function (dayEl) {
+      dayEl.addEventListener('click', function () {
+        var parts = dayEl.dataset.date.split('-');
+        jumpToDate(new Date(+parts[0], +parts[1] - 1, +parts[2]));
+      });
+    });
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
@@ -823,7 +944,23 @@
     if (submitBtn) submitBtn.addEventListener('click', submitGuestBooking);
     if (doneBtn) doneBtn.addEventListener('click', function () { closeBookingModal(); });
 
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBookingModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeBookingModal(); closeDatePicker(); }
+    });
+
+    var dpToggle = document.getElementById('dp-toggle');
+    if (dpToggle) dpToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleDatePicker();
+    });
+    document.addEventListener('click', function (e) {
+      if (!dpOpen) return;
+      var popup = document.getElementById('date-picker');
+      var toggle = document.getElementById('dp-toggle');
+      if (popup && !popup.contains(e.target) && toggle && !toggle.contains(e.target)) {
+        closeDatePicker();
+      }
+    });
 
     updateWeekLabel();
     loadConfig(function () { loadWeek(); });

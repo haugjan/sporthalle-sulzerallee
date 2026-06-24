@@ -2,6 +2,7 @@
 @inject SporthalleWeb.Application.Booking.CreateRecurringSlotUseCase CreateSerie
 @inject SporthalleWeb.Application.Booking.UpdateRecurringSlotUseCase UpdateSerie
 @inject SporthalleWeb.Application.Booking.DeleteRecurringSlotUseCase DeleteSerie
+@inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
 
 <div>
 
@@ -20,11 +21,12 @@
     </div>
 }
 
-<!-- Jahr-Navigation -->
+<!-- Jahr-Navigation und Neue-Serie-Button -->
 <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
     <button class="btn btn-sm btn-outline-secondary" @onclick="PrevYear">‹ @(_year - 1)</button>
     <strong>@_year</strong>
     <button class="btn btn-sm btn-outline-secondary" @onclick="NextYear">@(_year + 1) ›</button>
+    <button class="btn btn-sm btn-primary ms-auto" @onclick="StartCreate">+ Neue Serie</button>
 </div>
 
 @if (_showForm)
@@ -41,10 +43,23 @@
                 }
             </div>
             <div class="card-body">
+                <!-- Art der Serie -->
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button"
+                            class="btn btn-sm @(!_fIsBlocker ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="SetTypeSerie">
+                        Serientermin
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm @(_fIsBlocker ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="SetTypeBlocker">
+                        Serien-Blocker
+                    </button>
+                </div>
                 <div class="row g-3">
                     <div class="col-sm-8">
                         <label class="form-label fw-semibold">Bezeichnung *</label>
-                        <input class="form-control" @bind="_fTitel" placeholder="z.B. Schulsport Klasse 3a" />
+                        <input class="form-control" @bind="_fTitel" placeholder="@(_fIsBlocker ? "z.B. Hallenpflege, Wartung" : "z.B. Schulsport Klasse 3a")" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Wochentag *</label>
@@ -78,18 +93,53 @@
                         <input type="text" class="form-control" value="@_fSeriesEnd.ToString("dd.MM.yyyy")"
                                placeholder="dd.MM.yyyy" maxlength="10" @onchange="OnSeriesEndChanged" />
                     </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold">Farbe</label>
-                        <div class="d-flex flex-wrap gap-2">
-                            @foreach (var c in Colors)
+                    @if (!_fIsBlocker)
+                    {
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Farbe</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var c in Colors)
+                                {
+                                    <button type="button"
+                                            style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_fColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
+                                            @onclick="() => _fColor = c"
+                                            title="@c"></button>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Mieter</label>
+                            @if (_fMemberId.HasValue)
                             {
-                                <button type="button"
-                                        style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_fColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
-                                        @onclick="() => _fColor = c"
-                                        title="@c"></button>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-success">
+                                        @(!string.IsNullOrEmpty(_fMemberName) ? _fMemberName : $"Mieter #{_fMemberId}")
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-danger"
+                                            @onclick="ClearMember">Entfernen</button>
+                                </div>
+                            }
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" placeholder="Name oder E-Mail suchen…"
+                                       value="@_fMemberSearch"
+                                       @oninput="OnMemberSearchInput" />
+                            </div>
+                            @if (_memberResults.Count > 0)
+                            {
+                                <div class="list-group mt-1" style="max-height:160px;overflow-y:auto;font-size:0.85rem">
+                                    @foreach (var m in _memberResults)
+                                    {
+                                        <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                                                @onclick="() => SelectMember(m)">
+                                            <strong>@($"{m.ContactFirstName} {m.ContactLastName}".Trim())</strong>
+                                            @if (!string.IsNullOrEmpty(m.Name)) { <span class="text-muted ms-1">(@m.Name)</span> }
+                                            <small class="d-block text-muted">@m.Email</small>
+                                        </button>
+                                    }
+                                </div>
                             }
                         </div>
-                    </div>
+                    }
                     <div class="col-12">
                         <label class="form-label fw-semibold">Bemerkungen</label>
                         <textarea class="form-control" @bind="_fNotes" rows="2"></textarea>
@@ -150,6 +200,7 @@ else
         <table class="table table-hover align-middle" style="font-size:0.875rem">
             <thead>
                 <tr>
+                    <th>Art</th>
                     <th>Bezeichnung</th>
                     <th>Wochentag</th>
                     <th style="white-space:nowrap">Zeit</th>
@@ -163,6 +214,16 @@ else
                 {
                     var s = item.Slot;
                     <tr>
+                        <td>
+                            @if (s.IsBlocker)
+                            {
+                                <span class="badge bg-secondary" style="font-size:0.75rem">Blocker</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info text-dark" style="font-size:0.75rem">Serie</span>
+                            }
+                        </td>
                         <td>
                             @if (!string.IsNullOrEmpty(s.Color))
                             {
@@ -242,8 +303,13 @@ else
     private TimeOnly _fEndTime = new(10, 0);
     private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
-    private string? _fColor = "#F1C40F";
+    private string? _fColor = "#C62828";
     private string _fNotes = "";
+    private bool _fIsBlocker;
+    private int? _fMemberId;
+    private string? _fMemberName;
+    private string _fMemberSearch = "";
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
 
     // Conflict state
     private List<string> _conflictDates = [];
@@ -274,8 +340,13 @@ else
         _fEndTime = new TimeOnly(10, 0);
         _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
         _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
-        _fColor = "#F1C40F";
+        _fColor = "#C62828";
         _fNotes = "";
+        _fIsBlocker = false;
+        _fMemberId = null;
+        _fMemberName = null;
+        _fMemberSearch = "";
+        _memberResults = [];
         _conflictDates = [];
         _pendingCommand = null;
         _error = null;
@@ -291,8 +362,13 @@ else
         _fEndTime = s.EndTime;
         _fSeriesStart = s.SeriesStart;
         _fSeriesEnd = s.SeriesEnd;
-        _fColor = s.Color ?? "#F1C40F";
+        _fColor = s.Color ?? "#C62828";
         _fNotes = s.Notes ?? "";
+        _fIsBlocker = s.IsBlocker;
+        _fMemberId = s.MemberId;
+        _fMemberName = null;
+        _fMemberSearch = "";
+        _memberResults = [];
         _conflictDates = [];
         _pendingCommand = null;
         _error = null;
@@ -303,8 +379,51 @@ else
     {
         _showForm = false;
         _editingId = null;
+        _memberResults = [];
         _conflictDates = [];
         _pendingCommand = null;
+    }
+
+    private void SetTypeSerie()
+    {
+        _fIsBlocker = false;
+        _fColor ??= "#C62828";
+    }
+
+    private void SetTypeBlocker()
+    {
+        _fIsBlocker = true;
+        _fMemberId = null;
+        _fMemberName = null;
+    }
+
+    private void ClearMember()
+    {
+        _fMemberId = null;
+        _fMemberName = null;
+        _fMemberSearch = "";
+        _memberResults = [];
+    }
+
+    private async Task OnMemberSearchInput(ChangeEventArgs e)
+    {
+        _fMemberSearch = e.Value?.ToString() ?? "";
+        if (_fMemberSearch.Length < 2)
+        {
+            _memberResults = [];
+            return;
+        }
+        _memberResults = await AdminService.SearchMembersAsync(_fMemberSearch);
+    }
+
+    private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
+    {
+        _fMemberId = m.Id;
+        _fMemberName = !string.IsNullOrEmpty(m.Name)
+            ? m.Name
+            : $"{m.ContactFirstName} {m.ContactLastName}".Trim();
+        _fMemberSearch = "";
+        _memberResults = [];
     }
 
     private void DismissConflicts()
@@ -398,8 +517,10 @@ else
         _fEndTime,
         _fSeriesStart,
         _fSeriesEnd,
-        _fColor,
-        string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim());
+        _fIsBlocker ? null : _fColor,
+        string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim(),
+        IsBlocker: _fIsBlocker,
+        MemberId: _fIsBlocker ? null : _fMemberId);
 
     private static readonly System.Globalization.CultureInfo Ic = System.Globalization.CultureInfo.InvariantCulture;
 

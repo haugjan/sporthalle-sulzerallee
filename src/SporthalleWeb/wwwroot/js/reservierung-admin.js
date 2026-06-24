@@ -277,15 +277,16 @@ window.SporthalleAdmin = (function () {
   }
 
   function getOverlayMod(slot) {
-    if (slot.type === 'Booked') return 'confirmed';
+    if (slot.type === 'Booked' || slot.type === 'Recurring') return 'confirmed';
     if (slot.type === 'Blocker') return 'recurring';
-    if (slot.type === 'Serie') return 'recurring';
+    if (slot.type === 'Serie') return 'confirmed';
     return 'provisional'; // Reserved
   }
 
   function getAdminDefaultColor(slot) {
     if (slot.type === 'Blocker') return '#78909C';
-    if (slot.type === 'Serie') return '#546E7A';
+    if (slot.type === 'Recurring') return '#C62828';
+    if (slot.type === 'Serie') return '#C62828';
     if (slot.type === 'Reserved') return '#F1C40F';
     return '#444';
   }
@@ -458,7 +459,7 @@ window.SporthalleAdmin = (function () {
   var _modalTyp = 'blocker'; // 'blocker' | 'buchung'
   var _modalSched = 'einzel'; // 'einzel' | 'serie'
   var _selectedColor = '#F1C40F';
-  var _selectedSerieColor = '#F1C40F';
+  var _selectedSerieColor = '#C62828';
   var _seriePayload = null;
   var _memberSearchTimer = null;
 
@@ -1036,8 +1037,8 @@ window.SporthalleAdmin = (function () {
     // ── Edit-Dialog Tageskalender ────────────────────────────────────────────────
     // JS renders the full single-day grid (cal-time + cal-cell rows, booking overlays,
     // and selection overlay). Blazor container stays empty to avoid DOM ownership conflict.
-    initEditCalendarDay: function (containerId, dotNetRef, slots, calStart, calEnd, selStart, selEnd) {
-      // Clean up previous listeners
+    initEditCalendarDay: function (el, dotNetRef, slots, calStart, calEnd, selStart, selEnd) {
+      // el is the DOM element passed via Blazor ElementReference
       if (_docEditMouseUp) {
         document.removeEventListener('mouseup', _docEditMouseUp);
         _docEditMouseUp = null;
@@ -1048,7 +1049,6 @@ window.SporthalleAdmin = (function () {
       }
       editSelEl = null;
 
-      var el = document.getElementById(containerId);
       if (!el) return;
 
       if (el._ecDown) el.removeEventListener('mousedown', el._ecDown);
