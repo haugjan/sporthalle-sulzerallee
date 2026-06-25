@@ -266,14 +266,7 @@
 .reservierung-layout {
   display: grid;
   grid-template-columns: 1fr 300px;
-  column-gap: 2rem;
-  align-items: stretch;
-}
-
-/* Preis-panels live in a separate grid row (col 2, row 2) so the sticky
-   slot-panel in row 1 cannot paint over them when held in place. */
-.reservierung-preis-col {
-  grid-column: 2;
+  gap: 2rem;
 }
 
 .reservierung-cal-col {
@@ -284,6 +277,9 @@
   display: flex;
   flex-direction: column;
   padding-top: calc(36px + 1rem);
+  position: sticky;
+  top: 120px; /* 68px nav + 36px week-nav + 16px week-nav margin */
+  align-self: start;
 }
 
 /* ── Auswahl-Overlay (Drag-to-Select) ─────────────────────────────────── */
@@ -319,8 +315,6 @@
 /* ── Slot-Panel ────────────────────────────────────────────────────────── */
 
 .slot-panel {
-  position: sticky;
-  top: 120px; /* 68px site-nav + 36px week-nav height + 16px week-nav margin-bottom */
   border: 1.5px solid #d0d0d0;
   border-radius: 8px;
   padding: 1.5rem;
@@ -870,10 +864,6 @@
 @media (max-width: 768px) {
   .reservierung-layout {
     grid-template-columns: 1fr;
-  }
-
-  .reservierung-preis-col {
-    grid-column: 1;
   }
 
   .reservierung-panel-col {
