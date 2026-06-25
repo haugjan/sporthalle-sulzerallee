@@ -28,6 +28,10 @@
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  position: sticky;
+  top: 68px; /* same as fixed site-nav height */
+  background: #fff;
+  z-index: 5;
 }
 
 .week-nav button {
@@ -310,7 +314,7 @@
 
 .slot-panel {
   position: sticky;
-  top: 90px;
+  top: 120px; /* 68px site-nav + 36px week-nav height + 16px week-nav margin-bottom */
   border: 1.5px solid #d0d0d0;
   border-radius: 8px;
   padding: 1.5rem;
