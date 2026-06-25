@@ -1,4 +1,3 @@
-using SporthalleWeb.Infrastructure.Shared;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Migrations;
@@ -25,38 +24,30 @@ public class PassiveMemberMigrationPlan : MigrationPlan
     }
 }
 
+// v1 left as a no-op: v2 creates the definitive table schema.
 public class CreatePassiveMemberTableMigration : AsyncMigrationBase
 {
     public CreatePassiveMemberTableMigration(IMigrationContext context) : base(context) { }
-
-    protected override Task MigrateAsync()
-    {
-        if (!TableExists("PassivMitglieder"))
-        {
-            Create.Table<PassiveMemberDbRecord>().Do();
-            Create.Index("IX_PassivMitglieder_FieldNumber")
-                .OnTable("PassivMitglieder")
-                .OnColumn("FieldNumber")
-                .Unique()
-                .Do();
-        }
-        return Task.CompletedTask;
-    }
+    protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
+// v2: drops the table if it exists (handles fresh DBs and partial prior runs),
+// then recreates it with IDENTITY PK and explicit PK name (SQL Server requires named constraints).
 public class FixPassiveMemberAutoIncrementMigration : AsyncMigrationBase
 {
     public FixPassiveMemberAutoIncrementMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (IndexExists("IX_PassivMitglieder_FieldNumber"))
-            Delete.Index("IX_PassivMitglieder_FieldNumber").OnTable("PassivMitglieder").Do();
-
-        Delete.Table("PassivMitglieder").Do();
+        if (TableExists("PassivMitglieder"))
+        {
+            if (IndexExists("IX_PassivMitglieder_FieldNumber"))
+                Delete.Index("IX_PassivMitglieder_FieldNumber").OnTable("PassivMitglieder").Do();
+            Delete.Table("PassivMitglieder").Do();
+        }
 
         Create.Table("PassivMitglieder")
-            .WithColumn("Id").AsInt32().NotNullable().PrimaryKey().Identity()
+            .WithColumn("Id").AsInt32().NotNullable().PrimaryKey("PK_PassivMitglieder").Identity()
             .WithColumn("FieldNumber").AsInt32().NotNullable()
             .WithColumn("FirstName").AsString(100).NotNullable()
             .WithColumn("LastName").AsString(100).NotNullable()
@@ -83,8 +74,7 @@ public class FixPassiveMemberAutoIncrementMigration : AsyncMigrationBase
     }
 }
 
-// v3 left as a no-op so existing databases at v2 can advance to v3 cleanly;
-// v4 does the actual column additions via raw SQL.
+// v3 left as a no-op so existing databases at v2 can advance to v3 cleanly.
 public class AddMemberStatusColumnsMigration : AsyncMigrationBase
 {
     public AddMemberStatusColumnsMigration(IMigrationContext context) : base(context) { }
@@ -92,93 +82,59 @@ public class AddMemberStatusColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-public class EnsureMemberStatusColumnsMigration : CrossDbMigrationBase
+// Each migration version runs exactly once (framework-tracked), so no column-existence checks needed.
+// v2 recreates the table without these columns, so they are guaranteed absent when v4 runs.
+public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
 {
     public EnsureMemberStatusColumnsMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!SafeColumnExists("PassivMitglieder", "Status"))
-            Alter.Table("PassivMitglieder").AddColumn("Status").AsString(20).NotNullable().WithDefaultValue("Confirmed").Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "ConfirmedAt"))
-            Alter.Table("PassivMitglieder").AddColumn("ConfirmedAt").AsDateTime().Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "ConfirmedBy"))
-            Alter.Table("PassivMitglieder").AddColumn("ConfirmedBy").AsString(200).Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "PaidBy"))
-            Alter.Table("PassivMitglieder").AddColumn("PaidBy").AsString(200).Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "ExportedToAccounting"))
-            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccounting").AsBoolean().NotNullable().WithDefaultValue(false).Do();
-
+        Alter.Table("PassivMitglieder").AddColumn("Status").AsString(20).NotNullable().WithDefaultValue("Confirmed").Do();
+        Alter.Table("PassivMitglieder").AddColumn("ConfirmedAt").AsDateTime().Nullable().Do();
+        Alter.Table("PassivMitglieder").AddColumn("ConfirmedBy").AsString(200).Nullable().Do();
+        Alter.Table("PassivMitglieder").AddColumn("PaidBy").AsString(200).Nullable().Do();
+        Alter.Table("PassivMitglieder").AddColumn("ExportedToAccounting").AsBoolean().NotNullable().WithDefaultValue(false).Do();
         return Task.CompletedTask;
     }
 }
 
-public class AddAccountingTimestampColumnsMigration : CrossDbMigrationBase
+public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
 {
     public AddAccountingTimestampColumnsMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!SafeColumnExists("PassivMitglieder", "ExportedToAccountingAt"))
-            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime().Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "ExportedToAccountingBy"))
-            Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingBy").AsString(200).Nullable().Do();
-
+        Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime().Nullable().Do();
+        Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingBy").AsString(200).Nullable().Do();
         return Task.CompletedTask;
     }
 }
 
-public class AddPhoneAndAddressLine2Migration : CrossDbMigrationBase
+public class AddPhoneAndAddressLine2Migration : AsyncMigrationBase
 {
     public AddPhoneAndAddressLine2Migration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!SafeColumnExists("PassivMitglieder", "Phone"))
-            Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "AddressLine2"))
-            Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
-
+        Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
+        Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
         return Task.CompletedTask;
     }
 }
 
-public class EnsurePhoneAndAddressLine2Migration : CrossDbMigrationBase
+public class EnsurePhoneAndAddressLine2Migration : AsyncMigrationBase
 {
     public EnsurePhoneAndAddressLine2Migration(IMigrationContext context) : base(context) { }
 
-    protected override Task MigrateAsync()
-    {
-        if (!SafeColumnExists("PassivMitglieder", "Phone"))
-            Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "AddressLine2"))
-            Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
-
-        return Task.CompletedTask;
-    }
+    protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-public class EnsurePhoneAndAddressLine2ColumnsMigration : CrossDbMigrationBase
+public class EnsurePhoneAndAddressLine2ColumnsMigration : AsyncMigrationBase
 {
     public EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext context) : base(context) { }
 
-    protected override Task MigrateAsync()
-    {
-        if (!SafeColumnExists("PassivMitglieder", "Phone"))
-            Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
-
-        if (!SafeColumnExists("PassivMitglieder", "AddressLine2"))
-            Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
-
-        return Task.CompletedTask;
-    }
+    protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
 public class PassiveMemberMigrationComponent : IAsyncComponent

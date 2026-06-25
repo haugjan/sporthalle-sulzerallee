@@ -1,5 +1,4 @@
-﻿using SporthalleWeb.Infrastructure.Booking.Persistence.DbRecords;
-using SporthalleWeb.Infrastructure.Shared;
+using SporthalleWeb.Infrastructure.Booking.Persistence.DbRecords;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Migrations;
@@ -43,8 +42,8 @@ public class AddAllBookingTablesV2 : AsyncMigrationBase
 
     protected override Task MigrateAsync()
     {
-        // Drop/recreate for old RenterId schema was only needed for pre-v1 databases;
-        // v1 always creates BookingSlots with the current schema, so this block is omitted.
+        // Drop/recreate for old RenterId schema omitted: v1 always creates BookingSlots
+        // with the current schema, so the RenterId column never exists when v2 runs.
 
         if (!TableExists("MagicLinkTokens"))
             Create.Table<MagicLinkTokenRecord>().Do();
@@ -89,7 +88,7 @@ public class AddHallConfigTableV4 : AsyncMigrationBase
     }
 }
 
-public class AddRecurringSlotsV5 : CrossDbMigrationBase
+public class AddRecurringSlotsV5 : AsyncMigrationBase
 {
     public AddRecurringSlotsV5(IMigrationContext context) : base(context) { }
 
@@ -98,30 +97,10 @@ public class AddRecurringSlotsV5 : CrossDbMigrationBase
         if (!TableExists("RecurringSlots"))
             Create.Table<RecurringSlotRecord>().Do();
 
-        if (TableExists("BookingSlots") && !SafeColumnExists("BookingSlots", "RecurringSlotId"))
+        // Each migration version runs exactly once (framework-tracked); no column-existence check needed.
+        if (TableExists("BookingSlots"))
             Execute.Sql("ALTER TABLE \"BookingSlots\" ADD \"RecurringSlotId\" INTEGER NULL").Do();
 
-        return Task.CompletedTask;
-    }
-}
-
-// v1.6.0 — Add IsBlocker and MemberId columns to RecurringSlots; backfill IsBlocker from BookingSlots.
-public class AddIsBlockerAndMemberIdToRecurringSlotsV7 : CrossDbMigrationBase
-{
-    public AddIsBlockerAndMemberIdToRecurringSlotsV7(IMigrationContext context) : base(context) { }
-
-    protected override Task MigrateAsync()
-    {
-        if (TableExists("RecurringSlots") && !SafeColumnExists("RecurringSlots", "IsBlocker"))
-        {
-            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"IsBlocker\" INTEGER NOT NULL DEFAULT 0").Do();
-            Execute.Sql(
-                "UPDATE \"RecurringSlots\" SET \"IsBlocker\" = 1 WHERE \"Id\" IN " +
-                "(SELECT DISTINCT \"RecurringSlotId\" FROM \"BookingSlots\" " +
-                " WHERE \"Type\" = 'Blocker' AND \"RecurringSlotId\" IS NOT NULL)").Do();
-        }
-        if (TableExists("RecurringSlots") && !SafeColumnExists("RecurringSlots", "MemberId"))
-            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"MemberId\" INTEGER NULL").Do();
         return Task.CompletedTask;
     }
 }
@@ -134,6 +113,27 @@ public class RenameSerieToRecurringV6 : AsyncMigrationBase
     protected override Task MigrateAsync()
     {
         Execute.Sql("UPDATE \"BookingSlots\" SET \"Type\" = 'Recurring' WHERE \"Type\" = 'Serie'").Do();
+        return Task.CompletedTask;
+    }
+}
+
+// v1.6.0 — Add IsBlocker and MemberId columns to RecurringSlots; backfill IsBlocker from BookingSlots.
+public class AddIsBlockerAndMemberIdToRecurringSlotsV7 : AsyncMigrationBase
+{
+    public AddIsBlockerAndMemberIdToRecurringSlotsV7(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        // Each migration version runs exactly once (framework-tracked); no column-existence check needed.
+        if (TableExists("RecurringSlots"))
+        {
+            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"IsBlocker\" INTEGER NOT NULL DEFAULT 0").Do();
+            Execute.Sql(
+                "UPDATE \"RecurringSlots\" SET \"IsBlocker\" = 1 WHERE \"Id\" IN " +
+                "(SELECT DISTINCT \"RecurringSlotId\" FROM \"BookingSlots\" " +
+                " WHERE \"Type\" = 'Blocker' AND \"RecurringSlotId\" IS NOT NULL)").Do();
+            Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"MemberId\" INTEGER NULL").Do();
+        }
         return Task.CompletedTask;
     }
 }

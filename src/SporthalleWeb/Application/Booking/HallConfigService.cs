@@ -10,7 +10,7 @@ public sealed class HallConfigService(IScopeProvider scopeProvider)
     {
         using var scope = scopeProvider.CreateScope();
         var record = await scope.Database.FirstOrDefaultAsync<HallConfigRecord>(
-            new Sql("SELECT * FROM HallConfig WHERE Key = @0", key));
+            new Sql("SELECT * FROM HallConfig WHERE [Key] = @0", key));
         scope.Complete();
         return record?.Value;
     }
@@ -28,7 +28,7 @@ public sealed class HallConfigService(IScopeProvider scopeProvider)
     {
         using var scope = scopeProvider.CreateScope();
         var existing = await scope.Database.FirstOrDefaultAsync<HallConfigRecord>(
-            new Sql("SELECT * FROM HallConfig WHERE Key = @0", key));
+            new Sql("SELECT * FROM HallConfig WHERE [Key] = @0", key));
         if (existing is null)
         {
             await scope.Database.InsertAsync(new HallConfigRecord { Key = key, Value = value });
