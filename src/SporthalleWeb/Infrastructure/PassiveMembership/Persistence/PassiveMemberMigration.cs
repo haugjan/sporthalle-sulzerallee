@@ -1,3 +1,4 @@
+using SporthalleWeb.Infrastructure.Shared;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Migrations;
@@ -69,7 +70,7 @@ public class FixPassiveMemberAutoIncrementMigration : AsyncMigrationBase
             .WithColumn("DisplayName").AsString(200).Nullable()
             .WithColumn("CreatedAt").AsDateTime().NotNullable()
             .WithColumn("PaidAt").AsDateTime().Nullable()
-            .WithColumn("Notes").AsString(int.MaxValue).Nullable()
+            .WithColumn("Notes").AsString(4000).Nullable()
             .Do();
 
         Create.Index("IX_PassivMitglieder_FieldNumber")
@@ -91,89 +92,89 @@ public class AddMemberStatusColumnsMigration : AsyncMigrationBase
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
+public class EnsureMemberStatusColumnsMigration : CrossDbMigrationBase
 {
     public EnsureMemberStatusColumnsMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!ColumnExists("PassivMitglieder", "Status"))
+        if (!SafeColumnExists("PassivMitglieder", "Status"))
             Alter.Table("PassivMitglieder").AddColumn("Status").AsString(20).NotNullable().WithDefaultValue("Confirmed").Do();
 
-        if (!ColumnExists("PassivMitglieder", "ConfirmedAt"))
+        if (!SafeColumnExists("PassivMitglieder", "ConfirmedAt"))
             Alter.Table("PassivMitglieder").AddColumn("ConfirmedAt").AsDateTime().Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "ConfirmedBy"))
+        if (!SafeColumnExists("PassivMitglieder", "ConfirmedBy"))
             Alter.Table("PassivMitglieder").AddColumn("ConfirmedBy").AsString(200).Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "PaidBy"))
+        if (!SafeColumnExists("PassivMitglieder", "PaidBy"))
             Alter.Table("PassivMitglieder").AddColumn("PaidBy").AsString(200).Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "ExportedToAccounting"))
+        if (!SafeColumnExists("PassivMitglieder", "ExportedToAccounting"))
             Alter.Table("PassivMitglieder").AddColumn("ExportedToAccounting").AsBoolean().NotNullable().WithDefaultValue(false).Do();
 
         return Task.CompletedTask;
     }
 }
 
-public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
+public class AddAccountingTimestampColumnsMigration : CrossDbMigrationBase
 {
     public AddAccountingTimestampColumnsMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!ColumnExists("PassivMitglieder", "ExportedToAccountingAt"))
+        if (!SafeColumnExists("PassivMitglieder", "ExportedToAccountingAt"))
             Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime().Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "ExportedToAccountingBy"))
+        if (!SafeColumnExists("PassivMitglieder", "ExportedToAccountingBy"))
             Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingBy").AsString(200).Nullable().Do();
 
         return Task.CompletedTask;
     }
 }
 
-public class AddPhoneAndAddressLine2Migration : AsyncMigrationBase
+public class AddPhoneAndAddressLine2Migration : CrossDbMigrationBase
 {
     public AddPhoneAndAddressLine2Migration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!ColumnExists("PassivMitglieder", "Phone"))
+        if (!SafeColumnExists("PassivMitglieder", "Phone"))
             Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "AddressLine2"))
+        if (!SafeColumnExists("PassivMitglieder", "AddressLine2"))
             Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
 
         return Task.CompletedTask;
     }
 }
 
-public class EnsurePhoneAndAddressLine2Migration : AsyncMigrationBase
+public class EnsurePhoneAndAddressLine2Migration : CrossDbMigrationBase
 {
     public EnsurePhoneAndAddressLine2Migration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!ColumnExists("PassivMitglieder", "Phone"))
+        if (!SafeColumnExists("PassivMitglieder", "Phone"))
             Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "AddressLine2"))
+        if (!SafeColumnExists("PassivMitglieder", "AddressLine2"))
             Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
 
         return Task.CompletedTask;
     }
 }
 
-public class EnsurePhoneAndAddressLine2ColumnsMigration : AsyncMigrationBase
+public class EnsurePhoneAndAddressLine2ColumnsMigration : CrossDbMigrationBase
 {
     public EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync()
     {
-        if (!ColumnExists("PassivMitglieder", "Phone"))
+        if (!SafeColumnExists("PassivMitglieder", "Phone"))
             Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
 
-        if (!ColumnExists("PassivMitglieder", "AddressLine2"))
+        if (!SafeColumnExists("PassivMitglieder", "AddressLine2"))
             Alter.Table("PassivMitglieder").AddColumn("AddressLine2").AsString(300).Nullable().Do();
 
         return Task.CompletedTask;
