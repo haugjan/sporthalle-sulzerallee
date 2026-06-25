@@ -266,8 +266,14 @@
 .reservierung-layout {
   display: grid;
   grid-template-columns: 1fr 300px;
-  gap: 2rem;
+  column-gap: 2rem;
   align-items: stretch;
+}
+
+/* Preis-panels live in a separate grid row (col 2, row 2) so the sticky
+   slot-panel in row 1 cannot paint over them when held in place. */
+.reservierung-preis-col {
+  grid-column: 2;
 }
 
 .reservierung-cal-col {
@@ -864,6 +870,10 @@
 @media (max-width: 768px) {
   .reservierung-layout {
     grid-template-columns: 1fr;
+  }
+
+  .reservierung-preis-col {
+    grid-column: 1;
   }
 
   .reservierung-panel-col {
