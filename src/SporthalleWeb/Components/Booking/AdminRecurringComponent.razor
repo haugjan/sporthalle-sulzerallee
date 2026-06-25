@@ -3,6 +3,7 @@
 @inject SporthalleWeb.Application.Booking.UpdateRecurringSlotUseCase UpdateSerie
 @inject SporthalleWeb.Application.Booking.DeleteRecurringSlotUseCase DeleteSerie
 @inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
+@inject SporthalleWeb.Domain.Booking.Ports.IHallConfigurationPort HallConfig
 
 <div>
 
@@ -73,23 +74,23 @@
                             <option value="0">Sonntag</option>
                         </select>
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-4">
                         <label class="form-label fw-semibold">Von (Zeit) *</label>
                         <TimePickerComponent Value="@_fStartTime.ToString("HH:mm")"
                                              ValueChanged="SetStartTime"
                                              Step="15" />
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-4">
                         <label class="form-label fw-semibold">Bis (Zeit) *</label>
                         <TimePickerComponent Value="@_fEndTime.ToString("HH:mm")"
                                              ValueChanged="SetEndTime"
                                              Step="15" />
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-6">
                         <label class="form-label fw-semibold d-block">Serie von *</label>
                         <DateInputComponent Value="_fSeriesStart" ValueChanged="@(d => { if (d.HasValue) _fSeriesStart = d.Value; })" />
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-6">
                         <label class="form-label fw-semibold d-block">Serie bis *</label>
                         <DateInputComponent Value="_fSeriesEnd" ValueChanged="@(d => { if (d.HasValue) _fSeriesEnd = d.Value; })" />
                     </div>
@@ -303,6 +304,7 @@ else
     private TimeOnly _fEndTime = new(10, 0);
     private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private DateOnly? _cutoffDate;
     private string? _fColor = "#C62828";
     private string _fNotes = "";
     private bool _fIsBlocker;
@@ -319,7 +321,12 @@ else
     private int? _deleteId;
     private string _deleteTitle = "";
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _cutoffDate = await HallConfig.GetBookingCutoffDateAsync();
+        _fSeriesEnd = _cutoffDate ?? DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -339,7 +346,7 @@ else
         _fStartTime = new TimeOnly(8, 0);
         _fEndTime = new TimeOnly(10, 0);
         _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
-        _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+        _fSeriesEnd = _cutoffDate ?? DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
         _fColor = "#C62828";
         _fNotes = "";
         _fIsBlocker = false;

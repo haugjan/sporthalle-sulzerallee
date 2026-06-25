@@ -1207,11 +1207,12 @@ button.dp-toggle-btn:focus-visible {
   box-shadow: none;
 }
 
-/* din-popup: overrides dp-popup's centering transform */
+/* din-popup: overrides dp-popup's centering transform; anchored right so it doesn't overflow modal */
 .din-popup {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0;
+  left: auto;
+  right: 0;
   transform: none;
 }
 
