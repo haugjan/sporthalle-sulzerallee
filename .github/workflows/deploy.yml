@@ -19,13 +19,15 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Restore
-        run: dotnet restore src/SporthalleWeb/SporthalleWeb.csproj
+        run: |
+          dotnet restore src/SporthalleWeb/SporthalleWeb.csproj
+          dotnet restore src/SporthalleWeb.Tests/SporthalleWeb.Tests.csproj
 
       - name: Build
         run: dotnet build src/SporthalleWeb/SporthalleWeb.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test tests/SporthalleWeb.Tests/SporthalleWeb.Tests.csproj --configuration Release --no-restore --verbosity normal
+        run: dotnet test src/SporthalleWeb.Tests/SporthalleWeb.Tests.csproj --configuration Release --no-restore --verbosity normal
 
       - name: Publish
         run: dotnet publish src/SporthalleWeb/SporthalleWeb.csproj --configuration Release --output ./publish --no-build
