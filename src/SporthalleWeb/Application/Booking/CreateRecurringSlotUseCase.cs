@@ -19,7 +19,7 @@ public sealed record RecurringSlotCommand(
 
 public sealed record RecurringSlotConflictDate(DateOnly Date, string Label);
 public sealed record RecurringSlotCheckResult(int OccurrenceCount, IReadOnlyList<RecurringSlotConflictDate> Conflicts);
-public sealed record RecurringSlotCreateResult(int RecurringSlotId, int Created, int Skipped);
+public sealed record RecurringSlotCreateResult(int Created, int Skipped);
 
 public sealed class CreateRecurringSlotUseCase(
     IRecurringSlotRepository serieRepo,
@@ -65,6 +65,6 @@ public sealed class CreateRecurringSlotUseCase(
             created++;
         }
 
-        return new RecurringSlotCreateResult(serieId, created, skipped);
+        return new RecurringSlotCreateResult(created, skipped);
     }
 }

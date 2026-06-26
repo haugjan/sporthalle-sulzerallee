@@ -53,6 +53,6 @@ public sealed class UpdateRecurringSlotUseCase(
             created++;
         }
 
-        return new RecurringSlotCreateResult(serieId, created, skipped);
+        return new RecurringSlotCreateResult(created, skipped);
     }
 }

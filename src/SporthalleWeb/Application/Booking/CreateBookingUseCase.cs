@@ -39,7 +39,7 @@ public sealed class CreateBookingUseCase(
             var endLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.EndUtc, Zurich);
             customBody = reservationText
                 .Replace("{Name}", $"{member.ContactFirstName} {member.ContactLastName}".Trim())
-                .Replace("{Anlass}", booking.Title ?? "")
+                .Replace("{Anlass}", booking.Title)
                 .Replace("{Datum}", startLocal.ToString("dddd, d. MMMM yyyy", DeCh))
                 .Replace("{Von}", startLocal.ToString("HH:mm"))
                 .Replace("{Bis}", endLocal.ToString("HH:mm"));

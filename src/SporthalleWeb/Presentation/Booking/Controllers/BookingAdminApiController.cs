@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
 using SporthalleWeb.Application.Booking;
 using SporthalleWeb.Domain.Booking;
 using SporthalleWeb.Domain.Booking.Ports;

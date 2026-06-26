@@ -24,7 +24,7 @@ public sealed class HallConfigService(IScopeProvider scopeProvider)
         return records.ToDictionary(r => r.Key, r => r.Value);
     }
 
-    public async Task SetAsync(string key, string? value)
+    private async Task SetAsync(string key, string? value)
     {
         using var scope = scopeProvider.CreateScope();
         var existing = await scope.Database.FirstOrDefaultAsync<HallConfigRecord>(

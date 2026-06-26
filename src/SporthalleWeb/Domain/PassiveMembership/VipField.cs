@@ -8,17 +8,16 @@ public static class VipField
     private static readonly HashSet<int> CenterCircle    = ComputeRange(cols: (8, 11),  rows: (5, 9));
 
     // Face-off spots: top/bottom of each side + center top/bottom
-    private static readonly HashSet<int> FaceOffSpots = new()
-    {
-        // left top (col 2, row 2)  = 2*20+2+1=45
+    private static readonly HashSet<int> FaceOffSpots =
+    [
         45,
         // left bottom (col 2, row 12) = 12*20+2+1=243
         243,
         // right top (col 17, row 2) = 2*20+17+1=58
         58,
         // right bottom (col 17, row 12) = 12*20+17+1=258
-        258,
-    };
+        258
+    ];
 
     public static string? GetLabel(int fieldNumber) =>
         GoalCreaseLeft.Contains(fieldNumber)  ? "Torraum" :

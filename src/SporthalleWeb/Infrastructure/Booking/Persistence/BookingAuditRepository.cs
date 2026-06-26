@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using NPoco;
 using Umbraco.Cms.Infrastructure.Scoping;
 using SporthalleWeb.Domain.Booking.Ports;
 using SporthalleWeb.Infrastructure.Booking.Persistence.DbRecords;

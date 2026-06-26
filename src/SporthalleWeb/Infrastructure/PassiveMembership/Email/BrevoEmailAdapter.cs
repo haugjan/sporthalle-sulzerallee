@@ -6,10 +6,9 @@ using SporthalleWeb.Domain.PassiveMembership.Ports;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Email;
 
-public class BrevoEmailAdapter : IEmailPort
+public class BrevoEmailAdapter(HttpClient http, IOptions<BrevoEmailOptions> opts) : IEmailPort
 {
-    private readonly HttpClient _http;
-    private readonly BrevoEmailOptions _opts;
+    private readonly BrevoEmailOptions _opts = opts.Value;
 
     private static readonly string[] AdminBcc =
     [
@@ -17,12 +16,6 @@ public class BrevoEmailAdapter : IEmailPort
         "matthias.lehner@sporthalle-sulzerallee.ch",
         "jan.haug@sporthalle-sulzerallee.ch"
     ];
-
-    public BrevoEmailAdapter(HttpClient http, IOptions<BrevoEmailOptions> opts)
-    {
-        _http = http;
-        _opts = opts.Value;
-    }
 
     public async Task SendRegistrationConfirmationAsync(PassiveMember member)
     {
@@ -56,13 +49,11 @@ public class BrevoEmailAdapter : IEmailPort
         };
 
         var json = JsonSerializer.Serialize(payload);
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email")
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
         request.Headers.Add("api-key", _opts.ApiKey);
 
-        var response = await _http.SendAsync(request);
+        var response = await http.SendAsync(request);
         response.EnsureSuccessStatusCode();
     }
 }

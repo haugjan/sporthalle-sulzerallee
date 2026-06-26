@@ -5,7 +5,6 @@ using SporthalleWeb.Infrastructure.PassiveMembership.Email;
 using SporthalleWeb.Infrastructure.PassiveMembership.Excel;
 using SporthalleWeb.Infrastructure.PassiveMembership.Persistence;
 using Umbraco.Cms.Core.Composing;
-using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Infrastructure.Manifest;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Composition;

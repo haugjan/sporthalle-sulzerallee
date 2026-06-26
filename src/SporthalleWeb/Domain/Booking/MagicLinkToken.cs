@@ -5,7 +5,7 @@ public sealed class MagicLinkToken
     public int Id { get; private set; }
     public int MemberId { get; private set; }
     public string TokenHash { get; private set; } = "";
-    public DateTime ExpiresAt { get; private set; }
+    public DateTime ExpiresAt { get; private init; }
     public DateTime? UsedAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public string? RemoteIp { get; private set; }

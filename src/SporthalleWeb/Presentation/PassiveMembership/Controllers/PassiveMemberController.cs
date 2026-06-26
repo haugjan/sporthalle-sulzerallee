@@ -10,29 +10,17 @@ namespace SporthalleWeb.Presentation.PassiveMembership.Controllers;
 
 [ApiController]
 [Route("api/passivmitglieder")]
-public class PassiveMemberController : ControllerBase
+public class PassiveMemberController(
+    RegisterMemberUseCase registerMember,
+    GetFieldStatusesQuery getFieldStatuses,
+    ICaptchaPort captcha,
+    AdminService adminService)
+    : ControllerBase
 {
-    private readonly RegisterMemberUseCase _registerMember;
-    private readonly GetFieldStatusesQuery _getFieldStatuses;
-    private readonly ICaptchaPort _captcha;
-    private readonly AdminService _adminService;
-
-    public PassiveMemberController(
-        RegisterMemberUseCase registerMember,
-        GetFieldStatusesQuery getFieldStatuses,
-        ICaptchaPort captcha,
-        AdminService adminService)
-    {
-        _registerMember = registerMember;
-        _getFieldStatuses = getFieldStatuses;
-        _captcha = captcha;
-        _adminService = adminService;
-    }
-
     [HttpGet("felder")]
     public async Task<IActionResult> GetFelder()
     {
-        var result = await _getFieldStatuses.ExecuteAsync();
+        var result = await getFieldStatuses.ExecuteAsync();
         var items = result.OccupiedFields
             .Select(f => new FieldStatusItem(f.FieldNumber, f.DisplayName, f.VipLabel))
             .ToList();
@@ -54,7 +42,7 @@ public class PassiveMemberController : ControllerBase
             return BadRequest(new { error = "captcha_required" });
 
         var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
-        if (!await _captcha.VerifyAsync(req.CaptchaToken, remoteIp))
+        if (!await captcha.VerifyAsync(req.CaptchaToken, remoteIp))
             return BadRequest(new { error = "captcha_failed" });
 
         try
@@ -65,7 +53,7 @@ public class PassiveMemberController : ControllerBase
                 req.Phone, req.Email, req.LevelKey,
                 req.ShowNameOnFloor, req.DisplayName, req.Consent);
 
-            var member = await _registerMember.ExecuteAsync(cmd);
+            var member = await registerMember.ExecuteAsync(cmd);
             return Ok(new { memberId = member.Id });
         }
         catch (FieldAlreadyTakenException ex)
@@ -84,7 +72,7 @@ public class PassiveMemberController : ControllerBase
     [HttpGet("admin/pending")]
     public async Task<IActionResult> GetPendingMembers()
     {
-        var members = await _adminService.GetPendingAsync();
+        var members = await adminService.GetPendingAsync();
         return Ok(members.Select(m => new
         {
             m.Id,
@@ -92,7 +80,6 @@ public class PassiveMemberController : ControllerBase
             VipLabel = VipField.GetLabel(m.FieldNumber.Value),
             Level = m.Level.DisplayName,
             LevelKey = m.Level.Key,
-            YearlyFee = m.Level.YearlyFee,
             m.FirstName,
             m.LastName,
             Email = m.Email.Value,
@@ -107,7 +94,7 @@ public class PassiveMemberController : ControllerBase
     [HttpGet("admin/members")]
     public async Task<IActionResult> GetConfirmedMembers()
     {
-        var members = await _adminService.GetConfirmedAsync();
+        var members = await adminService.GetConfirmedAsync();
         return Ok(members.Select(m => new
         {
             m.Id,
@@ -115,7 +102,6 @@ public class PassiveMemberController : ControllerBase
             VipLabel = VipField.GetLabel(m.FieldNumber.Value),
             Level = m.Level.DisplayName,
             LevelKey = m.Level.Key,
-            YearlyFee = m.Level.YearlyFee,
             m.FirstName,
             m.LastName,
             Email = m.Email.Value,
@@ -137,7 +123,7 @@ public class PassiveMemberController : ControllerBase
         var confirmedBy = User.Identity?.Name ?? "admin";
         try
         {
-            await _adminService.ConfirmAsync(id, req.IsPaid, confirmedBy);
+            await adminService.ConfirmAsync(id, req.IsPaid, confirmedBy);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -152,7 +138,7 @@ public class PassiveMemberController : ControllerBase
     {
         try
         {
-            await _adminService.SoftDeleteAsync(id);
+            await adminService.SoftDeleteAsync(id);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -168,7 +154,7 @@ public class PassiveMemberController : ControllerBase
         var paidBy = User.Identity?.Name ?? "admin";
         try
         {
-            await _adminService.MarkAsPaidAsync(id, paidBy);
+            await adminService.MarkAsPaidAsync(id, paidBy);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -183,7 +169,7 @@ public class PassiveMemberController : ControllerBase
     {
         try
         {
-            await _adminService.MarkAsUnpaidAsync(id);
+            await adminService.MarkAsUnpaidAsync(id);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -198,7 +184,7 @@ public class PassiveMemberController : ControllerBase
     {
         try
         {
-            await _adminService.MarkAsExportedToAccountingAsync(id, req.By);
+            await adminService.MarkAsExportedToAccountingAsync(id, req.By);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -213,7 +199,7 @@ public class PassiveMemberController : ControllerBase
     {
         try
         {
-            await _adminService.UnmarkAsExportedToAccountingAsync(id);
+            await adminService.UnmarkAsExportedToAccountingAsync(id);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -228,7 +214,7 @@ public class PassiveMemberController : ControllerBase
     {
         try
         {
-            await _adminService.UpdateNotesAsync(id, req.Notes);
+            await adminService.UpdateNotesAsync(id, req.Notes);
             return Ok();
         }
         catch (MemberNotFoundException ex)
@@ -241,7 +227,7 @@ public class PassiveMemberController : ControllerBase
     [HttpGet("admin/export/excel")]
     public async Task<IActionResult> ExportExcel()
     {
-        var bytes = await _adminService.ExportExcelAsync();
+        var bytes = await adminService.ExportExcelAsync();
         return File(bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "passivmitglieder.xlsx");
@@ -251,7 +237,7 @@ public class PassiveMemberController : ControllerBase
     [HttpGet("admin/export/abaninja")]
     public async Task<IActionResult> ExportAbaninja()
     {
-        var bytes = await _adminService.ExportAbaninjaAsync();
+        var bytes = await adminService.ExportAbaninjaAsync();
         return File(bytes, "text/csv; charset=utf-8", "passivmitglieder-abaninja.csv");
     }
 }

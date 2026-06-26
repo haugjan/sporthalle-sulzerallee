@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
 using SporthalleWeb.Domain.PassiveMembership;
 using SporthalleWeb.Domain.PassiveMembership.Ports;
 using SporthalleWeb.Infrastructure.Booking.Members;
@@ -9,28 +7,20 @@ using Umbraco.Cms.Core.Services;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Persistence;
 
-public class PassiveMemberRepository : IPassiveMemberRepository
+public class PassiveMemberRepository(
+    IMemberService memberService,
+    IMemberManager memberManager,
+    ILogger<PassiveMemberRepository> logger)
+    : IPassiveMemberRepository
 {
     private const string MemberTypeAlias = "passivMember";
-
-    private readonly IMemberService _memberService;
-    private readonly IMemberManager _memberManager;
-    private readonly ILogger<PassiveMemberRepository> _logger;
-
-    public PassiveMemberRepository(IMemberService memberService, IMemberManager memberManager,
-        ILogger<PassiveMemberRepository> logger)
-    {
-        _memberService = memberService;
-        _memberManager = memberManager;
-        _logger = logger;
-    }
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
     public Task<bool> IsFieldTakenAsync(FieldNumber field)
     {
         var fieldStr = field.Value.ToString();
-        var taken = _memberService.GetMembersByMemberType(MemberTypeAlias)
+        var taken = memberService.GetMembersByMemberType(MemberTypeAlias)
             .Any(m => m.GetValue<string>("fieldNumber") == fieldStr
                    && UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted);
         return Task.FromResult(taken);
@@ -38,8 +28,8 @@ public class PassiveMemberRepository : IPassiveMemberRepository
 
     public Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
     {
-        var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => (UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) ?? MemberStatus.Pending) == MemberStatus.Pending)
+        var result = memberService.GetMembersByMemberType(MemberTypeAlias)
+            .Where(m => (UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null)) == MemberStatus.Pending)
             .OrderBy(m => m.CreateDate)
             .Select(Reconstitute)
             .ToList();
@@ -48,7 +38,7 @@ public class PassiveMemberRepository : IPassiveMemberRepository
 
     public Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
     {
-        var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
+        var result = memberService.GetMembersByMemberType(MemberTypeAlias)
             .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) == MemberStatus.Confirmed)
             .OrderBy(m => int.TryParse(m.GetValue<string>("fieldNumber"), out var fn) ? fn : 0)
             .Select(Reconstitute)
@@ -58,7 +48,7 @@ public class PassiveMemberRepository : IPassiveMemberRepository
 
     public Task<PassiveMember?> FindByIdAsync(int id)
     {
-        var m = _memberService.GetById(id);
+        var m = memberService.GetById(id);
         if (m is null || m.ContentType.Alias != MemberTypeAlias)
             return Task.FromResult<PassiveMember?>(null);
         return Task.FromResult<PassiveMember?>(Reconstitute(m));
@@ -66,7 +56,7 @@ public class PassiveMemberRepository : IPassiveMemberRepository
 
     public Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
     {
-        var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
+        var result = memberService.GetMembersByMemberType(MemberTypeAlias)
             .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted)
             .Select(m =>
             {
@@ -96,7 +86,7 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save PassiveMember for field {Field}", member.FieldNumber.Value);
+            logger.LogError(ex, "Failed to save PassiveMember for field {Field}", member.FieldNumber.Value);
             throw new DomainException($"Registrierung fehlgeschlagen: {ex.Message}");
         }
     }
@@ -106,15 +96,15 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         var username = Username(member.FieldNumber.Value);
 
         // Re-register a previously soft-deleted field: reuse the existing slot.
-        var existingUser = await _memberManager.FindByNameAsync(username);
+        var existingUser = await memberManager.FindByNameAsync(username);
         if (existingUser is not null)
         {
-            var existing = _memberService.GetById(int.Parse(existingUser.Id))
+            var existing = memberService.GetById(int.Parse(existingUser.Id))
                 ?? throw new DomainException("Existing member slot could not be found.");
             existing.Name = $"{member.FirstName} {member.LastName}".Trim();
             existing.Email = SyntheticEmail(member.FieldNumber.Value);
             SetProperties(existing, member);
-            _memberService.Save(existing);
+            memberService.Save(existing);
             return Reconstitute(existing);
         }
 
@@ -127,28 +117,28 @@ public class PassiveMemberRepository : IPassiveMemberRepository
             IsApproved      = true
         };
 
-        var result = await _memberManager.CreateAsync(user);
+        var result = await memberManager.CreateAsync(user);
         if (!result.Succeeded)
             throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
 
-        var created = await _memberManager.FindByNameAsync(username)
+        var created = await memberManager.FindByNameAsync(username)
             ?? throw new DomainException("Member could not be found after creation.");
 
-        var umbracoMember = _memberService.GetById(int.Parse(created.Id))
+        var umbracoMember = memberService.GetById(int.Parse(created.Id))
             ?? throw new DomainException("Member could not be found after creation.");
 
         SetProperties(umbracoMember, member);
-        _memberService.Save(umbracoMember);
+        memberService.Save(umbracoMember);
 
         return Reconstitute(umbracoMember);
     }
 
     public Task UpdateAsync(PassiveMember member)
     {
-        var m = _memberService.GetById(member.Id)
+        var m = memberService.GetById(member.Id)
             ?? throw new MemberNotFoundException(member.Id);
         SetProperties(m, member);
-        _memberService.Save(m);
+        memberService.Save(m);
         return Task.CompletedTask;
     }
 
@@ -174,11 +164,11 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         m.SetValue(PassivMemberAliases.ShowNameOnFloor,        pm.ShowNameOnFloor);
         m.SetValue(PassivMemberAliases.FloorDisplayName,       pm.DisplayName ?? "");
         m.SetValue(PassivMemberAliases.Status,                 pm.Status);
-        m.SetValue(PassivMemberAliases.PaidAt,                 (object?)pm.PaidAt);
+        m.SetValue(PassivMemberAliases.PaidAt,                 pm.PaidAt);
         m.SetValue(PassivMemberAliases.PaidBy,                 pm.PaidBy ?? "");
-        m.SetValue(PassivMemberAliases.ConfirmedAt,            (object?)pm.ConfirmedAt);
+        m.SetValue(PassivMemberAliases.ConfirmedAt,            pm.ConfirmedAt);
         m.SetValue(PassivMemberAliases.ConfirmedBy,            pm.ConfirmedBy ?? "");
-        m.SetValue(PassivMemberAliases.ExportedToAccountingAt, (object?)pm.ExportedToAccountingAt);
+        m.SetValue(PassivMemberAliases.ExportedToAccountingAt, pm.ExportedToAccountingAt);
         m.SetValue(PassivMemberAliases.ExportedToAccountingBy, pm.ExportedToAccountingBy ?? "");
         m.SetValue(PassivMemberAliases.Notes,                  pm.Notes ?? "");
     }
@@ -198,7 +188,7 @@ public class PassiveMemberRepository : IPassiveMemberRepository
             country:                m.GetValue<string>(PassivMemberAliases.BillingCountry).NullIfEmpty() ?? "Schweiz",
             phone:                  m.GetValue<string>(PassivMemberAliases.Phone).NullIfEmpty(),
             email:                  m.GetValue<string>(PassivMemberAliases.Email) ?? "",
-            levelKey:               UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.MembershipLevel), null) ?? "Bronze",
+            levelKey:               UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.MembershipLevel), null),
             showNameOnFloor:        m.GetValue<bool>(PassivMemberAliases.ShowNameOnFloor),
             displayName:            m.GetValue<string>(PassivMemberAliases.FloorDisplayName).NullIfEmpty(),
             createdAt:              m.CreateDate,

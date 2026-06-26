@@ -28,16 +28,17 @@ public class PassiveMemberMigrationPlan : MigrationPlan
 // v1 left as a no-op: v2 creates the definitive table schema.
 public class CreatePassiveMemberTableMigration : AsyncMigrationBase
 {
-    public CreatePassiveMemberTableMigration(IMigrationContext context) : base(context) { }
+    public CreatePassiveMemberTableMigration(IMigrationContext context) : base(context)
+    {
+    }
+
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
 // v2: drops the table if it exists (handles fresh DBs and partial prior runs),
 // then recreates it with IDENTITY PK and explicit PK name (SQL Server requires named constraints).
-public class FixPassiveMemberAutoIncrementMigration : AsyncMigrationBase
+public class FixPassiveMemberAutoIncrementMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public FixPassiveMemberAutoIncrementMigration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync()
     {
         if (TableExists("PassivMitglieder"))
@@ -76,19 +77,15 @@ public class FixPassiveMemberAutoIncrementMigration : AsyncMigrationBase
 }
 
 // v3 left as a no-op so existing databases at v2 can advance to v3 cleanly.
-public class AddMemberStatusColumnsMigration : AsyncMigrationBase
+public class AddMemberStatusColumnsMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public AddMemberStatusColumnsMigration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
 // Each migration version runs exactly once (framework-tracked), so no column-existence checks needed.
 // v2 recreates the table without these columns, so they are guaranteed absent when v4 runs.
-public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
+public class EnsureMemberStatusColumnsMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public EnsureMemberStatusColumnsMigration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync()
     {
         Alter.Table("PassivMitglieder").AddColumn("Status").AsString(20).NotNullable().WithDefaultValue("Confirmed").Do();
@@ -100,10 +97,8 @@ public class EnsureMemberStatusColumnsMigration : AsyncMigrationBase
     }
 }
 
-public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
+public class AddAccountingTimestampColumnsMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public AddAccountingTimestampColumnsMigration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync()
     {
         Alter.Table("PassivMitglieder").AddColumn("ExportedToAccountingAt").AsDateTime().Nullable().Do();
@@ -112,10 +107,8 @@ public class AddAccountingTimestampColumnsMigration : AsyncMigrationBase
     }
 }
 
-public class AddPhoneAndAddressLine2Migration : AsyncMigrationBase
+public class AddPhoneAndAddressLine2Migration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public AddPhoneAndAddressLine2Migration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync()
     {
         Alter.Table("PassivMitglieder").AddColumn("Phone").AsString(50).Nullable().Do();
@@ -124,25 +117,19 @@ public class AddPhoneAndAddressLine2Migration : AsyncMigrationBase
     }
 }
 
-public class EnsurePhoneAndAddressLine2Migration : AsyncMigrationBase
+public class EnsurePhoneAndAddressLine2Migration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public EnsurePhoneAndAddressLine2Migration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-public class EnsurePhoneAndAddressLine2ColumnsMigration : AsyncMigrationBase
+public class EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
 // v9: passive members moved to Umbraco Members; drop the dedicated table.
-public class DropPassivMitgliederTableMigration : AsyncMigrationBase
+public class DropPassivMitgliederTableMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    public DropPassivMitgliederTableMigration(IMigrationContext context) : base(context) { }
-
     protected override Task MigrateAsync()
     {
         if (IndexExists("IX_PassivMitglieder_FieldNumber"))
@@ -153,30 +140,18 @@ public class DropPassivMitgliederTableMigration : AsyncMigrationBase
     }
 }
 
-public class PassiveMemberMigrationComponent : IAsyncComponent
+public class PassiveMemberMigrationComponent(
+    ICoreScopeProvider scopeProvider,
+    IMigrationPlanExecutor migrationPlanExecutor,
+    IKeyValueService keyValueService,
+    IRuntimeState runtimeState)
+    : IAsyncComponent
 {
-    private readonly ICoreScopeProvider _scopeProvider;
-    private readonly IMigrationPlanExecutor _migrationPlanExecutor;
-    private readonly IKeyValueService _keyValueService;
-    private readonly IRuntimeState _runtimeState;
-
-    public PassiveMemberMigrationComponent(
-        ICoreScopeProvider scopeProvider,
-        IMigrationPlanExecutor migrationPlanExecutor,
-        IKeyValueService keyValueService,
-        IRuntimeState runtimeState)
-    {
-        _scopeProvider = scopeProvider;
-        _migrationPlanExecutor = migrationPlanExecutor;
-        _keyValueService = keyValueService;
-        _runtimeState = runtimeState;
-    }
-
     public async Task InitializeAsync(bool isMainDom, CancellationToken cancellationToken)
     {
-        if (_runtimeState.Level < RuntimeLevel.Run) return;
+        if (runtimeState.Level < RuntimeLevel.Run) return;
         var upgrader = new Upgrader(new PassiveMemberMigrationPlan());
-        await upgrader.ExecuteAsync(_migrationPlanExecutor, _scopeProvider, _keyValueService);
+        await upgrader.ExecuteAsync(migrationPlanExecutor, scopeProvider, keyValueService);
     }
 
     public Task TerminateAsync(bool isMainDom, CancellationToken cancellationToken) => Task.CompletedTask;

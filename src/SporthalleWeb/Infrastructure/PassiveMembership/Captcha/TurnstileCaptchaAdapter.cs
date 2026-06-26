@@ -4,16 +4,9 @@ using SporthalleWeb.Domain.PassiveMembership.Ports;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Captcha;
 
-public class TurnstileCaptchaAdapter : ICaptchaPort
+public class TurnstileCaptchaAdapter(HttpClient http, IOptions<TurnstileOptions> opts) : ICaptchaPort
 {
-    private readonly HttpClient _http;
-    private readonly TurnstileOptions _opts;
-
-    public TurnstileCaptchaAdapter(HttpClient http, IOptions<TurnstileOptions> opts)
-    {
-        _http = http;
-        _opts = opts.Value;
-    }
+    private readonly TurnstileOptions _opts = opts.Value;
 
     public async Task<bool> VerifyAsync(string token, string remoteIp)
     {
@@ -24,7 +17,7 @@ public class TurnstileCaptchaAdapter : ICaptchaPort
             ["remoteip"] = remoteIp
         });
 
-        var response = await _http.PostAsync(
+        var response = await http.PostAsync(
             "https://challenges.cloudflare.com/turnstile/v0/siteverify", form);
 
         var json = await response.Content.ReadAsStringAsync();

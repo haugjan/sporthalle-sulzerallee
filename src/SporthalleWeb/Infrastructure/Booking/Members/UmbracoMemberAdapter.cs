@@ -99,7 +99,7 @@ public sealed class UmbracoMemberAdapter(
             var firstName = member.GetValue<string>(HallMemberAliases.ContactFirstName) ?? "";
             var lastName  = member.GetValue<string>(HallMemberAliases.ContactLastName) ?? "";
             var orgName   = member.GetValue<string>(HallMemberAliases.OrgName) ?? "";
-            var email     = member.Email ?? "";
+            var email     = member.Email;
             var fullName  = $"{firstName} {lastName}".Trim();
 
             if (firstName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
