@@ -1,118 +1,200 @@
-using NPoco;
+using Microsoft.AspNetCore.Identity;
 using SporthalleWeb.Domain.PassiveMembership;
 using SporthalleWeb.Domain.PassiveMembership.Ports;
-using Umbraco.Cms.Infrastructure.Scoping;
+using Umbraco.Cms.Core.Models;
+using Umbraco.Cms.Core.Security;
+using Umbraco.Cms.Core.Services;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Persistence;
 
-public class PassiveMemberRepository : IPassiveMemberRepository
+public class PassiveMemberRepository : IPassivMemberRepository
 {
-    private readonly IScopeProvider _scopeProvider;
+    private const string MemberTypeAlias = "passivMember";
 
-    public PassiveMemberRepository(IScopeProvider scopeProvider)
-        => _scopeProvider = scopeProvider;
+    private readonly IMemberService _memberService;
+    private readonly IMemberManager _memberManager;
 
-    public async Task<bool> IsFieldTakenAsync(FieldNumber field)
+    public PassiveMemberRepository(IMemberService memberService, IMemberManager memberManager)
     {
-        using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var count = await scope.Database.ExecuteScalarAsync<int>(new Sql(
-            "SELECT COUNT(*) FROM PassivMitglieder WHERE FieldNumber = @0 AND Status != @1",
-            field.Value, MemberStatus.Deleted));
-        return count > 0;
+        _memberService = memberService;
+        _memberManager = memberManager;
     }
+
+    // ── Query ─────────────────────────────────────────────────────────────────
+
+    public Task<bool> IsFieldTakenAsync(FieldNumber field)
+    {
+        var fieldStr = field.Value.ToString();
+        var taken = _memberService.GetMembersByMemberType(MemberTypeAlias)
+            .Any(m => m.GetValue<string>("fieldNumber") == fieldStr
+                   && m.GetValue<string>("status") != MemberStatus.Deleted);
+        return Task.FromResult(taken);
+    }
+
+    public Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
+    {
+        var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
+            .Where(m => (m.GetValue<string>("status") ?? MemberStatus.Pending) == MemberStatus.Pending)
+            .OrderBy(m => m.CreateDate)
+            .Select(Reconstitute)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<PassiveMember>>(result);
+    }
+
+    public Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
+    {
+        var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
+            .Where(m => m.GetValue<string>("status") == MemberStatus.Confirmed)
+            .OrderBy(m => int.TryParse(m.GetValue<string>("fieldNumber"), out var fn) ? fn : 0)
+            .Select(Reconstitute)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<PassiveMember>>(result);
+    }
+
+    public Task<PassiveMember?> FindByIdAsync(int id)
+    {
+        var m = _memberService.GetById(id);
+        if (m is null || m.ContentType.Alias != MemberTypeAlias)
+            return Task.FromResult<PassiveMember?>(null);
+        return Task.FromResult<PassiveMember?>(Reconstitute(m));
+    }
+
+    public Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
+    {
+        var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
+            .Where(m => m.GetValue<string>("status") != MemberStatus.Deleted)
+            .Select(m =>
+            {
+                _ = int.TryParse(m.GetValue<string>("fieldNumber"), out var fn);
+                var status = m.GetValue<string>("status");
+                var show = m.GetValue<bool>("showNameOnFloor");
+                var displayName = show && status == MemberStatus.Confirmed
+                    ? m.GetValue<string>("floorDisplayName").NullIfEmpty()
+                    : null;
+                return (new FieldNumber(fn), displayName);
+            })
+            .ToList();
+        return Task.FromResult<IReadOnlyList<(FieldNumber, string?)>>(result);
+    }
+
+    // ── Mutations ─────────────────────────────────────────────────────────────
 
     public async Task<PassiveMember> SaveAsync(PassiveMember member)
     {
-        using var scope = _scopeProvider.CreateScope();
-        var record = ToRecord(member);
-        await scope.Database.InsertAsync(record);
-        scope.Complete();
-        return ToEntity(record);
+        var username = Username(member.FieldNumber.Value);
+
+        // Re-register a previously soft-deleted field: reuse the existing slot.
+        var existingUser = await _memberManager.FindByNameAsync(username);
+        if (existingUser is not null)
+        {
+            var existing = _memberService.GetById(int.Parse(existingUser.Id))
+                ?? throw new DomainException("Existing member slot could not be found.");
+            existing.Name = $"{member.FirstName} {member.LastName}".Trim();
+            existing.Email = member.Email.Value;
+            SetProperties(existing, member);
+            _memberService.Save(existing);
+            return Reconstitute(existing);
+        }
+
+        var user = new MemberIdentityUser
+        {
+            UserName = username,
+            Email = member.Email.Value,
+            Name = $"{member.FirstName} {member.LastName}".Trim(),
+            MemberTypeAlias = MemberTypeAlias,
+            IsApproved = true
+        };
+
+        var result = await _memberManager.CreateAsync(user);
+        if (!result.Succeeded)
+            throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
+
+        var created = await _memberManager.FindByNameAsync(username)
+            ?? throw new DomainException("Member could not be found after creation.");
+
+        var umbracoMember = _memberService.GetById(int.Parse(created.Id))
+            ?? throw new DomainException("Member could not be found after creation.");
+
+        SetProperties(umbracoMember, member);
+        _memberService.Save(umbracoMember);
+
+        return Reconstitute(umbracoMember);
     }
 
-    public async Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
+    public Task UpdateAsync(PassiveMember member)
     {
-        using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(new Sql(
-            "SELECT * FROM PassivMitglieder WHERE Status = @0 ORDER BY CreatedAt",
-            MemberStatus.Pending));
-        return records.Select(ToEntity).ToList();
+        var m = _memberService.GetById(member.Id)
+            ?? throw new MemberNotFoundException(member.Id);
+        SetProperties(m, member);
+        _memberService.Save(m);
+        return Task.CompletedTask;
     }
 
-    public async Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
+    // ── Mapping ───────────────────────────────────────────────────────────────
+
+    private static string Username(int fieldNumber) => $"pm-{fieldNumber:D3}";
+
+    private static void SetProperties(IMember m, PassiveMember pm)
     {
-        using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(new Sql(
-            "SELECT * FROM PassivMitglieder WHERE Status = @0 ORDER BY FieldNumber",
-            MemberStatus.Confirmed));
-        return records.Select(ToEntity).ToList();
+        m.SetValue("firstName",              pm.FirstName);
+        m.SetValue("lastName",               pm.LastName);
+        m.SetValue("fieldNumber",            pm.FieldNumber.Value.ToString());
+        m.SetValue("membershipLevel",        pm.Level.Key);
+        m.SetValue("billingAddress",         pm.AddressLine);
+        m.SetValue("addressLine2",           pm.AddressLine2 ?? "");
+        m.SetValue("billingPostalCode",      pm.PostalCode);
+        m.SetValue("billingCity",            pm.City);
+        m.SetValue("billingCountry",         pm.Country);
+        m.SetValue("phone",                  pm.Phone ?? "");
+        m.SetValue("showNameOnFloor",        pm.ShowNameOnFloor);
+        m.SetValue("floorDisplayName",       pm.DisplayName ?? "");
+        m.SetValue("status",                 pm.Status);
+        m.SetValue("paidAt",                 pm.PaidAt?.ToString("O") ?? "");
+        m.SetValue("paidBy",                 pm.PaidBy ?? "");
+        m.SetValue("confirmedAt",            pm.ConfirmedAt?.ToString("O") ?? "");
+        m.SetValue("confirmedBy",            pm.ConfirmedBy ?? "");
+        m.SetValue("exportedToAccountingAt", pm.ExportedToAccountingAt?.ToString("O") ?? "");
+        m.SetValue("exportedToAccountingBy", pm.ExportedToAccountingBy ?? "");
+        m.SetValue("notes",                  pm.Notes ?? "");
     }
 
-    public async Task<PassiveMember?> FindByIdAsync(int id)
+    private static PassiveMember Reconstitute(IMember m)
     {
-        using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var record = await scope.Database.SingleOrDefaultAsync<PassiveMemberDbRecord>(
-            new Sql("WHERE Id = @0", id));
-        return record is null ? null : ToEntity(record);
+        _ = int.TryParse(m.GetValue<string>("fieldNumber"), out var fieldNumber);
+        return PassiveMember.Reconstitute(
+            id:                    m.Id,
+            fieldNumber:           fieldNumber,
+            firstName:             m.GetValue<string>("firstName") ?? "",
+            lastName:              m.GetValue<string>("lastName") ?? "",
+            addressLine:           m.GetValue<string>("billingAddress") ?? "",
+            addressLine2:          m.GetValue<string>("addressLine2").NullIfEmpty(),
+            postalCode:            m.GetValue<string>("billingPostalCode") ?? "",
+            city:                  m.GetValue<string>("billingCity") ?? "",
+            country:               m.GetValue<string>("billingCountry").NullIfEmpty() ?? "Schweiz",
+            phone:                 m.GetValue<string>("phone").NullIfEmpty(),
+            email:                 m.Email ?? "",
+            levelKey:              m.GetValue<string>("membershipLevel") ?? "Bronze",
+            showNameOnFloor:       m.GetValue<bool>("showNameOnFloor"),
+            displayName:           m.GetValue<string>("floorDisplayName").NullIfEmpty(),
+            createdAt:             m.CreateDate,
+            status:                m.GetValue<string>("status").NullIfEmpty() ?? MemberStatus.Pending,
+            confirmedAt:           Iso(m.GetValue<string>("confirmedAt")),
+            confirmedBy:           m.GetValue<string>("confirmedBy").NullIfEmpty(),
+            paidAt:                Iso(m.GetValue<string>("paidAt")),
+            paidBy:                m.GetValue<string>("paidBy").NullIfEmpty(),
+            exportedToAccountingAt: Iso(m.GetValue<string>("exportedToAccountingAt")),
+            exportedToAccountingBy: m.GetValue<string>("exportedToAccountingBy").NullIfEmpty(),
+            notes:                 m.GetValue<string>("notes").NullIfEmpty()
+        );
     }
 
-    public async Task UpdateAsync(PassiveMember member)
-    {
-        using var scope = _scopeProvider.CreateScope();
-        await scope.Database.UpdateAsync(ToRecord(member));
-        scope.Complete();
-    }
+    private static DateTime? Iso(string? s)
+        => string.IsNullOrWhiteSpace(s) ? null
+            : DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt) ? dt : null;
+}
 
-    public async Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
-    {
-        using var scope = _scopeProvider.CreateScope(autoComplete: true);
-        var records = await scope.Database.FetchAsync<PassiveMemberDbRecord>(new Sql(
-            "SELECT FieldNumber, ShowNameOnFloor, DisplayName, Status FROM PassivMitglieder WHERE Status != @0",
-            MemberStatus.Deleted));
-        return records
-            .Select(r => (
-                new FieldNumber(r.FieldNumber),
-                r.ShowNameOnFloor && r.Status == MemberStatus.Confirmed ? r.DisplayName : null))
-            .ToList();
-    }
-
-    private static PassiveMemberDbRecord ToRecord(PassiveMember m) => new()
-    {
-        Id = m.Id,
-        FieldNumber = m.FieldNumber.Value,
-        FirstName = m.FirstName,
-        LastName = m.LastName,
-        AddressLine = m.AddressLine,
-        AddressLine2 = m.AddressLine2,
-        PostalCode = m.PostalCode,
-        City = m.City,
-        Country = m.Country,
-        Phone = m.Phone,
-        Email = m.Email.Value,
-        MembershipLevel = m.Level.Key,
-        ShowNameOnFloor = m.ShowNameOnFloor,
-        DisplayName = m.DisplayName,
-        CreatedAt = m.CreatedAt,
-        Status = m.Status,
-        ConfirmedAt = m.ConfirmedAt,
-        ConfirmedBy = m.ConfirmedBy,
-        PaidAt = m.PaidAt,
-        PaidBy = m.PaidBy,
-        ExportedToAccounting = m.ExportedToAccountingAt.HasValue,
-        ExportedToAccountingAt = m.ExportedToAccountingAt,
-        ExportedToAccountingBy = m.ExportedToAccountingBy,
-        Notes = m.Notes,
-    };
-
-    private static PassiveMember ToEntity(PassiveMemberDbRecord r) =>
-        PassiveMember.Reconstitute(
-            r.Id, r.FieldNumber, r.FirstName, r.LastName,
-            r.AddressLine, r.AddressLine2, r.PostalCode, r.City, r.Country,
-            r.Phone, r.Email, r.MembershipLevel,
-            r.ShowNameOnFloor, r.DisplayName,
-            r.CreatedAt, r.Status,
-            r.ConfirmedAt, r.ConfirmedBy,
-            r.PaidAt, r.PaidBy,
-            r.ExportedToAccountingAt, r.ExportedToAccountingBy,
-            r.Notes);
+file static class StringExtensions
+{
+    public static string? NullIfEmpty(this string? s) =>
+        string.IsNullOrWhiteSpace(s) ? null : s;
 }

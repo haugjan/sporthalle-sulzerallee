@@ -60,4 +60,12 @@ public class BookingSlotRecord
     [Column("RecurringSlotId")]
     [NullSetting(NullSetting = NullSettings.Null)]
     public long? RecurringSlotId { get; set; }
+
+    [Column("IsDeleted")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    public bool IsDeleted { get; set; }
+
+    [Column("ShowTitlePublic")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    public bool ShowTitlePublic { get; set; }
 }

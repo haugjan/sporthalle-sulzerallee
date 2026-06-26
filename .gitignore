@@ -16,10 +16,18 @@ appsettings.*.secret.json
 
 # uSync - only schema in repo, not page content
 **/uSync/**/Content/
+**/uSync/**/Media/
 
 # uSync state file: contains HMAC of last-synced files.
 # Excluding it ensures uSync always runs a full import on startup after each deploy.
 **/uSync/v17/usync.config
+
+# Claude Code project settings and worktrees
+.claude/
+
+# Playwright temp files
+pw-temp.js
+**/playwright-tmp/
 
 # Rider / JetBrains
 .idea/

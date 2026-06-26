@@ -20,9 +20,4 @@ public interface IMemberManagerPort
 
     Task<string> GeneratePasswordResetTokenAsync(int memberId);
     Task ResetPasswordAsync(int memberId, string token, string newPassword);
-
-    Task<DateTime?> GetMagicLinkSentAtAsync(int memberId);
-    Task SetMagicLinkSentAtAsync(int memberId, DateTime sentAt);
-    Task<DateTime?> GetPasswordResetSentAtAsync(int memberId);
-    Task SetPasswordResetSentAtAsync(int memberId, DateTime sentAt);
 }

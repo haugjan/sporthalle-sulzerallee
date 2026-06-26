@@ -12,7 +12,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE StartUtc >= @0 AND StartUtc < @1",
+            "SELECT * FROM BookingSlots WHERE IsDeleted = 0 AND StartUtc >= @0 AND StartUtc < @1",
             fromUtc, toUtc);
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
@@ -23,7 +23,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1 AND Type != @2",
+            "SELECT * FROM BookingSlots WHERE IsDeleted = 0 AND StartUtc < @0 AND EndUtc > @1 AND Type != @2",
             slot.EndUtc, slot.StartUtc, SlotType.Rejected.ToString());
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
@@ -44,7 +44,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
         using var scope = scopeProvider.CreateScope();
 
         var overlapSql = new Sql(
-            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1 AND Type != @2",
+            "SELECT * FROM BookingSlots WHERE IsDeleted = 0 AND StartUtc < @0 AND EndUtc > @1 AND Type != @2",
             slot.EndUtc, slot.StartUtc, SlotType.Rejected.ToString());
         var overlaps = await scope.Database.FetchAsync<BookingSlotRecord>(overlapSql);
         if (overlaps.Count > 0)
@@ -77,7 +77,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     public async Task DeleteAsync(int id)
     {
         using var scope = scopeProvider.CreateScope();
-        await scope.Database.ExecuteAsync(new Sql("DELETE FROM BookingSlots WHERE Id = @0", id));
+        await scope.Database.ExecuteAsync(new Sql("UPDATE BookingSlots SET IsDeleted = 1 WHERE Id = @0", id));
         scope.Complete();
     }
 
@@ -85,7 +85,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE MemberId = @0 ORDER BY StartUtc DESC",
+            "SELECT * FROM BookingSlots WHERE IsDeleted = 0 AND MemberId = @0 ORDER BY StartUtc DESC",
             memberId);
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
@@ -96,7 +96,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE Type = @0 ORDER BY StartUtc",
+            "SELECT * FROM BookingSlots WHERE IsDeleted = 0 AND Type = @0 ORDER BY StartUtc",
             SlotType.Reserved.ToString());
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
@@ -106,7 +106,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     public async Task<IReadOnlyList<BookingSlot>> GetAllAsync(DateOnly? from, DateOnly? to, SlotType? type, bool includeRejected = false)
     {
         using var scope = scopeProvider.CreateScope();
-        var conditions = new List<string>();
+        var conditions = new List<string> { "IsDeleted = 0" };
         var args = new List<object>();
         int idx = 0;
 
@@ -142,7 +142,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     {
         using var scope = scopeProvider.CreateScope();
         var sql = new Sql(
-            "SELECT * FROM BookingSlots WHERE StartUtc < @0 AND EndUtc > @1 AND Type != @2 AND (RecurringSlotId IS NULL OR RecurringSlotId != @3)",
+            "SELECT * FROM BookingSlots WHERE IsDeleted = 0 AND StartUtc < @0 AND EndUtc > @1 AND Type != @2 AND (RecurringSlotId IS NULL OR RecurringSlotId != @3)",
             slot.EndUtc, slot.StartUtc, SlotType.Rejected.ToString(), excludeRecurringSlotId);
         var records = await scope.Database.FetchAsync<BookingSlotRecord>(sql);
         scope.Complete();
@@ -152,7 +152,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
     public async Task DeleteByRecurringSlotIdAsync(int recurringSlotId)
     {
         using var scope = scopeProvider.CreateScope();
-        await scope.Database.ExecuteAsync(new Sql("DELETE FROM BookingSlots WHERE RecurringSlotId = @0", recurringSlotId));
+        await scope.Database.ExecuteAsync(new Sql("UPDATE BookingSlots SET IsDeleted = 1 WHERE RecurringSlotId = @0", recurringSlotId));
         scope.Complete();
     }
 
@@ -169,7 +169,8 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
             createdAt: DateTime.SpecifyKind(r.CreatedAt, DateTimeKind.Utc),
             updatedAt: DateTime.SpecifyKind(r.UpdatedAt, DateTimeKind.Utc),
             createdBy: r.CreatedBy,
-            recurringSlotId: r.RecurringSlotId.HasValue ? (int?)r.RecurringSlotId.Value : null);
+            recurringSlotId: r.RecurringSlotId.HasValue ? (int?)r.RecurringSlotId.Value : null,
+            showTitlePublic: r.ShowTitlePublic);
 
     private static BookingSlotRecord MapToRecord(BookingSlot s) =>
         new()
@@ -184,6 +185,7 @@ public sealed class BookingSlotRepository(IScopeProvider scopeProvider) : IBooki
             CreatedAt = s.CreatedAt,
             UpdatedAt = s.UpdatedAt,
             CreatedBy = s.CreatedBy,
-            RecurringSlotId = s.RecurringSlotId
+            RecurringSlotId = s.RecurringSlotId,
+            ShowTitlePublic = s.ShowTitlePublic
         };
 }

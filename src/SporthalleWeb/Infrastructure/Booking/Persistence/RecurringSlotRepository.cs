@@ -15,7 +15,7 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
         var yearStart = new DateTime(year, 1, 1).ToString("yyyy-MM-dd");
         var yearEnd   = new DateTime(year, 12, 31).ToString("yyyy-MM-dd");
         var sql = new Sql(
-            "SELECT * FROM RecurringSlots WHERE SeriesEnd >= @0 AND SeriesStart <= @1 ORDER BY SeriesStart, Wochentag, StartTime",
+            "SELECT * FROM RecurringSlots WHERE IsDeleted = 0 AND SeriesEnd >= @0 AND SeriesStart <= @1 ORDER BY SeriesStart, Wochentag, StartTime",
             yearStart, yearEnd);
         var records = await scope.Database.FetchAsync<RecurringSlotRecord>(sql);
         scope.Complete();
@@ -52,7 +52,7 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
     public async Task DeleteAsync(int id)
     {
         using var scope = scopeProvider.CreateScope();
-        await scope.Database.ExecuteAsync(new Sql("DELETE FROM RecurringSlots WHERE Id = @0", id));
+        await scope.Database.ExecuteAsync(new Sql("UPDATE RecurringSlots SET IsDeleted = 1 WHERE Id = @0", id));
         scope.Complete();
     }
 
@@ -71,7 +71,8 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
             createdAt: DateTime.SpecifyKind(r.CreatedAt, DateTimeKind.Utc),
             updatedAt: DateTime.SpecifyKind(r.UpdatedAt, DateTimeKind.Utc),
             isBlocker: r.IsBlocker,
-            memberId: r.MemberId);
+            memberId: r.MemberId,
+            showTitlePublic: r.ShowTitlePublic);
 
     private static RecurringSlotRecord MapToRecord(RecurringSlot s) =>
         new()
@@ -86,6 +87,7 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
             Notes = s.Notes,
             IsBlocker = s.IsBlocker,
             MemberId = s.MemberId,
+            ShowTitlePublic = s.ShowTitlePublic,
             CreatedBy = s.CreatedBy,
             CreatedAt = s.CreatedAt,
             UpdatedAt = s.UpdatedAt

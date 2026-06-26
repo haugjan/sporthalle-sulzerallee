@@ -25,15 +25,15 @@ public sealed class BookingAdminService(
     public async Task<BookingSlot> CreateSlotAsync(
         SlotType type, DateTime startUtc, DateTime endUtc,
         string title, string? color, string? notes,
-        int? memberId, string adminUser)
+        int? memberId, string adminUser, bool showTitlePublic = false)
     {
         var timeSlot = new TimeSlot(startUtc, endUtc);
 
         BookingSlot slot = type switch
         {
-            SlotType.Blocker  => BookingSlot.CreateBlocker(timeSlot, title, color, notes, adminUser),
-            SlotType.Reserved => BookingSlot.CreateReserved(memberId!.Value, timeSlot, title, color, notes, adminUser),
-            SlotType.Booked   => BookingSlot.CreateBooked(memberId!.Value, timeSlot, title, color, notes, adminUser),
+            SlotType.Blocker  => BookingSlot.CreateBlocker(timeSlot, title, color, notes, adminUser, showTitlePublic),
+            SlotType.Reserved => BookingSlot.CreateReserved(memberId!.Value, timeSlot, title, color, notes, adminUser, showTitlePublic),
+            SlotType.Booked   => BookingSlot.CreateBooked(memberId!.Value, timeSlot, title, color, notes, adminUser, showTitlePublic),
             _                 => throw new DomainException($"Unbekannter Slot-Typ: {type}")
         };
 
@@ -114,13 +114,13 @@ public sealed class BookingAdminService(
         await audit.LogAsync("BookingSlot", slotId, "Reactivated", adminUser, null, null);
     }
 
-    public async Task UpdateSlotAsync(int slotId, string title, string? color, string? notes, string adminUser)
+    public async Task UpdateSlotAsync(int slotId, string title, string? color, string? notes, string adminUser, bool showTitlePublic = false)
     {
         var slot = await slotRepo.FindByIdAsync(slotId)
             ?? throw new DomainException($"Buchung {slotId} nicht gefunden.");
-        slot.Update(title, color, notes);
+        slot.Update(title, color, notes, showTitlePublic);
         await slotRepo.UpdateAsync(slot);
-        await audit.LogAsync("BookingSlot", slotId, "Updated", adminUser, null, new { title, color, notes });
+        await audit.LogAsync("BookingSlot", slotId, "Updated", adminUser, null, new { title, color, notes, showTitlePublic });
     }
 
     public async Task<(BookingSlot? Slot, HallMember? Member)> FindSlotWithMemberAsync(int slotId)

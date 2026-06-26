@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 
 namespace SporthalleWeb.Domain.Booking;
 
@@ -18,6 +18,7 @@ public sealed class RecurringSlot
     public string? Notes { get; private set; }
     public bool IsBlocker { get; private set; }
     public int? MemberId { get; private set; }
+    public bool ShowTitlePublic { get; private set; }
     public string CreatedBy { get; private set; } = "";
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -27,7 +28,7 @@ public sealed class RecurringSlot
     public static RecurringSlot Create(
         string title, DayOfWeek wochentag, TimeOnly startTime, TimeOnly endTime,
         DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes, string createdBy,
-        bool isBlocker = false, int? memberId = null) =>
+        bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
         new()
         {
             Title = title,
@@ -41,6 +42,7 @@ public sealed class RecurringSlot
             CreatedBy = createdBy,
             IsBlocker = isBlocker,
             MemberId = memberId,
+            ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -49,7 +51,7 @@ public sealed class RecurringSlot
         int id, string title, int wochentag, string startTime, string endTime,
         string seriesStart, string seriesEnd, string? color, string? notes,
         string createdBy, DateTime createdAt, DateTime updatedAt,
-        bool isBlocker = false, int? memberId = null) =>
+        bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
         new()
         {
             Id = id,
@@ -65,13 +67,14 @@ public sealed class RecurringSlot
             CreatedAt = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc),
             UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Utc),
             IsBlocker = isBlocker,
-            MemberId = memberId
+            MemberId = memberId,
+            ShowTitlePublic = showTitlePublic
         };
 
     public void Update(
         string title, DayOfWeek wochentag, TimeOnly startTime, TimeOnly endTime,
         DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes,
-        bool isBlocker, int? memberId)
+        bool isBlocker, int? memberId, bool showTitlePublic)
     {
         Title = title;
         Wochentag = wochentag;
@@ -83,6 +86,7 @@ public sealed class RecurringSlot
         Notes = notes;
         IsBlocker = isBlocker;
         MemberId = memberId;
+        ShowTitlePublic = showTitlePublic;
         UpdatedAt = DateTime.UtcNow;
     }
 

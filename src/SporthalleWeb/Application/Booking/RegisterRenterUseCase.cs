@@ -23,7 +23,6 @@ public sealed class RegisterRenterUseCase(
         var (plainToken, tokenHash) = SendMagicLinkUseCase.GenerateToken();
         var magicLink = $"https://www.sporthalle-sulzerallee.ch/reservierung/auth/validate?token={plainToken}";
         await tokenRepo.SaveAsync(MagicLinkToken.Create(member.Id, tokenHash, remoteIp));
-        await members.SetMagicLinkSentAtAsync(member.Id, DateTime.UtcNow);
 
         await email.SendRegistrationConfirmationWithMagicLinkAsync(member, magicLink);
     }

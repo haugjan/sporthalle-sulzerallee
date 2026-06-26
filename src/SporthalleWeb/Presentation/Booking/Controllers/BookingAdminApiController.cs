@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using SporthalleWeb.Application.Booking;
 using SporthalleWeb.Domain.Booking;
 using SporthalleWeb.Domain.Booking.Ports;
@@ -197,9 +199,46 @@ public sealed class BookingAdminApiController(
             telefon          = member.Phone,
         }
     };
+
+    // ── Dev-only Seed: Serientermine ohne Auth anlegen ───────────────────────
+
+    [HttpPost("serientermine/seed")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SeedSerie(
+        [FromBody] SerieTerminSeedRequest req,
+        [FromServices] CreateRecurringSlotUseCase createSerie,
+        [FromServices] IWebHostEnvironment env)
+    {
+        if (!env.IsDevelopment())
+            return NotFound();
+
+        var cmd = new RecurringSlotCommand(
+            req.Title,
+            (DayOfWeek)req.Wochentag,
+            TimeOnly.Parse(req.Von),
+            TimeOnly.Parse(req.Bis),
+            DateOnly.Parse(req.SerieVon),
+            DateOnly.Parse(req.SerieBis),
+            req.Color,
+            req.Notes,
+            IsBlocker: req.IsBlocker);
+
+        var result = await createSerie.ExecuteAsync(cmd, "seed", skipConflicts: true);
+        return Ok(result);
+    }
 }
 
 public sealed record AdminRejectRequest(string Grund);
 public sealed record AdminCreateSlotRequest(
     string Type, DateTime StartUtc, DateTime EndUtc,
     string Title, string? Color, string? Notes, int? MemberId);
+public sealed record SerieTerminSeedRequest(
+    string Title,
+    int Wochentag,
+    string Von,
+    string Bis,
+    string SerieVon,
+    string SerieBis,
+    string? Color,
+    string? Notes,
+    bool IsBlocker = false);

@@ -71,4 +71,12 @@ public class RecurringSlotRecord
     [Column("UpdatedAt")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
     public DateTime UpdatedAt { get; set; }
+
+    [Column("IsDeleted")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    public bool IsDeleted { get; set; }
+
+    [Column("ShowTitlePublic")]
+    [NullSetting(NullSetting = NullSettings.NotNull)]
+    public bool ShowTitlePublic { get; set; }
 }

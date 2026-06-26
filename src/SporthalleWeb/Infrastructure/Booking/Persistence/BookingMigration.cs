@@ -20,7 +20,10 @@ public class BookingMigrationPlan : MigrationPlan
             .To<AddHallConfigTableV4>("v1.3.0")
             .To<AddRecurringSlotsV5>("v1.4.0")
             .To<RenameSerieToRecurringV6>("v1.5.0")
-            .To<AddIsBlockerAndMemberIdToRecurringSlotsV7>("v1.6.0");
+            .To<AddIsBlockerAndMemberIdToRecurringSlotsV7>("v1.6.0")
+            .To<AddSoftDeleteToBookingSlotsV8>("v1.7.0")
+            .To<AddSoftDeleteToRecurringSlotsV9>("v1.8.0")
+            .To<AddShowTitlePublicV10>("v1.9.0");
     }
 }
 
@@ -134,6 +137,40 @@ public class AddIsBlockerAndMemberIdToRecurringSlotsV7 : AsyncMigrationBase
                 " WHERE \"Type\" = 'Blocker' AND \"RecurringSlotId\" IS NOT NULL)").Do();
             Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"MemberId\" INTEGER NULL").Do();
         }
+        return Task.CompletedTask;
+    }
+}
+
+public class AddSoftDeleteToBookingSlotsV8 : AsyncMigrationBase
+{
+    public AddSoftDeleteToBookingSlotsV8(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        Execute.Sql("ALTER TABLE \"BookingSlots\" ADD \"IsDeleted\" INTEGER NOT NULL DEFAULT 0").Do();
+        return Task.CompletedTask;
+    }
+}
+
+public class AddSoftDeleteToRecurringSlotsV9 : AsyncMigrationBase
+{
+    public AddSoftDeleteToRecurringSlotsV9(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"IsDeleted\" INTEGER NOT NULL DEFAULT 0").Do();
+        return Task.CompletedTask;
+    }
+}
+
+public class AddShowTitlePublicV10 : AsyncMigrationBase
+{
+    public AddShowTitlePublicV10(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        Execute.Sql("ALTER TABLE \"BookingSlots\" ADD \"ShowTitlePublic\" INTEGER NOT NULL DEFAULT 0").Do();
+        Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"ShowTitlePublic\" INTEGER NOT NULL DEFAULT 0").Do();
         return Task.CompletedTask;
     }
 }

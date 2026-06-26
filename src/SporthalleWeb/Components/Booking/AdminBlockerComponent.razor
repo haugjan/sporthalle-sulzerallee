@@ -85,9 +85,21 @@ else
                             }
                             else { <span class="text-muted">–</span> }
                         </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    @onclick="() => _editRef!.OpenAsync(b.Id)">Bearbeiten</button>
+                        <td style="white-space:nowrap">
+                            @if (_confirmDeleteId == b.Id)
+                            {
+                                <button class="btn btn-sm btn-danger"
+                                        @onclick="() => ConfirmDeleteAsync(b.Id)">Wirklich löschen?</button>
+                                <button class="btn btn-sm btn-outline-secondary ms-1"
+                                        @onclick="() => _confirmDeleteId = null">Abbrechen</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        @onclick="() => _editRef!.OpenAsync(b.Id)">Bearbeiten</button>
+                                <button class="btn btn-sm btn-outline-danger ms-1"
+                                        @onclick="() => _confirmDeleteId = b.Id">Löschen</button>
+                            }
                         </td>
                     </tr>
                 }
@@ -114,6 +126,7 @@ else
     private bool _loading;
     private string? _message;
     private string? _error;
+    private int? _confirmDeleteId;
 
     private DateOnly PeriodFrom => CalcFrom(_viewMode, _anchor);
     private DateOnly PeriodTo   => CalcTo(_viewMode, _anchor);
@@ -176,6 +189,20 @@ else
     {
         _message = "Blocker wurde gespeichert.";
         await LoadAsync();
+    }
+
+    private async Task ConfirmDeleteAsync(int slotId)
+    {
+        _confirmDeleteId = null;
+        _message = null;
+        _error = null;
+        try
+        {
+            await AdminService.DeleteSlotAsync(slotId, AdminUser);
+            _message = $"Blocker #{slotId} wurde gelöscht.";
+            await LoadAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
     }
 
     private string FormatSlot(DateTime startUtc, DateTime endUtc)

@@ -1,8 +1,17 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@using Umbraco.Cms.Core.Models
 @{
-    var heroImage = Model.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "";
+    var heroImage     = Model.Content.Value<IEnumerable<MediaWithCrops>>("heroImage")?.FirstOrDefault()?.Url() ?? "";
     var schlagwoerter = (Model.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    var bannerLabel   = Model.Content.Value<string>("bannerLabel") ?? "";
+    var bannerTitle   = Model.Content.Value<string>("bannerTitle") ?? "";
+    var bannerText    = Model.Content.Value<string>("bannerText")  ?? "";
+    var bannerLink    = Model.Content.Value<IEnumerable<Link>>("bannerLink")?.FirstOrDefault();
+    var bannerEndDate = Model.Content.Value<DateTime?>("bannerEndDate");
+    var showBanner    = !string.IsNullOrEmpty(bannerTitle)
+                        && (bannerEndDate == null || bannerEndDate.Value.Date >= DateTime.Now.Date);
 }
 <section class="hero">
   @if (!string.IsNullOrEmpty(heroImage))
@@ -19,6 +28,29 @@
       <span class="hero-word hero-word--r">ALLEE</span>
     </div>
   </div>
+  @if (showBanner)
+  {
+    <div class="hero-banner">
+      <div class="hero-banner-inner">
+        @if (!string.IsNullOrEmpty(bannerLabel))
+        {
+          <span class="hero-banner-label">@bannerLabel</span>
+        }
+        <span class="hero-banner-title">@bannerTitle</span>
+        @if (!string.IsNullOrEmpty(bannerText))
+        {
+          <p class="hero-banner-text">@bannerText</p>
+        }
+        @if (bannerLink != null && !string.IsNullOrEmpty(bannerLink.Url))
+        {
+          <a href="@bannerLink.Url" class="hero-banner-link">
+            @(string.IsNullOrEmpty(bannerLink.Name) ? "Mehr erfahren" : bannerLink.Name)
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg>
+          </a>
+        }
+      </div>
+    </div>
+  }
   <div class="hero-bar">
     @foreach (var tag in schlagwoerter)
     {

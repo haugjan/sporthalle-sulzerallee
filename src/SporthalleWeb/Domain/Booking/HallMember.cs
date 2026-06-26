@@ -15,7 +15,5 @@ public sealed record HallMember(
     string? Phone,
     string? Notes,
     bool HasKey,
-    bool HasPassword,
-    DateTime? MagicLinkSentAt,
-    DateTime? PasswordResetSentAt
+    bool HasPassword
 );

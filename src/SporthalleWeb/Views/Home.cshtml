@@ -22,6 +22,15 @@
     var schlagwoerter = (heroBlock?.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+    // Banner values
+    var bannerLabel   = heroBlock?.Content.Value<string>("bannerLabel") ?? "";
+    var bannerTitle   = heroBlock?.Content.Value<string>("bannerTitle") ?? "";
+    var bannerText    = heroBlock?.Content.Value<string>("bannerText")  ?? "";
+    var bannerLink    = heroBlock?.Content.Value<IEnumerable<Link>>("bannerLink")?.FirstOrDefault();
+    var bannerEndDate = heroBlock?.Content.Value<DateTime?>("bannerEndDate");
+    var showBanner    = !string.IsNullOrEmpty(bannerTitle)
+                        && (bannerEndDate == null || bannerEndDate.Value.Date >= DateTime.Now.Date);
+
     // Fest values
     var festLabel = festBlock?.Content.Value<string>("label") ?? "";
     var festTitel = festBlock?.Content.Value<string>("titel") ?? "";
@@ -29,7 +38,7 @@
     var festText  = festBlock?.Content.Value<string>("text")  ?? "";
 }
 @section Head {
-  <link rel="stylesheet" href="/css/elements/hero-element.css?v=2" />
+  <link rel="stylesheet" href="/css/elements/hero-element.css?v=4" />
   <link rel="stylesheet" href="/css/elements/fest-element.css?v=2" />
   <link rel="stylesheet" href="/css/elements/teaser-element.css?v=2" />
 }
@@ -54,6 +63,29 @@
       <div>
         <span class="hero-word hero-word--r">SULZER</span>
         <span class="hero-word hero-word--r">ALLEE</span>
+      </div>
+    </div>
+  }
+  @if (showBanner)
+  {
+    <div class="hero-banner">
+      <div class="hero-banner-inner">
+        @if (!string.IsNullOrEmpty(bannerLabel))
+        {
+          <span class="hero-banner-label">@bannerLabel</span>
+        }
+        <span class="hero-banner-title">@bannerTitle</span>
+        @if (!string.IsNullOrEmpty(bannerText))
+        {
+          <p class="hero-banner-text">@bannerText</p>
+        }
+        @if (bannerLink != null && !string.IsNullOrEmpty(bannerLink.Url))
+        {
+          <a href="@bannerLink.Url" class="hero-banner-link">
+            @(string.IsNullOrEmpty(bannerLink.Name) ? "Mehr erfahren" : bannerLink.Name)
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5h9M7 2.5l4 4-4 4"/></svg>
+          </a>
+        }
       </div>
     </div>
   }

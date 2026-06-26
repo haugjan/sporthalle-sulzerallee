@@ -64,6 +64,16 @@
                             <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
                         </div>
 
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chk-stp-@_editSlotId"
+                                       @bind="_editShowTitlePublic" />
+                                <label class="form-check-label" for="chk-stp-@_editSlotId">
+                                    Bezeichnung auf öffentlichem Kalender anzeigen
+                                </label>
+                            </div>
+                        </div>
+
                         <hr />
                         <div class="mb-2">
                             <label class="form-label fw-semibold">Mieter</label>
@@ -191,6 +201,7 @@
     private string _editStartTime = "";
     private string _editEndDate = "";
     private string _editEndTime = "";
+    private bool _editShowTitlePublic;
     private bool _editLoading;
     private string? _editError;
 
@@ -227,7 +238,8 @@
         _editSlotType     = slot.Type;
         _editTitle        = slot.Title ?? "";
         _editColor        = slot.Color ?? "#C0392B";
-        _editNotes        = slot.Notes ?? "";
+        _editNotes           = slot.Notes ?? "";
+        _editShowTitlePublic = slot.ShowTitlePublic;
         _editHasMember    = member is not null;
         _editMemberId     = member?.Id;
         _originalMemberId = member?.Id;
@@ -315,7 +327,7 @@
                 : (string.IsNullOrWhiteSpace(_editColor) ? null : _editColor.Trim());
             await AdminService.UpdateSlotAsync(_editSlotId.Value,
                 _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
-                AdminUser);
+                AdminUser, _editShowTitlePublic);
 
             if (_editMemberId != _originalMemberId)
                 await AdminService.ReassignMemberAsync(_editSlotId.Value, _editMemberId, AdminUser);

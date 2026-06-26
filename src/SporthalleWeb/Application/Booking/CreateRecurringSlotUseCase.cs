@@ -14,7 +14,8 @@ public sealed record RecurringSlotCommand(
     string? Color,
     string? Notes,
     bool IsBlocker = false,
-    int? MemberId = null);
+    int? MemberId = null,
+    bool ShowTitlePublic = false);
 
 public sealed record RecurringSlotConflictDate(DateOnly Date, string Label);
 public sealed record RecurringSlotCheckResult(int OccurrenceCount, IReadOnlyList<RecurringSlotConflictDate> Conflicts);
@@ -44,7 +45,7 @@ public sealed class CreateRecurringSlotUseCase(
     public async Task<RecurringSlotCreateResult> ExecuteAsync(RecurringSlotCommand cmd, string createdBy, bool skipConflicts)
     {
         var serie = RecurringSlot.Create(cmd.Title, cmd.Wochentag, cmd.StartTime, cmd.EndTime,
-            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, createdBy, cmd.IsBlocker, cmd.MemberId);
+            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, createdBy, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
         var serieId = await serieRepo.SaveAsync(serie);
 
         var occurrences = serie.GenerateOccurrences();
@@ -59,7 +60,7 @@ public sealed class CreateRecurringSlotUseCase(
                 if (overlaps.Count > 0) { skipped++; continue; }
             }
             var slotType = cmd.IsBlocker ? SlotType.Blocker : SlotType.Recurring;
-            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, createdBy, serieId, slotType, cmd.MemberId);
+            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, createdBy, serieId, slotType, cmd.MemberId, cmd.ShowTitlePublic);
             await slotRepo.SaveAsync(booking);
             created++;
         }

@@ -19,7 +19,7 @@ public sealed class GetWeekSlotsQuery(IBookingSlotRepository slotRepo)
                 EndUtc: s.Slot.EndUtc,
                 Type: s.Type.ToString(),
                 Color: s.Color,
-                Title: s.Title))
+                Title: s.ShowTitlePublic ? s.Title : ""))
             .ToList();
     }
 }

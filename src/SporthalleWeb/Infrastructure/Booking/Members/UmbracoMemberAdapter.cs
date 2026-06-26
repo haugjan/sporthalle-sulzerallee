@@ -121,7 +121,7 @@ public sealed class UmbracoMemberAdapter(
                 results.Add(new HallMember(
                     Id: member.Id,
                     Email: email,
-                    RenterType: new RenterType(member.GetValue<string>("renterType") ?? "Privatperson"),
+                    RenterType: new RenterType(GetDropdownValue(member, "renterType", "Privatperson")),
                     Name: orgName.NullIfEmpty(),
                     ContactFirstName: firstName,
                     ContactLastName: lastName,
@@ -133,9 +133,7 @@ public sealed class UmbracoMemberAdapter(
                     Phone: member.GetValue<string>("phone").NullIfEmpty(),
                     Notes: member.GetValue<string>("notes").NullIfEmpty(),
                     HasKey: member.GetValue<bool>("hasKey"),
-                    HasPassword: false,
-                    MagicLinkSentAt: null,
-                    PasswordResetSentAt: null));
+                    HasPassword: false));
             }
         }
 
@@ -193,42 +191,26 @@ public sealed class UmbracoMemberAdapter(
             throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 
-    public Task<DateTime?> GetMagicLinkSentAtAsync(int memberId)
+    private static string GetDropdownValue(IMember member, string alias, string fallback)
     {
-        var member = memberService.GetById(memberId);
-        var val = member?.GetValue<DateTime?>("magicLinkSentAt");
-        return Task.FromResult(val.HasValue ? DateTime.SpecifyKind(val.Value, DateTimeKind.Utc) : (DateTime?)null);
-    }
-
-    public Task SetMagicLinkSentAtAsync(int memberId, DateTime sentAt)
-    {
-        var member = memberService.GetById(memberId)
-            ?? throw new DomainException($"Member {memberId} nicht gefunden.");
-        member.SetValue("magicLinkSentAt", sentAt);
-        memberService.Save(member);
-        return Task.CompletedTask;
-    }
-
-    public Task<DateTime?> GetPasswordResetSentAtAsync(int memberId)
-    {
-        var member = memberService.GetById(memberId);
-        var val = member?.GetValue<DateTime?>("passwordResetSentAt");
-        return Task.FromResult(val.HasValue ? DateTime.SpecifyKind(val.Value, DateTimeKind.Utc) : (DateTime?)null);
-    }
-
-    public Task SetPasswordResetSentAtAsync(int memberId, DateTime sentAt)
-    {
-        var member = memberService.GetById(memberId)
-            ?? throw new DomainException($"Member {memberId} nicht gefunden.");
-        member.SetValue("passwordResetSentAt", sentAt);
-        memberService.Save(member);
-        return Task.CompletedTask;
+        var raw = member.GetValue<string>(alias);
+        if (raw is null) return fallback;
+        if (raw.StartsWith('['))
+        {
+            try
+            {
+                var items = System.Text.Json.JsonSerializer.Deserialize<string[]>(raw);
+                return items?.FirstOrDefault() ?? fallback;
+            }
+            catch { return fallback; }
+        }
+        return raw;
     }
 
     private static HallMember Map(MemberIdentityUser user, IMember member) => new(
         Id: int.Parse(user.Id),
         Email: user.Email ?? "",
-        RenterType: new RenterType(member.GetValue<string>("renterType") ?? "Privatperson"),
+        RenterType: new RenterType(GetDropdownValue(member, "renterType", "Privatperson")),
         Name: member.GetValue<string>("orgName").NullIfEmpty(),
         ContactFirstName: member.GetValue<string>("contactFirstName") ?? "",
         ContactLastName: member.GetValue<string>("contactLastName") ?? "",
@@ -240,9 +222,7 @@ public sealed class UmbracoMemberAdapter(
         Phone: member.GetValue<string>("phone").NullIfEmpty(),
         Notes: member.GetValue<string>("notes").NullIfEmpty(),
         HasKey: member.GetValue<bool>("hasKey"),
-        HasPassword: user.PasswordHash is not null,
-        MagicLinkSentAt: member.GetValue<DateTime?>("magicLinkSentAt"),
-        PasswordResetSentAt: member.GetValue<DateTime?>("passwordResetSentAt")
+        HasPassword: user.PasswordHash is not null
     );
 }
 

@@ -56,3 +56,66 @@
   .hero-word { font-size: 21vw; }
   .hero-wordmark { margin-left: -2vw; margin-right: -2vw; }
 }
+
+/* Skewed event banner */
+.hero-banner {
+  position: absolute;
+  left: -4%; right: -4%;
+  top: 50%;
+  transform: translateY(-50%) skewY(-3deg);
+  background: rgba(235, 80, 75, 0.88);
+  padding: 3rem 0;
+  z-index: 10;
+  pointer-events: none;
+}
+.hero-banner-inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 6%;
+  pointer-events: auto;
+}
+.hero-banner-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+.hero-banner-title {
+  font-family: 'Anton', Impact, sans-serif;
+  font-size: clamp(2.2rem, 5vw, 5rem);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: #fff;
+}
+.hero-banner-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(0.95rem, 1.8vw, 1.35rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0.15rem 0 0;
+}
+.hero-banner-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #fff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  padding-bottom: 0.1rem;
+}
+.hero-banner-link:hover { border-bottom-color: #fff; }
+@media (max-width: 700px) {
+  .hero-banner { padding: 2rem 0; }
+  .hero-banner-title { font-size: clamp(2rem, 10vw, 3rem); }
+}

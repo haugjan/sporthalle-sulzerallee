@@ -145,6 +145,15 @@
                         <label class="form-label fw-semibold">Bemerkungen</label>
                         <textarea class="form-control" @bind="_fNotes" rows="2"></textarea>
                     </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chk-stp-serie"
+                                   @bind="_fShowTitlePublic" />
+                            <label class="form-check-label" for="chk-stp-serie">
+                                Bezeichnung auf öffentlichem Kalender anzeigen
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 @if (_conflictDates.Count > 0)
@@ -308,6 +317,7 @@ else
     private string? _fColor = "#C62828";
     private string _fNotes = "";
     private bool _fIsBlocker;
+    private bool _fShowTitlePublic;
     private int? _fMemberId;
     private string? _fMemberName;
     private string _fMemberSearch = "";
@@ -350,6 +360,7 @@ else
         _fColor = "#C62828";
         _fNotes = "";
         _fIsBlocker = false;
+        _fShowTitlePublic = false;
         _fMemberId = null;
         _fMemberName = null;
         _fMemberSearch = "";
@@ -372,6 +383,7 @@ else
         _fColor = s.Color ?? "#C62828";
         _fNotes = s.Notes ?? "";
         _fIsBlocker = s.IsBlocker;
+        _fShowTitlePublic = s.ShowTitlePublic;
         _fMemberId = s.MemberId;
         _fMemberName = null;
         _fMemberSearch = "";
@@ -527,7 +539,8 @@ else
         _fIsBlocker ? null : _fColor,
         string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim(),
         IsBlocker: _fIsBlocker,
-        MemberId: _fIsBlocker ? null : _fMemberId);
+        MemberId: _fIsBlocker ? null : _fMemberId,
+        ShowTitlePublic: _fShowTitlePublic);
 
     private static readonly System.Globalization.CultureInfo Ic = System.Globalization.CultureInfo.InvariantCulture;
 

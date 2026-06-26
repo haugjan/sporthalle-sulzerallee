@@ -31,7 +31,7 @@ public sealed class UpdateRecurringSlotUseCase(
             ?? throw new DomainException("Serientermin nicht gefunden.");
 
         serie.Update(cmd.Title, cmd.Wochentag, cmd.StartTime, cmd.EndTime,
-            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, cmd.IsBlocker, cmd.MemberId);
+            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
 
         await serieRepo.UpdateAsync(serie);
         await slotRepo.DeleteByRecurringSlotIdAsync(serieId);
@@ -48,7 +48,7 @@ public sealed class UpdateRecurringSlotUseCase(
                 if (overlaps.Count > 0) { skipped++; continue; }
             }
             var slotType = cmd.IsBlocker ? SlotType.Blocker : SlotType.Recurring;
-            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, updatedBy, serieId, slotType, cmd.MemberId);
+            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, updatedBy, serieId, slotType, cmd.MemberId, serie.ShowTitlePublic);
             await slotRepo.SaveAsync(booking);
             created++;
         }

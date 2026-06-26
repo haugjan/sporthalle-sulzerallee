@@ -20,7 +20,8 @@ public class PassiveMemberMigrationPlan : MigrationPlan
             .To<AddAccountingTimestampColumnsMigration>("passivmitglieder-v5")
             .To<AddPhoneAndAddressLine2Migration>("passivmitglieder-v6")
             .To<EnsurePhoneAndAddressLine2Migration>("passivmitglieder-v7")
-            .To<EnsurePhoneAndAddressLine2ColumnsMigration>("passivmitglieder-v8");
+            .To<EnsurePhoneAndAddressLine2ColumnsMigration>("passivmitglieder-v8")
+            .To<DropPassivMitgliederTableMigration>("passivmitglieder-v9");
     }
 }
 
@@ -135,6 +136,21 @@ public class EnsurePhoneAndAddressLine2ColumnsMigration : AsyncMigrationBase
     public EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext context) : base(context) { }
 
     protected override Task MigrateAsync() => Task.CompletedTask;
+}
+
+// v9: passive members moved to Umbraco Members; drop the dedicated table.
+public class DropPassivMitgliederTableMigration : AsyncMigrationBase
+{
+    public DropPassivMitgliederTableMigration(IMigrationContext context) : base(context) { }
+
+    protected override Task MigrateAsync()
+    {
+        if (IndexExists("IX_PassivMitglieder_FieldNumber"))
+            Delete.Index("IX_PassivMitglieder_FieldNumber").OnTable("PassivMitglieder").Do();
+        if (TableExists("PassivMitglieder"))
+            Delete.Table("PassivMitglieder").Do();
+        return Task.CompletedTask;
+    }
 }
 
 public class PassiveMemberMigrationComponent : IAsyncComponent

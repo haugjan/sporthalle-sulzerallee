@@ -24,9 +24,9 @@
                 <label class="form-label">Mietertyp *</label>
                 <select name="renterType" class="form-select" required id="reg-renter-type">
                     <option value="Privatperson">Privatperson</option>
-                    <option value="Verein">Verein</option>
                     <option value="Firma">Firma / Unternehmen</option>
-                    <option value="Behörde">Behörde</option>
+                    <option value="Verein">Verein</option>
+                    <option value="Schule">Schule</option>
                 </select>
             </div>
             <div class="mb-3" id="reg-name-row" style="display:none">
@@ -99,7 +99,7 @@
     var nameRow = document.getElementById('reg-name-row');
     var nameLabel = document.getElementById('reg-name-label');
     var nameInput = document.getElementById('reg-name');
-    var labels = { 'Verein': 'Vereinsname *', 'Firma': 'Firmenname *', 'Behörde': 'Behördenname *' };
+    var labels = { 'Verein': 'Vereinsname *', 'Firma': 'Firmenname *', 'Schule': 'Schulname *' };
     function update() {
         var t = typeSelect.value;
         var isOrg = t !== 'Privatperson';

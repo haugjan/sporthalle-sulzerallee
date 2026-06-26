@@ -115,6 +115,12 @@
               <textarea id="admin-bm-notizen-blocker" rows="2" placeholder="Interne Notiz"></textarea>
             </label>
           </div>
+          <div class="bm-field bm-field--2col">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
+              <input type="checkbox" @bind="_blockerShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              Bezeichnung auf öffentlichem Kalender anzeigen
+            </label>
+          </div>
           <div id="admin-bm-error-blocker" class="bm-error" hidden></div>
         </div>
       </div>
@@ -172,6 +178,12 @@
           <div class="bm-field bm-field--2col">
             <label>Bemerkungen
               <textarea id="admin-bm-notizen" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
+              <input type="checkbox" @bind="_buchungShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              Bezeichnung auf öffentlichem Kalender anzeigen
             </label>
           </div>
 
@@ -257,6 +269,12 @@
               <textarea id="admin-bm-serie-notizen" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
             </label>
           </div>
+          <div class="bm-field bm-field--2col">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
+              <input type="checkbox" @bind="_serieShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              Bezeichnung auf öffentlichem Kalender anzeigen
+            </label>
+          </div>
 
           <!-- Konflikt-Panel (hidden initially) -->
           <div id="admin-bm-serie-conflicts" hidden style="width:100%">
@@ -297,6 +315,9 @@
     private DateOnly _serieBis = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
     private string _serieStartTime = "08:00";
     private string _serieEndTime = "10:00";
+    private bool _blockerShowTitlePublic;
+    private bool _buchungShowTitlePublic;
+    private bool _serieShowTitlePublic;
 
     private DotNetObjectReference<AdminCreateComponent>? _objRef;
 
@@ -352,7 +373,7 @@
                     startUtc, endUtc,
                     payload.Titel.Trim(), "#78909C",
                     string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen.Trim(),
-                    null, AdminUser);
+                    null, AdminUser, _blockerShowTitlePublic);
 
                 return Ok(true);
             }
@@ -367,7 +388,7 @@
                 payload.Anlass?.Trim() ?? "Buchung",
                 string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim(),
                 string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen!.Trim(),
-                payload.MemberId.Value, AdminUser);
+                payload.MemberId.Value, AdminUser, _buchungShowTitlePublic);
 
             return Ok(true);
         }
@@ -438,7 +459,7 @@
             var payload = JsonSerializer.Deserialize<RecurringSlotPayload>(payloadJson, opts);
             if (payload is null) return Err("Ungültige Daten.");
 
-            var cmd = BuildRecurringSlotCommand(payload);
+            var cmd = BuildRecurringSlotCommand(payload) with { ShowTitlePublic = _serieShowTitlePublic };
             var result = await CreateSerie.ExecuteAsync(cmd, AdminUser, skipConflicts);
 
             return JsonSerializer.Serialize(new { ok = true, created = result.Created, skipped = result.Skipped });

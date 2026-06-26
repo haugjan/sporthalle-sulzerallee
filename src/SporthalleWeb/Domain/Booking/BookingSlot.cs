@@ -1,4 +1,4 @@
-﻿namespace SporthalleWeb.Domain.Booking;
+namespace SporthalleWeb.Domain.Booking;
 
 public sealed class BookingSlot
 {
@@ -9,6 +9,7 @@ public sealed class BookingSlot
     public string Title { get; private set; } = "";
     public string? Color { get; private set; }
     public string? Notes { get; private set; }
+    public bool ShowTitlePublic { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public string CreatedBy { get; private set; } = "";
@@ -17,7 +18,8 @@ public sealed class BookingSlot
     private BookingSlot() { }
 
     public static BookingSlot CreateBlocker(
-        TimeSlot slot, string title, string? color, string? notes, string createdBy) =>
+        TimeSlot slot, string title, string? color, string? notes, string createdBy,
+        bool showTitlePublic = false) =>
         new()
         {
             Type = SlotType.Blocker,
@@ -25,13 +27,15 @@ public sealed class BookingSlot
             Title = title,
             Color = color,
             Notes = notes,
+            ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
 
     public static BookingSlot CreateReserved(
-        int memberId, TimeSlot slot, string title, string? color, string? notes, string createdBy) =>
+        int memberId, TimeSlot slot, string title, string? color, string? notes, string createdBy,
+        bool showTitlePublic = false) =>
         new()
         {
             MemberId = memberId,
@@ -40,13 +44,15 @@ public sealed class BookingSlot
             Title = title,
             Color = color,
             Notes = notes,
+            ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
 
     public static BookingSlot CreateBooked(
-        int memberId, TimeSlot slot, string title, string? color, string? notes, string createdBy) =>
+        int memberId, TimeSlot slot, string title, string? color, string? notes, string createdBy,
+        bool showTitlePublic = false) =>
         new()
         {
             MemberId = memberId,
@@ -55,6 +61,7 @@ public sealed class BookingSlot
             Title = title,
             Color = color,
             Notes = notes,
+            ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -62,7 +69,7 @@ public sealed class BookingSlot
 
     public static BookingSlot CreateSerie(
         TimeSlot slot, string title, string? color, string? notes, string createdBy, int recurringSlotId,
-        SlotType type = SlotType.Recurring, int? memberId = null) =>
+        SlotType type = SlotType.Recurring, int? memberId = null, bool showTitlePublic = false) =>
         new()
         {
             Type = type,
@@ -71,6 +78,7 @@ public sealed class BookingSlot
             Title = title,
             Color = color,
             Notes = notes,
+            ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
@@ -82,7 +90,7 @@ public sealed class BookingSlot
         DateTime startUtc, DateTime endUtc,
         string title, string? color, string? notes,
         DateTime createdAt, DateTime updatedAt, string createdBy,
-        int? recurringSlotId = null) =>
+        int? recurringSlotId = null, bool showTitlePublic = false) =>
         new()
         {
             Id = id,
@@ -92,6 +100,7 @@ public sealed class BookingSlot
             Title = title,
             Color = color,
             Notes = notes,
+            ShowTitlePublic = showTitlePublic,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt,
             CreatedBy = createdBy,
@@ -122,11 +131,12 @@ public sealed class BookingSlot
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string title, string? color, string? notes)
+    public void Update(string title, string? color, string? notes, bool showTitlePublic)
     {
         Title = title;
         Color = color;
         Notes = notes;
+        ShowTitlePublic = showTitlePublic;
         UpdatedAt = DateTime.UtcNow;
     }
 

@@ -134,15 +134,27 @@ else
                             else { <span class="text-muted">–</span> }
                         </td>
                         <td style="white-space:nowrap">
-                            @if (s.Type != SporthalleWeb.Domain.Booking.SlotType.Rejected)
+                            @if (_confirmDeleteId == s.Id)
                             {
-                                <button class="btn btn-sm btn-outline-secondary"
-                                        @onclick="() => _editRef!.OpenAsync(s.Id)">Bearbeiten</button>
+                                <button class="btn btn-sm btn-danger"
+                                        @onclick="() => ConfirmDeleteAsync(s.Id)">Wirklich löschen?</button>
+                                <button class="btn btn-sm btn-outline-secondary ms-1"
+                                        @onclick="() => _confirmDeleteId = null">Abbrechen</button>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-outline-success"
-                                        @onclick="() => ReactivateAsync(s.Id)">Reaktivieren</button>
+                                @if (s.Type != SporthalleWeb.Domain.Booking.SlotType.Rejected)
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            @onclick="() => _editRef!.OpenAsync(s.Id)">Bearbeiten</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-success"
+                                            @onclick="() => ReactivateAsync(s.Id)">Reaktivieren</button>
+                                }
+                                <button class="btn btn-sm btn-outline-danger ms-1"
+                                        @onclick="() => _confirmDeleteId = s.Id">Löschen</button>
                             }
                         </td>
                     </tr>
@@ -179,6 +191,7 @@ else
     private bool _showRejected;
     private string? _message;
     private string? _error;
+    private int? _confirmDeleteId;
 
     private DateOnly PeriodFrom => CalcFrom(_viewMode, _anchor);
     private DateOnly PeriodTo   => CalcTo(_viewMode, _anchor);
@@ -241,6 +254,20 @@ else
     {
         _message = "Buchung wurde gespeichert.";
         await LoadPeriodAsync();
+    }
+
+    private async Task ConfirmDeleteAsync(int slotId)
+    {
+        _confirmDeleteId = null;
+        _message = null;
+        _error = null;
+        try
+        {
+            await AdminService.DeleteSlotAsync(slotId, AdminUser);
+            _message = $"Buchung #{slotId} wurde gelöscht.";
+            await LoadPeriodAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
     }
 
     private async Task ReactivateAsync(int slotId)
