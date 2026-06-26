@@ -102,7 +102,7 @@
                     Angemeldet als <strong>@_email</strong>
                 </div>
                 <button class="btn btn-secondary mt-2" @onclick="() => _step = PickerStep.Zeit">&larr; Zurück</button>
-                <button class="btn btn-primary ms-2 mt-2" @onclick="() => _step = PickerStep.Bestaetigen">Weiter &rarr;</button>
+                <button class="btn btn-primary ms-2 mt-2" @onclick="() => _step = PickerStep.Confirm">Weiter &rarr;</button>
             }
             else
             {
@@ -149,7 +149,7 @@
             }
             break;
 
-        case PickerStep.Bestaetigen:
+        case PickerStep.Confirm:
             <h3 class="h5 mt-3">Buchung bestätigen</h3>
             <dl class="row mt-2">
                 <dt class="col-sm-4">Datum / Zeit</dt>
@@ -170,7 +170,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Bemerkungen (optional)</label>
-                <textarea class="form-control" @bind="_notizen" rows="3"></textarea>
+                <textarea class="form-control" @bind="_notes" rows="3"></textarea>
             </div>
             @if (_error is not null)
             {
@@ -182,7 +182,7 @@
             </button>
             break;
 
-        case PickerStep.Bestaetigung:
+        case PickerStep.Confirmation:
             <div class="alert alert-success mt-3">
                 <h4 class="alert-heading">Anfrage eingegangen!</h4>
                 <p class="mb-0">Wir prüfen deinen Termin und melden uns per E-Mail.</p>
@@ -210,7 +210,7 @@
 </div>
 
 @code {
-    private enum PickerStep { Dauer, Datum, Zeit, Kontakt, Bestaetigen, Bestaetigung }
+    private enum PickerStep { Dauer, Datum, Zeit, Kontakt, Confirm, Confirmation }
 
     private bool _isLoggedIn;
     private int? _memberId;
@@ -237,7 +237,7 @@
     private bool _loadingSlots;
     private SporthalleWeb.Application.Booking.SlotOption? _selectedSlot;
     private string _anlass = "";
-    private string? _notizen;
+    private string? _notes;
     private string? _error;
     private bool _submitting;
 
@@ -339,7 +339,7 @@
             return;
         }
 
-        _step = PickerStep.Bestaetigen;
+        _step = PickerStep.Confirm;
     }
 
     private async Task SubmitAsync()
@@ -385,9 +385,9 @@
             }
 
             var bookCmd = new SporthalleWeb.Application.Booking.CreateBookingCommand(
-                memberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _anlass, _notizen);
+                memberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _anlass, _notes);
             await CreateBooking.ExecuteAsync(bookCmd);
-            _step = PickerStep.Bestaetigung;
+            _step = PickerStep.Confirmation;
         }
         catch (SporthalleWeb.Domain.Booking.SlotConflictException)
         {
@@ -429,7 +429,7 @@
         _selectedDate = null;
         _selectedSlot = null;
         _anlass = _anlaesse.FirstOrDefault() ?? "";
-        _notizen = null;
+        _notes = null;
         _error = null;
         _guestName = "";
         _guestEmail = "";

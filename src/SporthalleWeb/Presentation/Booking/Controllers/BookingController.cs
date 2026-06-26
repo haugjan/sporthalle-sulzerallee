@@ -31,25 +31,25 @@ public sealed class BookingController(
     IHallConfigurationPort hallConfig,
     ICaptchaPort captcha) : ControllerBase
 {
-    // ── Konfiguration ─────────────────────────────────────────────────────────
+    // ── Configuration ─────────────────────────────────────────────────────────
 
     [HttpGet("konfiguration")]
-    public async Task<IActionResult> GetKonfiguration()
+    public async Task<IActionResult> GetConfiguration()
     {
-        var oeffnungVon = await hallConfig.GetOpeningHourStartAsync();
-        var oeffnungBis = await hallConfig.GetOpeningHourEndAsync();
-        var dauern = await hallConfig.GetBookableDurationsAsync();
-        var preisText = await hallConfig.GetPreisTextAsync();
-        var vorlaufzeitTage = await hallConfig.GetShortNoticeDaysAsync();
+        var openingHourStart = await hallConfig.GetOpeningHourStartAsync();
+        var openingHourEnd = await hallConfig.GetOpeningHourEndAsync();
+        var durations = await hallConfig.GetBookableDurationsAsync();
+        var priceText = await hallConfig.GetPriceTextAsync();
+        var noticeDays = await hallConfig.GetShortNoticeDaysAsync();
         var cutoffDate = await hallConfig.GetBookingCutoffDateAsync();
         return Ok(new
         {
-            oeffnungVon,
-            oeffnungBis,
-            buchbareDauern = dauern,
-            preisText,
-            vorlaufzeitTage,
-            buchungenCutoffDatum = cutoffDate?.ToString("yyyy-MM-dd")
+            openingHourStart,
+            openingHourEnd,
+            bookableDurations = durations,
+            priceText,
+            noticeDays,
+            bookingCutoffDate = cutoffDate?.ToString("yyyy-MM-dd")
         });
     }
 
@@ -121,7 +121,7 @@ public sealed class BookingController(
             await memberManager.SignInAsync(memberId);
 
             var booking = await createBooking.ExecuteAsync(new CreateBookingCommand(
-                memberId, req.StartUtc, req.EndUtc, req.Title, req.Notizen));
+                memberId, req.StartUtc, req.EndUtc, req.Title, req.Notes));
 
             return Ok(new { bookingId = booking.Id, memberEmail = req.GuestEmail.Trim() });
         }
@@ -138,11 +138,11 @@ public sealed class BookingController(
     // ── Calendar / week view ──────────────────────────────────────────────────
 
     [HttpGet("wochen-slots")]
-    public async Task<IActionResult> GetWochenSlots([FromQuery] string von)
+    public async Task<IActionResult> GetWeekSlots([FromQuery] string from)
     {
-        if (!DateOnly.TryParseExact(von, "yyyy-MM-dd", null,
+        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", null,
                 System.Globalization.DateTimeStyles.None, out var date))
-            return BadRequest("Parameter 'von' muss im Format YYYY-MM-DD angegeben werden.");
+            return BadRequest("Parameter 'from' muss im Format YYYY-MM-DD angegeben werden.");
 
         var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
         var monday = date.AddDays(-daysFromMonday);
@@ -150,12 +150,12 @@ public sealed class BookingController(
     }
 
     [HttpGet("verfuegbare-tage")]
-    public async Task<IActionResult> GetVerfuegbareTage(
+    public async Task<IActionResult> GetAvailableDays(
         [FromQuery] string monat, [FromQuery] int dauern = 60)
         => Ok(await availableDaysQuery.GetAsync(monat, dauern));
 
     [HttpGet("verfuegbare-slots")]
-    public async Task<IActionResult> GetVerfuegbareSlots(
+    public async Task<IActionResult> GetAvailableTimeSlots(
         [FromQuery] string datum, [FromQuery] int dauern = 60)
         => Ok(await availableTimeSlotsQuery.GetAsync(datum, dauern));
 
@@ -275,7 +275,7 @@ public sealed class BookingController(
 
     [HttpGet("meine-buchungen")]
     [Authorize]
-    public async Task<IActionResult> GetMeineBuchungen()
+    public async Task<IActionResult> GetMyBookings()
     {
         var memberId = GetMemberId();
         if (memberId is null) return Unauthorized();
@@ -285,7 +285,7 @@ public sealed class BookingController(
 
     [HttpPost("buchungen")]
     [Authorize]
-    public async Task<IActionResult> CreateBuchung([FromBody] CreateBookingRequest req)
+    public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest req)
     {
         var memberId = GetMemberId();
         if (memberId is null) return Unauthorized();
@@ -362,11 +362,11 @@ public sealed class BookingController(
 
     [HttpGet("admin/export")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> ExportCsv([FromQuery] string von, [FromQuery] string bis)
+    public async Task<IActionResult> ExportCsv([FromQuery] string from, [FromQuery] string to)
     {
-        if (!DateOnly.TryParseExact(von, "yyyy-MM-dd", null,
+        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", null,
                 System.Globalization.DateTimeStyles.None, out var fromDate) ||
-            !DateOnly.TryParseExact(bis, "yyyy-MM-dd", null,
+            !DateOnly.TryParseExact(to, "yyyy-MM-dd", null,
                 System.Globalization.DateTimeStyles.None, out var toDate))
             return BadRequest(new { error = "Von und Bis müssen im Format YYYY-MM-DD angegeben werden." });
 
@@ -374,7 +374,7 @@ public sealed class BookingController(
         var toUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local).ToUniversalTime();
         var csv = await csvExport.ExportAsync(fromUtc, toUtc);
 
-        return File(csv, "text/csv; charset=utf-8", $"buchungen_{von}_{bis}.csv");
+        return File(csv, "text/csv; charset=utf-8", $"buchungen_{from}_{to}.csv");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -400,5 +400,5 @@ public sealed record GuestBookingRequest(
     DateTime StartUtc,
     DateTime EndUtc,
     string Title,
-    string? Notizen,
+    string? Notes,
     string? CaptchaToken);

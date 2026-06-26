@@ -9,7 +9,7 @@ public sealed class RecurringSlot
 
     public int Id { get; private set; }
     public string Title { get; private set; } = "";
-    public DayOfWeek Wochentag { get; private set; }
+    public DayOfWeek Weekday { get; private set; }
     public TimeOnly StartTime { get; private set; }
     public TimeOnly EndTime { get; private set; }
     public DateOnly SeriesStart { get; private set; }
@@ -26,13 +26,13 @@ public sealed class RecurringSlot
     private RecurringSlot() { }
 
     public static RecurringSlot Create(
-        string title, DayOfWeek wochentag, TimeOnly startTime, TimeOnly endTime,
+        string title, DayOfWeek weekday, TimeOnly startTime, TimeOnly endTime,
         DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes, string createdBy,
         bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
         new()
         {
             Title = title,
-            Wochentag = wochentag,
+            Weekday = weekday,
             StartTime = startTime,
             EndTime = endTime,
             SeriesStart = seriesStart,
@@ -48,7 +48,7 @@ public sealed class RecurringSlot
         };
 
     public static RecurringSlot FromPersistence(
-        int id, string title, int wochentag, string startTime, string endTime,
+        int id, string title, int weekday, string startTime, string endTime,
         string seriesStart, string seriesEnd, string? color, string? notes,
         string createdBy, DateTime createdAt, DateTime updatedAt,
         bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
@@ -56,7 +56,7 @@ public sealed class RecurringSlot
         {
             Id = id,
             Title = title,
-            Wochentag = (DayOfWeek)wochentag,
+            Weekday = (DayOfWeek)weekday,
             StartTime = TimeOnly.Parse(startTime, CultureInfo.InvariantCulture),
             EndTime = TimeOnly.Parse(endTime, CultureInfo.InvariantCulture),
             SeriesStart = DateOnly.Parse(seriesStart, CultureInfo.InvariantCulture),
@@ -72,12 +72,12 @@ public sealed class RecurringSlot
         };
 
     public void Update(
-        string title, DayOfWeek wochentag, TimeOnly startTime, TimeOnly endTime,
+        string title, DayOfWeek weekday, TimeOnly startTime, TimeOnly endTime,
         DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes,
         bool isBlocker, int? memberId, bool showTitlePublic)
     {
         Title = title;
-        Wochentag = wochentag;
+        Weekday = weekday;
         StartTime = startTime;
         EndTime = endTime;
         SeriesStart = seriesStart;
@@ -96,7 +96,7 @@ public sealed class RecurringSlot
         var current = SeriesStart;
         while (current <= SeriesEnd)
         {
-            if (current.DayOfWeek == Wochentag)
+            if (current.DayOfWeek == Weekday)
             {
                 var startLocal = current.ToDateTime(StartTime);
                 var endLocal = current.ToDateTime(EndTime);

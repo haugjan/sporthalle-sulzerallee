@@ -12,7 +12,7 @@ public sealed class UpdateRecurringSlotUseCase(
 
     public async Task<RecurringSlotCheckResult> CheckConflictsAsync(int serieId, RecurringSlotCommand cmd)
     {
-        var temp = RecurringSlot.Create(cmd.Title, cmd.Wochentag, cmd.StartTime, cmd.EndTime,
+        var temp = RecurringSlot.Create(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
             cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, "");
         var occurrences = temp.GenerateOccurrences();
         var conflicts = new List<RecurringSlotConflictDate>();
@@ -30,7 +30,7 @@ public sealed class UpdateRecurringSlotUseCase(
         var serie = await serieRepo.FindByIdAsync(serieId)
             ?? throw new DomainException("Serientermin nicht gefunden.");
 
-        serie.Update(cmd.Title, cmd.Wochentag, cmd.StartTime, cmd.EndTime,
+        serie.Update(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
             cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
 
         await serieRepo.UpdateAsync(serie);

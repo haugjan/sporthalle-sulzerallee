@@ -510,9 +510,9 @@ window.SporthalleAdmin = (function () {
 
   function resetAdminModal() {
     setEl('admin-bm-titel', '');
-    setEl('admin-bm-notizen-blocker', '');
+    setEl('admin-bm-notes-blocker', '');
     setEl('admin-bm-anlass', '');
-    setEl('admin-bm-notizen', '');
+    setEl('admin-bm-notes', '');
     clearSelectedMember();
     selectColor('#F1C40F');
     hideError('admin-bm-error-blocker');
@@ -571,9 +571,9 @@ window.SporthalleAdmin = (function () {
 
   function prefillSerieForm() {
     if (!selectedSlot) return;
-    setEl('admin-bm-serie-von-datum', toLocalDateStr(selectedSlot.day));
-    setEl('admin-bm-serie-bis-datum', toLocalDateStr(selectedSlot.day));
-    setEl('admin-bm-serie-wochentag', String(selectedSlot.day.getDay()));
+    setEl('admin-bm-serie-start', toLocalDateStr(selectedSlot.day));
+    setEl('admin-bm-serie-end', toLocalDateStr(selectedSlot.day));
+    setEl('admin-bm-serie-weekday', String(selectedSlot.day.getDay()));
     var startTime = minutesToTimeStr(selectedSlot.startMin);
     var endTime = minutesToTimeStr(selectedSlot.endMin);
     setEl('admin-bm-serie-start-time', startTime);
@@ -686,14 +686,14 @@ window.SporthalleAdmin = (function () {
     hideError(_modalTyp === 'blocker' ? 'admin-bm-error-blocker' : 'admin-bm-error');
     var payload;
     if (_modalTyp === 'blocker') {
-      var titel = getVal('admin-bm-titel');
-      if (!titel) { showError('admin-bm-error-blocker', 'Bezeichnung ist erforderlich.'); return; }
+      var title = getVal('admin-bm-titel');
+      if (!title) { showError('admin-bm-error-blocker', 'Bezeichnung ist erforderlich.'); return; }
       payload = {
         isBlocker: true,
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
-        titel: titel,
-        notizen: getVal('admin-bm-notizen-blocker') || null
+        title: title,
+        notes: getVal('admin-bm-notes-blocker') || null
       };
       disableSubmit('admin-bm-submit-blocker', 'Speichern…');
     } else {
@@ -705,15 +705,15 @@ window.SporthalleAdmin = (function () {
         isBlocker: false,
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
-        anlass: anlass,
+        eventTitle: anlass,
         color: _selectedColor,
         memberId: parseInt(memberId, 10),
-        notizen: getVal('admin-bm-notizen') || null
+        notes: getVal('admin-bm-notes') || null
       };
       disableSubmit('admin-bm-submit', 'Wird gespeichert…');
     }
 
-    _dotNet.invokeMethodAsync('BuchungAnlegenAsync', JSON.stringify(payload))
+    _dotNet.invokeMethodAsync('CreateSlotAsync', JSON.stringify(payload))
       .then(function (resultJson) {
         var result = JSON.parse(resultJson);
         if (result.ok) {
@@ -761,33 +761,33 @@ window.SporthalleAdmin = (function () {
     hideSerieConflicts();
     _seriePayload = null;
 
-    var titel = getVal('admin-bm-serie-titel');
-    var vonDatum = getVal('admin-bm-serie-von-datum');
-    var bisDatum = getVal('admin-bm-serie-bis-datum');
+    var title = getVal('admin-bm-serie-titel');
+    var seriesStart = getVal('admin-bm-serie-start');
+    var seriesEnd = getVal('admin-bm-serie-end');
     var startTime = getVal('admin-bm-serie-start-time');
     var endTime = getVal('admin-bm-serie-end-time');
-    if (!titel) { showError('admin-bm-error-serie', 'Bezeichnung ist erforderlich.'); return; }
-    if (!vonDatum) { showError('admin-bm-error-serie', 'Serie-Beginn ist erforderlich.'); return; }
-    if (!bisDatum) { showError('admin-bm-error-serie', 'Serie-Ende ist erforderlich.'); return; }
-    if (bisDatum < vonDatum) { showError('admin-bm-error-serie', 'Serie-Ende muss nach Serie-Beginn liegen.'); return; }
+    if (!title) { showError('admin-bm-error-serie', 'Bezeichnung ist erforderlich.'); return; }
+    if (!seriesStart) { showError('admin-bm-error-serie', 'Serie-Beginn ist erforderlich.'); return; }
+    if (!seriesEnd) { showError('admin-bm-error-serie', 'Serie-Ende ist erforderlich.'); return; }
+    if (seriesEnd < seriesStart) { showError('admin-bm-error-serie', 'Serie-Ende muss nach Serie-Beginn liegen.'); return; }
     if (!startTime || !endTime) { showError('admin-bm-error-serie', 'Zeiten sind erforderlich.'); return; }
     if (endTime <= startTime) { showError('admin-bm-error-serie', 'Endzeit muss nach Startzeit liegen.'); return; }
 
     var payload = {
-      titel: titel,
-      wochentag: parseInt(getVal('admin-bm-serie-wochentag'), 10),
+      title: title,
+      weekday: parseInt(getVal('admin-bm-serie-weekday'), 10),
       startTime: startTime,
       endTime: endTime,
-      vonDatum: vonDatum,
-      bisDatum: bisDatum,
+      seriesStart: seriesStart,
+      seriesEnd: seriesEnd,
       color: _modalTyp === 'blocker' ? null : (_selectedSerieColor || null),
-      notizen: getVal('admin-bm-serie-notizen') || null,
+      notes: getVal('admin-bm-serie-notes') || null,
       isBlocker: _modalTyp === 'blocker'
     };
 
     disableSubmit('admin-bm-submit-serie', 'Prüfen…');
 
-    _dotNet.invokeMethodAsync('SerienTerminPruefenAsync', JSON.stringify(payload))
+    _dotNet.invokeMethodAsync('CheckRecurringConflictsAsync', JSON.stringify(payload))
       .then(function (resultJson) {
         var result = JSON.parse(resultJson);
         if (result.error) {
@@ -819,7 +819,7 @@ window.SporthalleAdmin = (function () {
 
   function doSerienAnlegen(payload, skipConflicts) {
     disableSubmit('admin-bm-submit-serie', 'Wird gespeichert…');
-    _dotNet.invokeMethodAsync('SerienTerminAnlegenAsync', JSON.stringify(payload), skipConflicts)
+    _dotNet.invokeMethodAsync('CreateRecurringSlotAsync', JSON.stringify(payload), skipConflicts)
       .then(function (resultJson) {
         var result = JSON.parse(resultJson);
         if (result.ok) {
@@ -890,8 +890,8 @@ window.SporthalleAdmin = (function () {
     if (!grid) return;
     clearSelectionOverlay();
     grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Lade Kalender …</div>';
-    var von = toLocalDateStr(currentMonday);
-    _dotNet.invokeMethodAsync('GetWochenSlotsAsync', von)
+    var weekStart = toLocalDateStr(currentMonday);
+    _dotNet.invokeMethodAsync('GetWeekSlotsAsync', weekStart)
       .then(function (json) {
         lastSlots = JSON.parse(json);
         renderGrid(lastSlots);
@@ -921,8 +921,8 @@ window.SporthalleAdmin = (function () {
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (cfg) {
         if (cfg) {
-          if (cfg.oeffnungVon !== undefined) OPENING_HOUR_START = cfg.oeffnungVon;
-          if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
+          if (cfg.openingHourStart !== undefined) OPENING_HOUR_START = cfg.openingHourStart;
+          if (cfg.openingHourEnd !== undefined) OPENING_HOUR_END = cfg.openingHourEnd;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
         }
         callback();

@@ -660,7 +660,7 @@
     var billingPlz = getVal('bm-billing-plz');
     var billingCity = getVal('bm-billing-city');
     var anlass = getVal('bm-anlass');
-    var notizen = getVal('bm-notizen');
+    var notes = getVal('bm-notes');
 
     var captchaToken = getBmTurnstileToken();
 
@@ -702,7 +702,7 @@
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
         title: anlass,
-        notizen: notizen || null,
+        notes: notes || null,
         captchaToken: captchaToken
       })
     })
@@ -749,8 +749,8 @@
     clearSelectionOverlay();
     grid.innerHTML = '<div class="calendar-loading" style="grid-column:1/-1">Lade Kalender …</div>';
 
-    var von = toLocalDateStr(currentMonday);
-    fetch('/api/reservierung/wochen-slots?von=' + von)
+    var weekStart = toLocalDateStr(currentMonday);
+    fetch('/api/reservierung/wochen-slots?from=' + weekStart)
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
@@ -786,22 +786,22 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (cfg) {
         if (cfg) {
-          if (cfg.oeffnungVon !== undefined) OPENING_HOUR_START = cfg.oeffnungVon;
-          if (cfg.oeffnungBis !== undefined) OPENING_HOUR_END = cfg.oeffnungBis;
+          if (cfg.openingHourStart !== undefined) OPENING_HOUR_START = cfg.openingHourStart;
+          if (cfg.openingHourEnd !== undefined) OPENING_HOUR_END = cfg.openingHourEnd;
           TOTAL_BLOCKS = (OPENING_HOUR_END - OPENING_HOUR_START) * (60 / BLOCK_MINUTES);
-          if (cfg.vorlaufzeitTage !== undefined) VORLAUFZEIT_TAGE = cfg.vorlaufzeitTage;
-          if (cfg.buchungenCutoffDatum) {
-            var parts = cfg.buchungenCutoffDatum.split('-');
+          if (cfg.noticeDays !== undefined) VORLAUFZEIT_TAGE = cfg.noticeDays;
+          if (cfg.bookingCutoffDate) {
+            var parts = cfg.bookingCutoffDate.split('-');
             BUCHUNGS_CUTOFF_DATUM = new Date(+parts[0], +parts[1] - 1, +parts[2]);
             BUCHUNGS_CUTOFF_DATUM.setHours(0, 0, 0, 0);
           } else {
             BUCHUNGS_CUTOFF_DATUM = null;
           }
-          if (cfg.preisText) {
+          if (cfg.priceText) {
             var panel = document.getElementById('preis-panel');
             var text = document.getElementById('preis-panel-text');
             if (panel && text) {
-              text.textContent = cfg.preisText;
+              text.textContent = cfg.priceText;
               panel.hidden = false;
             }
           }

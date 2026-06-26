@@ -16,7 +16,7 @@ public sealed class RecurringSlotTests
             start, end, "#c00", "notes", "admin");
 
         Assert.Equal("Training", slot.Title);
-        Assert.Equal(DayOfWeek.Monday, slot.Wochentag);
+        Assert.Equal(DayOfWeek.Monday, slot.Weekday);
         Assert.Equal(new TimeOnly(9, 0), slot.StartTime);
         Assert.Equal(new TimeOnly(11, 0), slot.EndTime);
         Assert.Equal(start, slot.SeriesStart);
@@ -94,7 +94,7 @@ public sealed class RecurringSlotTests
             isBlocker: false, memberId: null, showTitlePublic: false);
 
         Assert.Equal("New", slot.Title);
-        Assert.Equal(DayOfWeek.Friday, slot.Wochentag);
+        Assert.Equal(DayOfWeek.Friday, slot.Weekday);
         Assert.Equal(new TimeOnly(14, 0), slot.StartTime);
     }
 

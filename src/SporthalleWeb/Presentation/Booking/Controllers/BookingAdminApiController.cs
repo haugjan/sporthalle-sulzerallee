@@ -20,7 +20,7 @@ public sealed class BookingAdminApiController(
     IBookingCsvPort csvExport,
     IMemberManagerPort memberManager) : ControllerBase
 {
-    // ── Reservierte Buchungen (ausstehend) ────────────────────────────────────
+    // ── Pending bookings ──────────────────────────────────────────────────────
 
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
@@ -29,30 +29,30 @@ public sealed class BookingAdminApiController(
         return Ok(items.Select(x => MapToDto(x.Slot, x.Member)));
     }
 
-    // ── Alle Buchungen (gefiltert) ────────────────────────────────────────────
+    // ── All bookings (filtered) ───────────────────────────────────────────────
 
-    // GET /api/admin/reservierungen?von=2026-01-01&bis=2026-12-31&type=Booked
+    // GET /api/admin/reservierungen?from=2026-01-01&to=2026-12-31&type=Booked
     [HttpGet("")]
     public async Task<IActionResult> GetAll(
-        [FromQuery] string? von,
-        [FromQuery] string? bis,
+        [FromQuery] string? from,
+        [FromQuery] string? to,
         [FromQuery] string? type)
     {
-        DateOnly? from = null;
-        DateOnly? to = null;
+        DateOnly? fromDate = null;
+        DateOnly? toDate = null;
         SlotType? slotType = null;
 
-        if (von is not null)
+        if (from is not null)
         {
-            if (!DateOnly.TryParse(von, out var parsedFrom))
-                return BadRequest(new { error = "'von' muss im Format YYYY-MM-DD angegeben werden." });
-            from = parsedFrom;
+            if (!DateOnly.TryParse(from, out var parsedFrom))
+                return BadRequest(new { error = "'from' muss im Format YYYY-MM-DD angegeben werden." });
+            fromDate = parsedFrom;
         }
-        if (bis is not null)
+        if (to is not null)
         {
-            if (!DateOnly.TryParse(bis, out var parsedTo))
-                return BadRequest(new { error = "'bis' muss im Format YYYY-MM-DD angegeben werden." });
-            to = parsedTo;
+            if (!DateOnly.TryParse(to, out var parsedTo))
+                return BadRequest(new { error = "'to' muss im Format YYYY-MM-DD angegeben werden." });
+            toDate = parsedTo;
         }
         if (type is not null)
         {
@@ -61,11 +61,11 @@ public sealed class BookingAdminApiController(
             slotType = parsed;
         }
 
-        var slots = await slotRepo.GetAllAsync(from, to, slotType);
+        var slots = await slotRepo.GetAllAsync(fromDate, toDate, slotType);
         return Ok(slots.Select(s => MapToDto(s, null)));
     }
 
-    // ── Einzel-Buchung ────────────────────────────────────────────────────────
+    // ── Single booking ────────────────────────────────────────────────────────
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
@@ -76,7 +76,7 @@ public sealed class BookingAdminApiController(
         return Ok(MapToDto(slot, null));
     }
 
-    // ── Erfassen (neuer Slot durch Admin) ────────────────────────────────────
+    // ── Create slot (admin) ───────────────────────────────────────────────────
 
     [HttpPost("")]
     public async Task<IActionResult> Create([FromBody] AdminCreateSlotRequest req)
@@ -99,10 +99,10 @@ public sealed class BookingAdminApiController(
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Bestätigen (Reserved → Booked) ───────────────────────────────────────
+    // ── Confirm (Reserved → Booked) ───────────────────────────────────────────
 
     [HttpPost("{id:int}/bestaetigen")]
-    public async Task<IActionResult> Bestaetigen(int id)
+    public async Task<IActionResult> Confirm(int id)
     {
         try
         {
@@ -112,25 +112,25 @@ public sealed class BookingAdminApiController(
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Ablehnen (löscht Reserved-Slot) ──────────────────────────────────────
+    // ── Reject (deletes Reserved slot) ───────────────────────────────────────
 
     [HttpPost("{id:int}/ablehnen")]
-    public async Task<IActionResult> Ablehnen(int id, [FromBody] AdminRejectRequest req)
+    public async Task<IActionResult> Reject(int id, [FromBody] AdminRejectRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.Grund))
+        if (string.IsNullOrWhiteSpace(req.Reason))
             return BadRequest(new { error = "Ablehnungsgrund ist erforderlich." });
         try
         {
-            await rejectBooking.ExecuteAsync(id, req.Grund, User.Identity?.Name ?? "admin");
+            await rejectBooking.ExecuteAsync(id, req.Reason, User.Identity?.Name ?? "admin");
             return Ok(new { bookingId = id, deleted = true });
         }
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Löschen (Booked oder Blocker entfernen) ───────────────────────────────
+    // ── Delete (Booked or Blocker) ────────────────────────────────────────────
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Loeschen(int id)
+    public async Task<IActionResult> Delete(int id)
     {
         try
         {
@@ -140,7 +140,7 @@ public sealed class BookingAdminApiController(
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Mitglieder-Suche ─────────────────────────────────────────────────────
+    // ── Member search ─────────────────────────────────────────────────────────
 
     [HttpGet("members/search")]
     public async Task<IActionResult> SearchMembers([FromQuery] string? q)
@@ -158,20 +158,20 @@ public sealed class BookingAdminApiController(
         }));
     }
 
-    // ── CSV-Export ────────────────────────────────────────────────────────────
+    // ── CSV export ────────────────────────────────────────────────────────────
 
     [HttpGet("export")]
     public async Task<IActionResult> Export(
-        [FromQuery] string von,
-        [FromQuery] string bis)
+        [FromQuery] string from,
+        [FromQuery] string to)
     {
-        if (!DateOnly.TryParse(von, out var from) || !DateOnly.TryParse(bis, out var to))
-            return BadRequest(new { error = "'von' und 'bis' müssen im Format YYYY-MM-DD angegeben werden." });
+        if (!DateOnly.TryParse(from, out var fromDate) || !DateOnly.TryParse(to, out var toDate))
+            return BadRequest(new { error = "'from' und 'to' müssen im Format YYYY-MM-DD angegeben werden." });
 
         var csv = await csvExport.ExportAsync(
-            from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc));
-        return File(csv, "text/csv", $"reservierungen-{von}-{bis}.csv");
+            fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc));
+        return File(csv, "text/csv", $"reservierungen-{from}-{to}.csv");
     }
 
     // ── Mapping ───────────────────────────────────────────────────────────────
@@ -184,28 +184,28 @@ public sealed class BookingAdminApiController(
         endUtc   = slot.Slot.EndUtc,
         title    = slot.Title,
         color    = slot.Color,
-        notizen  = slot.Notes,
-        mitglied = member is null ? null : new
+        notes    = slot.Notes,
+        member   = member is null ? null : new
         {
             id               = member.Id,
             email            = member.Email,
             contactFirstName = member.ContactFirstName,
             contactLastName  = member.ContactLastName,
             name             = member.Name,
-            strasse          = member.BillingAddress,
-            adresszusatz     = member.AddressLine2,
-            plz              = member.BillingPostalCode,
-            ort              = member.BillingCity,
-            telefon          = member.Phone,
+            address          = member.BillingAddress,
+            addressLine2     = member.AddressLine2,
+            postalCode       = member.BillingPostalCode,
+            city             = member.BillingCity,
+            phone            = member.Phone,
         }
     };
 
-    // ── Dev-only Seed: Serientermine ohne Auth anlegen ───────────────────────
+    // ── Dev-only seed: create recurring slots without auth ────────────────────
 
     [HttpPost("serientermine/seed")]
     [AllowAnonymous]
-    public async Task<IActionResult> SeedSerie(
-        [FromBody] SerieTerminSeedRequest req,
+    public async Task<IActionResult> SeedRecurring(
+        [FromBody] RecurringSlotSeedRequest req,
         [FromServices] CreateRecurringSlotUseCase createSerie,
         [FromServices] IWebHostEnvironment env)
     {
@@ -214,11 +214,11 @@ public sealed class BookingAdminApiController(
 
         var cmd = new RecurringSlotCommand(
             req.Title,
-            (DayOfWeek)req.Wochentag,
-            TimeOnly.Parse(req.Von),
-            TimeOnly.Parse(req.Bis),
-            DateOnly.Parse(req.SerieVon),
-            DateOnly.Parse(req.SerieBis),
+            (DayOfWeek)req.Weekday,
+            TimeOnly.Parse(req.From),
+            TimeOnly.Parse(req.To),
+            DateOnly.Parse(req.SeriesStart),
+            DateOnly.Parse(req.SeriesEnd),
             req.Color,
             req.Notes,
             IsBlocker: req.IsBlocker);
@@ -228,17 +228,17 @@ public sealed class BookingAdminApiController(
     }
 }
 
-public sealed record AdminRejectRequest(string Grund);
+public sealed record AdminRejectRequest(string Reason);
 public sealed record AdminCreateSlotRequest(
     string Type, DateTime StartUtc, DateTime EndUtc,
     string Title, string? Color, string? Notes, int? MemberId);
-public sealed record SerieTerminSeedRequest(
+public sealed record RecurringSlotSeedRequest(
     string Title,
-    int Wochentag,
-    string Von,
-    string Bis,
-    string SerieVon,
-    string SerieBis,
+    int Weekday,
+    string From,
+    string To,
+    string SeriesStart,
+    string SeriesEnd,
     string? Color,
     string? Notes,
     bool IsBlocker = false);

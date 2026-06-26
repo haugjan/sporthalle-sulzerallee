@@ -61,6 +61,6 @@ public sealed class UmbracoHallConfigurationAdapter(
         return Task.FromResult<IReadOnlyList<string>>(result);
     }
 
-    public Task<string?> GetPreisTextAsync() =>
+    public Task<string?> GetPriceTextAsync() =>
         Task.FromResult(GetConfigNode()?.GetValue<string>("preisText"));
 }

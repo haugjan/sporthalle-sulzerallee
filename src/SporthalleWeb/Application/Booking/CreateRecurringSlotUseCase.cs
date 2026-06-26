@@ -6,7 +6,7 @@ namespace SporthalleWeb.Application.Booking;
 
 public sealed record RecurringSlotCommand(
     string Title,
-    DayOfWeek Wochentag,
+    DayOfWeek Weekday,
     TimeOnly StartTime,
     TimeOnly EndTime,
     DateOnly SeriesStart,
@@ -29,7 +29,7 @@ public sealed class CreateRecurringSlotUseCase(
 
     public async Task<RecurringSlotCheckResult> CheckConflictsAsync(RecurringSlotCommand cmd)
     {
-        var temp = RecurringSlot.Create(cmd.Title, cmd.Wochentag, cmd.StartTime, cmd.EndTime,
+        var temp = RecurringSlot.Create(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
             cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, "");
         var occurrences = temp.GenerateOccurrences();
         var conflicts = new List<RecurringSlotConflictDate>();
@@ -44,7 +44,7 @@ public sealed class CreateRecurringSlotUseCase(
 
     public async Task<RecurringSlotCreateResult> ExecuteAsync(RecurringSlotCommand cmd, string createdBy, bool skipConflicts)
     {
-        var serie = RecurringSlot.Create(cmd.Title, cmd.Wochentag, cmd.StartTime, cmd.EndTime,
+        var serie = RecurringSlot.Create(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
             cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, createdBy, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
         var serieId = await serieRepo.SaveAsync(serie);
 

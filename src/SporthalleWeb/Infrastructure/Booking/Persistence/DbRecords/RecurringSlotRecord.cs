@@ -19,7 +19,7 @@ public class RecurringSlotRecord
 
     [Column("Wochentag")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
-    public int Wochentag { get; set; }
+    public int Weekday { get; set; }
 
     [Column("StartTime")]
     [NullSetting(NullSetting = NullSettings.NotNull)]

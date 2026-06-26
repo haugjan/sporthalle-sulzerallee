@@ -60,7 +60,7 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
         RecurringSlot.FromPersistence(
             id: (int)r.Id,
             title: r.Title,
-            wochentag: r.Wochentag,
+            weekday: r.Weekday,
             startTime: r.StartTime,
             endTime: r.EndTime,
             seriesStart: r.SeriesStart,
@@ -78,7 +78,7 @@ public sealed class RecurringSlotRepository(IScopeProvider scopeProvider) : IRec
         new()
         {
             Title = s.Title,
-            Wochentag = (int)s.Wochentag,
+            Weekday = (int)s.Weekday,
             StartTime = s.StartTime.ToString("HH:mm", CultureInfo.InvariantCulture),
             EndTime = s.EndTime.ToString("HH:mm", CultureInfo.InvariantCulture),
             SeriesStart = s.SeriesStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),

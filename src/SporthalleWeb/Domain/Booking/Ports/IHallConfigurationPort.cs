@@ -9,5 +9,5 @@ public interface IHallConfigurationPort
     Task<DateOnly?> GetBookingCutoffDateAsync();
     Task<IReadOnlyList<int>> GetBookableDurationsAsync();
     Task<IReadOnlyList<string>> GetEventTypesAsync();
-    Task<string?> GetPreisTextAsync();
+    Task<string?> GetPriceTextAsync();
 }

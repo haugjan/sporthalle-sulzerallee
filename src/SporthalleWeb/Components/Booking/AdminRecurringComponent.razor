@@ -64,7 +64,7 @@
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Wochentag *</label>
-                        <select class="form-select" @bind="_fWochentag">
+                        <select class="form-select" @bind="_fWeekday">
                             <option value="1">Montag</option>
                             <option value="2">Dienstag</option>
                             <option value="3">Mittwoch</option>
@@ -245,7 +245,7 @@ else
                                 <br /><small class="text-muted">@s.Notes</small>
                             }
                         </td>
-                        <td>@WochentagName(s.Wochentag)</td>
+                        <td>@WeekdayName(s.Weekday)</td>
                         <td style="white-space:nowrap">@s.StartTime.ToString("HH:mm") – @s.EndTime.ToString("HH:mm")</td>
                         <td style="white-space:nowrap">
                             @s.SeriesStart.ToString("d. MMM yyyy", DeCh)<br />
@@ -308,7 +308,7 @@ else
     private bool _showForm;
     private int? _editingId;
     private string _fTitel = "";
-    private int _fWochentag = 1;
+    private int _fWeekday = 1;
     private TimeOnly _fStartTime = new(8, 0);
     private TimeOnly _fEndTime = new(10, 0);
     private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
@@ -352,7 +352,7 @@ else
     {
         _editingId = null;
         _fTitel = "";
-        _fWochentag = 1;
+        _fWeekday = 1;
         _fStartTime = new TimeOnly(8, 0);
         _fEndTime = new TimeOnly(10, 0);
         _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
@@ -375,7 +375,7 @@ else
     {
         _editingId = s.Id;
         _fTitel = s.Title;
-        _fWochentag = (int)s.Wochentag;
+        _fWeekday = (int)s.Weekday;
         _fStartTime = s.StartTime;
         _fEndTime = s.EndTime;
         _fSeriesStart = s.SeriesStart;
@@ -531,7 +531,7 @@ else
 
     private SporthalleWeb.Application.Booking.RecurringSlotCommand BuildCommand() => new(
         _fTitel.Trim(),
-        (DayOfWeek)_fWochentag,
+        (DayOfWeek)_fWeekday,
         _fStartTime,
         _fEndTime,
         _fSeriesStart,
@@ -556,7 +556,7 @@ else
             _fEndTime = t;
     }
 
-    private static string WochentagName(DayOfWeek d) => d switch
+    private static string WeekdayName(DayOfWeek d) => d switch
     {
         DayOfWeek.Monday    => "Montag",
         DayOfWeek.Tuesday   => "Dienstag",
