@@ -7,7 +7,7 @@ using Umbraco.Cms.Core.Services;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership.Persistence;
 
-public class PassiveMemberRepository : IPassivMemberRepository
+public class PassiveMemberRepository : IPassiveMemberRepository
 {
     private const string MemberTypeAlias = "passivMember";
 
@@ -90,7 +90,7 @@ public class PassiveMemberRepository : IPassivMemberRepository
             var existing = _memberService.GetById(int.Parse(existingUser.Id))
                 ?? throw new DomainException("Existing member slot could not be found.");
             existing.Name = $"{member.FirstName} {member.LastName}".Trim();
-            existing.Email = member.Email.Value;
+            existing.Email = SyntheticEmail(member.FieldNumber.Value);
             SetProperties(existing, member);
             _memberService.Save(existing);
             return Reconstitute(existing);
@@ -99,7 +99,7 @@ public class PassiveMemberRepository : IPassivMemberRepository
         var user = new MemberIdentityUser
         {
             UserName = username,
-            Email = member.Email.Value,
+            Email = SyntheticEmail(member.FieldNumber.Value),
             Name = $"{member.FirstName} {member.LastName}".Trim(),
             MemberTypeAlias = MemberTypeAlias,
             IsApproved = true
@@ -133,9 +133,11 @@ public class PassiveMemberRepository : IPassivMemberRepository
     // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static string Username(int fieldNumber) => $"pm-{fieldNumber:D3}";
+    private static string SyntheticEmail(int fieldNumber) => $"pm-{fieldNumber:D3}@passiv.internal";
 
     private static void SetProperties(IMember m, PassiveMember pm)
     {
+        m.SetValue("email",                  pm.Email.Value);
         m.SetValue("firstName",              pm.FirstName);
         m.SetValue("lastName",               pm.LastName);
         m.SetValue("fieldNumber",            pm.FieldNumber.Value.ToString());
@@ -172,7 +174,7 @@ public class PassiveMemberRepository : IPassivMemberRepository
             city:                  m.GetValue<string>("billingCity") ?? "",
             country:               m.GetValue<string>("billingCountry").NullIfEmpty() ?? "Schweiz",
             phone:                 m.GetValue<string>("phone").NullIfEmpty(),
-            email:                 m.Email ?? "",
+            email:                 m.GetValue<string>("email") ?? "",
             levelKey:              m.GetValue<string>("membershipLevel") ?? "Bronze",
             showNameOnFloor:       m.GetValue<bool>("showNameOnFloor"),
             displayName:           m.GetValue<string>("floorDisplayName").NullIfEmpty(),

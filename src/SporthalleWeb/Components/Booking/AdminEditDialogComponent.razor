@@ -38,10 +38,23 @@
                                                 ValueChanged="OnEditDatePickedAsync" />
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
                             <input class="form-control" @bind="_editTitle" />
                         </div>
+
+                        @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
+                        {
+                            <div class="mb-3 mt-0">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="chk-stp-@_editSlotId"
+                                           @bind="_editShowTitlePublic" />
+                                    <label class="form-check-label text-muted" style="font-size:0.875rem" for="chk-stp-@_editSlotId">
+                                        Bezeichnung auf öffentlichem Kalender anzeigen
+                                    </label>
+                                </div>
+                            </div>
+                        }
 
                         @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
                         {
@@ -62,16 +75,6 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Bemerkungen</label>
                             <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="chk-stp-@_editSlotId"
-                                       @bind="_editShowTitlePublic" />
-                                <label class="form-check-label" for="chk-stp-@_editSlotId">
-                                    Bezeichnung auf öffentlichem Kalender anzeigen
-                                </label>
-                            </div>
                         </div>
 
                         <hr />
@@ -435,6 +438,7 @@
         _calInitializedForSlotId = null;
         await LoadCalendarSlotsAsync();
         CheckConflicts();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void ToggleMemberSearch()

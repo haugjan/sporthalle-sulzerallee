@@ -22,7 +22,7 @@ public sealed class SendMagicLinkUseCaseTests
         id, "user@example.com", new RenterType("Privatperson"),
         "Test", "Max", "Muster", "Str 1", null,
         "8400", "Winterthur", "Schweiz",
-        null, null, false, false, null, null);
+        null, null, false, false);
 
     [Fact]
     public async Task Execute_UnknownEmail_ReturnsFalse()
@@ -40,39 +40,12 @@ public sealed class SendMagicLinkUseCaseTests
     {
         var member = MakeHallMember();
         _members.Setup(m => m.FindByEmailAsync("user@example.com")).ReturnsAsync(member);
-        _members.Setup(m => m.GetMagicLinkSentAtAsync(1)).ReturnsAsync((DateTime?)null);
 
         var result = await _sut.ExecuteAsync("User@Example.COM", null);
 
         Assert.True(result);
         _tokenRepo.Verify(r => r.SaveAsync(It.IsAny<MagicLinkToken>()), Times.Once);
         _email.Verify(e => e.SendMagicLinkAsync(member, It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Execute_WithinRateLimit_ThrowsDomainException()
-    {
-        var member = MakeHallMember();
-        _members.Setup(m => m.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync(member);
-        _members.Setup(m => m.GetMagicLinkSentAtAsync(1))
-                .ReturnsAsync(DateTime.UtcNow.AddMinutes(-5)); // within 10-minute window
-
-        await Assert.ThrowsAsync<DomainException>(() => _sut.ExecuteAsync("user@example.com", null));
-
-        _email.Verify(e => e.SendMagicLinkAsync(It.IsAny<HallMember>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Execute_AfterRateLimit_Succeeds()
-    {
-        var member = MakeHallMember();
-        _members.Setup(m => m.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync(member);
-        _members.Setup(m => m.GetMagicLinkSentAtAsync(1))
-                .ReturnsAsync(DateTime.UtcNow.AddMinutes(-11)); // outside window
-
-        var result = await _sut.ExecuteAsync("user@example.com", null);
-
-        Assert.True(result);
     }
 
     [Fact]

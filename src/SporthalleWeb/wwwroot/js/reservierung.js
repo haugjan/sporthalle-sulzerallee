@@ -284,6 +284,11 @@
           nbEl.className = 'bol-title';
           nbEl.textContent = 'Nicht buchbar';
           label.appendChild(nbEl);
+        } else if (slot.title) {
+          var titleEl = document.createElement('span');
+          titleEl.className = 'bol-title';
+          titleEl.textContent = slot.title;
+          label.appendChild(titleEl);
         }
         var timeEl = document.createElement('span');
         timeEl.className = 'bol-time';

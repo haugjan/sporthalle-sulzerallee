@@ -115,12 +115,6 @@
               <textarea id="admin-bm-notizen-blocker" rows="2" placeholder="Interne Notiz"></textarea>
             </label>
           </div>
-          <div class="bm-field bm-field--2col">
-            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
-              <input type="checkbox" @bind="_blockerShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
-              Bezeichnung auf öffentlichem Kalender anzeigen
-            </label>
-          </div>
           <div id="admin-bm-error-blocker" class="bm-error" hidden></div>
         </div>
       </div>
@@ -138,6 +132,10 @@
           <div class="bm-field bm-field--2col">
             <label>Anlass *
               <input type="text" id="admin-bm-anlass" placeholder="z.B. Unihockeytraining, Plauschturnier, Gymnastik" />
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:400;font-size:0.85rem;color:#666;text-transform:none;letter-spacing:0;margin-top:0.3rem">
+              <input type="checkbox" @bind="_buchungShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              Bezeichnung auf öffentlichem Kalender anzeigen
             </label>
           </div>
 
@@ -178,12 +176,6 @@
           <div class="bm-field bm-field--2col">
             <label>Bemerkungen
               <textarea id="admin-bm-notizen" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
-            </label>
-          </div>
-          <div class="bm-field bm-field--2col">
-            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
-              <input type="checkbox" @bind="_buchungShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
-              Bezeichnung auf öffentlichem Kalender anzeigen
             </label>
           </div>
 
@@ -315,7 +307,6 @@
     private DateOnly _serieBis = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
     private string _serieStartTime = "08:00";
     private string _serieEndTime = "10:00";
-    private bool _blockerShowTitlePublic;
     private bool _buchungShowTitlePublic;
     private bool _serieShowTitlePublic;
 
@@ -373,7 +364,7 @@
                     startUtc, endUtc,
                     payload.Titel.Trim(), "#78909C",
                     string.IsNullOrWhiteSpace(payload.Notizen) ? null : payload.Notizen.Trim(),
-                    null, AdminUser, _blockerShowTitlePublic);
+                    null, AdminUser, false);
 
                 return Ok(true);
             }

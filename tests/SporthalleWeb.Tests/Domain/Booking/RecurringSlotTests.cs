@@ -90,10 +90,64 @@ public sealed class RecurringSlotTests
             new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, null, "admin");
 
         slot.Update("New", DayOfWeek.Friday, new TimeOnly(14, 0), new TimeOnly(16, 0),
-            new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), "#fff", "updated");
+            new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), "#fff", "updated",
+            isBlocker: false, memberId: null, showTitlePublic: false);
 
         Assert.Equal("New", slot.Title);
         Assert.Equal(DayOfWeek.Friday, slot.Wochentag);
         Assert.Equal(new TimeOnly(14, 0), slot.StartTime);
+    }
+
+    [Fact]
+    public void ShowTitlePublic_DefaultIsFalse()
+    {
+        var slot = RecurringSlot.Create(
+            "T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5), null, null, "admin");
+        Assert.False(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void Create_WithShowTitlePublicTrue_SetsFlag()
+    {
+        var slot = RecurringSlot.Create(
+            "T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5), null, null, "admin",
+            showTitlePublic: true);
+        Assert.True(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void Update_SetsShowTitlePublic()
+    {
+        var slot = RecurringSlot.Create(
+            "T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, null, "admin");
+
+        slot.Update("T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, null,
+            isBlocker: false, memberId: null, showTitlePublic: true);
+
+        Assert.True(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void FromPersistence_RestoresShowTitlePublic()
+    {
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var slot = RecurringSlot.FromPersistence(
+            1, "T", 1, "09:00", "11:00", "2026-01-05", "2026-01-26",
+            null, null, "admin", now, now, showTitlePublic: true);
+        Assert.True(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void FromPersistence_ShowTitlePublicDefaultsFalse()
+    {
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var slot = RecurringSlot.FromPersistence(
+            1, "T", 1, "09:00", "11:00", "2026-01-05", "2026-01-26",
+            null, null, "admin", now, now);
+        Assert.False(slot.ShowTitlePublic);
     }
 }

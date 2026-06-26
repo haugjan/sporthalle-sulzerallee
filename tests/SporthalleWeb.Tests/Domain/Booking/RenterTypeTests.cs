@@ -9,6 +9,8 @@ public sealed class RenterTypeTests
     [InlineData("Verein", RenterTypeValue.Verein)]
     [InlineData("Firma", RenterTypeValue.Firma)]
     [InlineData("Privatperson", RenterTypeValue.Privatperson)]
+    [InlineData("Schule", RenterTypeValue.Schule)]
+    [InlineData("Behörde", RenterTypeValue.Behörde)]
     public void Constructor_ValidString_ParsesCorrectly(string raw, RenterTypeValue expected)
     {
         var renterType = new RenterType(raw);
@@ -19,7 +21,6 @@ public sealed class RenterTypeTests
     [InlineData("verein")]
     [InlineData("")]
     [InlineData("GmbH")]
-    [InlineData("Behörde")]
     public void Constructor_InvalidString_ThrowsDomainException(string raw)
     {
         Assert.Throws<DomainException>(() => new RenterType(raw));

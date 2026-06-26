@@ -21,7 +21,7 @@ public sealed class ValidateMagicLinkUseCaseTests
         id, "user@example.com", new RenterType("Privatperson"),
         "Test", "Max", "Muster", "Str 1", null,
         "8400", "Winterthur", "Schweiz",
-        null, null, false, false, null, null);
+        null, null, false, false);
 
     private static MagicLinkToken ValidToken(int memberId = 1)
     {

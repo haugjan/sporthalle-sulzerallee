@@ -95,10 +95,64 @@ public sealed class BookingSlotTests
     public void Update_SetsNewValues()
     {
         var slot = BookingSlot.CreateBlocker(MakeSlot(), "Old", "#000", "old note", "admin");
-        slot.Update("New", "#fff", "new note");
+        slot.Update("New", "#fff", "new note", showTitlePublic: false);
         Assert.Equal("New", slot.Title);
         Assert.Equal("#fff", slot.Color);
         Assert.Equal("new note", slot.Notes);
+    }
+
+    [Fact]
+    public void ShowTitlePublic_DefaultIsFalse()
+    {
+        var blocker = BookingSlot.CreateBlocker(MakeSlot(), "B", null, null, "admin");
+        var reserved = BookingSlot.CreateReserved(1, MakeSlot(), "R", null, null, "admin");
+        var booked = BookingSlot.CreateBooked(2, MakeSlot(), "B2", null, null, "admin");
+        Assert.False(blocker.ShowTitlePublic);
+        Assert.False(reserved.ShowTitlePublic);
+        Assert.False(booked.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void CreateBlocker_WithShowTitlePublicTrue_SetsFlag()
+    {
+        var slot = BookingSlot.CreateBlocker(MakeSlot(), "T", null, null, "admin", showTitlePublic: true);
+        Assert.True(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void Update_WithShowTitlePublicTrue_SetsFlag()
+    {
+        var slot = BookingSlot.CreateBlocker(MakeSlot(), "T", null, null, "admin");
+        slot.Update("T", null, null, showTitlePublic: true);
+        Assert.True(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void Update_ClearsShowTitlePublicWhenFalse()
+    {
+        var slot = BookingSlot.CreateBlocker(MakeSlot(), "T", null, null, "admin", showTitlePublic: true);
+        slot.Update("T", null, null, showTitlePublic: false);
+        Assert.False(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void FromPersistence_WithShowTitlePublicTrue_RestoresIt()
+    {
+        var start = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+        var end = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc);
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var slot = BookingSlot.FromPersistence(1, null, "Blocker", start, end, "T", null, null, now, now, "admin", showTitlePublic: true);
+        Assert.True(slot.ShowTitlePublic);
+    }
+
+    [Fact]
+    public void FromPersistence_WithShowTitlePublicFalse_DefaultsFalse()
+    {
+        var start = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+        var end = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc);
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var slot = BookingSlot.FromPersistence(1, null, "Blocker", start, end, "T", null, null, now, now, "admin");
+        Assert.False(slot.ShowTitlePublic);
     }
 
     [Fact]

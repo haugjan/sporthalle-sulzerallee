@@ -100,20 +100,21 @@ public sealed class MemberTypeSeeder(
         const string adminGn = "Admin";
 
         // Contact & membership
-        AddIfMissing(memberType, textBox,   "firstName",       "First Name",            mandatory: true,  sort: 0, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "lastName",        "Last Name",             mandatory: true,  sort: 1, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "fieldNumber",     "Field Number",          mandatory: true,  sort: 2, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "membershipLevel", "Membership Level",      mandatory: true,  sort: 3, infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "email",           "Email",                 mandatory: true,  sort: 0, infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "firstName",       "First Name",            mandatory: true,  sort: 1, infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "lastName",        "Last Name",             mandatory: true,  sort: 2, infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "fieldNumber",     "Field Number",          mandatory: true,  sort: 3, infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "membershipLevel", "Membership Level",      mandatory: true,  sort: 4, infoG, infoGn);
         // Address (aliases match hallMember for consistency)
-        AddIfMissing(memberType, textBox,   "billingAddress",    "Address",             mandatory: true,  sort: 4, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "addressLine2",      "Address Line 2",      mandatory: false, sort: 5, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "billingPostalCode", "Postal Code",         mandatory: true,  sort: 6, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "billingCity",       "City",                mandatory: true,  sort: 7, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "billingCountry",    "Country",             mandatory: false, sort: 8, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "phone",               "Phone",                     mandatory: false, sort: 9,  infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "billingAddress",    "Address",             mandatory: true,  sort: 5,  infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "addressLine2",      "Address Line 2",      mandatory: false, sort: 6,  infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "billingPostalCode", "Postal Code",         mandatory: true,  sort: 7,  infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "billingCity",       "City",                mandatory: true,  sort: 8,  infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "billingCountry",    "Country",             mandatory: false, sort: 9,  infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "phone",             "Phone",               mandatory: false, sort: 10, infoG, infoGn);
         // Floor display
-        AddIfMissing(memberType, trueFalse, "showNameOnFloor", "Show Name on Floor",        mandatory: false, sort: 10, infoG, infoGn);
-        AddIfMissing(memberType, textBox,   "floorDisplayName","Floor Display Name",         mandatory: false, sort: 11, infoG, infoGn);
+        AddIfMissing(memberType, trueFalse, "showNameOnFloor", "Show Name on Floor",   mandatory: false, sort: 11, infoG, infoGn);
+        AddIfMissing(memberType, textBox,   "floorDisplayName", "Floor Display Name",  mandatory: false, sort: 12, infoG, infoGn);
         // Admin
         AddIfMissing(memberType, textBox,   "status",                   "Status",                        mandatory: false, sort: 0, adminG, adminGn);
         AddIfMissing(memberType, textBox,   "paidAt",                   "Paid At (ISO date)",             mandatory: false, sort: 1, adminG, adminGn);
