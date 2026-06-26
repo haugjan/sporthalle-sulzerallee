@@ -623,7 +623,7 @@
     initBmTurnstile();
 
     setTimeout(function () {
-      var f = document.getElementById('bm-anlass');
+      var f = document.getElementById('bm-event');
       if (f) f.focus();
     }, 60);
   }
@@ -657,9 +657,9 @@
     var email = getVal('bm-email');
     var billingStreet = getVal('bm-billing-street');
     var billingExtra = getVal('bm-billing-extra');
-    var billingPlz = getVal('bm-billing-plz');
+    var billingPostalCode = getVal('bm-billing-postal-code');
     var billingCity = getVal('bm-billing-city');
-    var anlass = getVal('bm-anlass');
+    var eventTitle = getVal('bm-event');
     var notes = getVal('bm-notes');
 
     var captchaToken = getBmTurnstileToken();
@@ -678,9 +678,9 @@
     if (!phone) { showModalError('Bitte gib die Handynummer ein (erreichbar während des Events).'); return; }
     if (!email || !email.includes('@')) { showModalError('Bitte gib eine gültige E-Mail-Adresse ein.'); return; }
     if (!billingStreet) { showModalError('Bitte gib die Strasse ein.'); return; }
-    if (!billingPlz) { showModalError('Bitte gib die PLZ ein.'); return; }
+    if (!billingPostalCode) { showModalError('Bitte gib die PLZ ein.'); return; }
     if (!billingCity) { showModalError('Bitte gib den Ort ein.'); return; }
-    if (!anlass) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
+    if (!eventTitle) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
 
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Wird gesendet…'; }
@@ -697,11 +697,11 @@
         renterType: renterType,
         billingAddress: billingStreet,
         addressLine2: billingExtra || null,
-        billingPostalCode: billingPlz,
+        billingPostalCode: billingPostalCode,
         billingCity: billingCity,
         startUtc: selectedSlot.startUtcIso,
         endUtc: selectedSlot.endUtcIso,
-        title: anlass,
+        title: eventTitle,
         notes: notes || null,
         captchaToken: captchaToken
       })

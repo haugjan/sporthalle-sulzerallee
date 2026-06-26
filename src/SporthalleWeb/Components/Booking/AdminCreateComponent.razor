@@ -3,7 +3,7 @@
 @using System.Globalization
 @inject IJSRuntime JS
 @inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
-@inject SporthalleWeb.Application.Booking.CreateRecurringSlotUseCase CreateSerie
+@inject SporthalleWeb.Application.Booking.CreateRecurringSlotUseCase CreateRecurring
 @inject SporthalleWeb.Domain.Booking.Ports.IMemberManagerPort Members
 @implements IAsyncDisposable
 
@@ -63,7 +63,7 @@
             </div>
           </div>
           <p class="slot-panel__meta" id="slot-meta"></p>
-          <button class="btn-buchen" id="admin-btn-erfassen">Slot erfassen</button>
+          <button class="btn-buchen" id="admin-btn-create">Slot erfassen</button>
         </div>
 
       </div>
@@ -85,21 +85,21 @@
 
     <!-- Typ-Wahl -->
     <div style="display:flex; gap:0.75rem; padding: 0.75rem 1.5rem 0.5rem;">
-      <button id="admin-typ-blocker" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Blocker</button>
-      <button id="admin-typ-buchung" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Buchung</button>
+      <button id="admin-type-blocker" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Blocker</button>
+      <button id="admin-type-booking" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Buchung</button>
     </div>
     <div style="display:flex; gap:0.75rem; padding: 0 1.5rem 0.75rem; border-bottom: 1px solid #eee;">
-      <button id="admin-sched-einzel" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Einzeltermin</button>
-      <button id="admin-sched-serie" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Serientermin</button>
+      <button id="admin-sched-single" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Einzeltermin</button>
+      <button id="admin-sched-recurring" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Serientermin</button>
     </div>
 
     <!-- Blocker-Formular -->
-    <div id="admin-bm-body-blocker-einzel">
+    <div id="admin-bm-body-blocker-single">
       <div class="bm-body">
         <div class="bm-form">
           <div class="bm-field bm-field--2col">
             <label>Bezeichnung *
-              <input type="text" id="admin-bm-titel" placeholder="z.B. Hallenpflege, Wartung, Internes Training" />
+              <input type="text" id="admin-bm-blocker-title" placeholder="z.B. Hallenpflege, Wartung, Internes Training" />
             </label>
           </div>
           <div class="bm-field bm-field--2col">
@@ -125,16 +125,16 @@
     </div>
 
     <!-- Buchungsformular -->
-    <div id="admin-bm-body-buchung-einzel" hidden>
+    <div id="admin-bm-body-booking-single" hidden>
       <div class="bm-body">
         <div class="bm-form">
 
           <div class="bm-field bm-field--2col">
             <label>Anlass *
-              <input type="text" id="admin-bm-anlass" placeholder="z.B. Unihockeytraining, Plauschturnier, Gymnastik" />
+              <input type="text" id="admin-bm-event" placeholder="z.B. Unihockeytraining, Plauschturnier, Gymnastik" />
             </label>
             <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:400;font-size:0.85rem;color:#666;text-transform:none;letter-spacing:0;margin-top:0.3rem">
-              <input type="checkbox" @bind="_buchungShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              <input type="checkbox" @bind="_bookingShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
               Bezeichnung auf öffentlichem Kalender anzeigen
             </label>
           </div>
@@ -189,19 +189,19 @@
     </div>
 
     <!-- Serientermin-Formular -->
-    <div id="admin-bm-body-serie" hidden>
+    <div id="admin-bm-body-recurring" hidden>
       <div class="bm-body">
         <div class="bm-form">
 
           <div class="bm-field bm-field--2col">
             <label>Bezeichnung *
-              <input type="text" id="admin-bm-serie-titel" placeholder="z.B. Schulsport, Training" />
+              <input type="text" id="admin-bm-recurring-title" placeholder="z.B. Schulsport, Training" />
             </label>
           </div>
 
           <div class="bm-field">
             <label>Wochentag *
-              <select id="admin-bm-serie-weekday">
+              <select id="admin-bm-recurring-weekday">
                 <option value="1">Montag</option>
                 <option value="2">Dienstag</option>
                 <option value="3">Mittwoch</option>
@@ -215,35 +215,35 @@
 
           <div class="bm-field">
             <label class="d-block">Zeit von *</label>
-            <TimePickerComponent HiddenInputId="admin-bm-serie-start-time"
-                                 Value="@_serieStartTime"
-                                 ValueChanged="@(v => _serieStartTime = v)"
+            <TimePickerComponent HiddenInputId="admin-bm-recurring-start-time"
+                                 Value="@_seriesStartTime"
+                                 ValueChanged="@(v => _seriesStartTime = v)"
                                  Step="30" />
           </div>
 
           <div class="bm-field">
             <label class="d-block">Zeit bis *</label>
-            <TimePickerComponent HiddenInputId="admin-bm-serie-end-time"
-                                 Value="@_serieEndTime"
-                                 ValueChanged="@(v => _serieEndTime = v)"
+            <TimePickerComponent HiddenInputId="admin-bm-recurring-end-time"
+                                 Value="@_seriesEndTime"
+                                 ValueChanged="@(v => _seriesEndTime = v)"
                                  Step="30" />
           </div>
 
           <div class="bm-field">
             <label class="d-block">Serie von *</label>
-            <DateInputComponent Value="_serieVon" ValueChanged="@(d => { if (d.HasValue) _serieVon = d.Value; })"
-                                HiddenInputId="admin-bm-serie-start" />
+            <DateInputComponent Value="_seriesStart" ValueChanged="@(d => { if (d.HasValue) _seriesStart = d.Value; })"
+                                HiddenInputId="admin-bm-recurring-start" />
           </div>
 
           <div class="bm-field">
             <label class="d-block">Serie bis *</label>
-            <DateInputComponent Value="_serieBis" ValueChanged="@(d => { if (d.HasValue) _serieBis = d.Value; })"
-                                HiddenInputId="admin-bm-serie-end" />
+            <DateInputComponent Value="_seriesEnd" ValueChanged="@(d => { if (d.HasValue) _seriesEnd = d.Value; })"
+                                HiddenInputId="admin-bm-recurring-end" />
           </div>
 
-          <div class="bm-field bm-field--2col" id="admin-bm-serie-color-row">
+          <div class="bm-field bm-field--2col" id="admin-bm-recurring-color-row">
             <label>Farbe
-              <div id="admin-bm-serie-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
+              <div id="admin-bm-recurring-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
                 <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#C62828" style="background:#C62828" title="#C62828"></button>
                 <button type="button" class="bm-color-swatch" data-color="#FFD54F" style="background:#FFD54F" title="#FFD54F"></button>
                 <button type="button" class="bm-color-swatch" data-color="#1A1A1A" style="background:#1A1A1A" title="#1A1A1A"></button>
@@ -258,34 +258,34 @@
 
           <div class="bm-field bm-field--2col">
             <label>Bemerkungen
-              <textarea id="admin-bm-serie-notes" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
+              <textarea id="admin-bm-recurring-notes" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
             </label>
           </div>
           <div class="bm-field bm-field--2col">
             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
-              <input type="checkbox" @bind="_serieShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              <input type="checkbox" @bind="_seriesShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
               Bezeichnung auf öffentlichem Kalender anzeigen
             </label>
           </div>
 
           <!-- Konflikt-Panel (hidden initially) -->
-          <div id="admin-bm-serie-conflicts" hidden style="width:100%">
+          <div id="admin-bm-recurring-conflicts" hidden style="width:100%">
             <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:0.9rem 1rem;color:#664d03">
               <strong>Konflikte gefunden:</strong>
-              <p id="admin-bm-serie-conflict-text" style="margin:0.4rem 0 0.7rem"></p>
+              <p id="admin-bm-recurring-conflict-text" style="margin:0.4rem 0 0.7rem"></p>
               <div style="display:flex;gap:0.75rem">
-                <button type="button" class="bm-btn-secondary" style="flex:1" id="admin-bm-serie-retry">Nochmals bearbeiten</button>
-                <button type="button" class="bm-btn-primary" style="flex:1" id="admin-bm-serie-skip">Trotzdem speichern</button>
+                <button type="button" class="bm-btn-secondary" style="flex:1" id="admin-bm-recurring-retry">Nochmals bearbeiten</button>
+                <button type="button" class="bm-btn-primary" style="flex:1" id="admin-bm-recurring-skip">Trotzdem speichern</button>
               </div>
             </div>
           </div>
 
-          <div id="admin-bm-error-serie" class="bm-error" hidden></div>
+          <div id="admin-bm-error-recurring" class="bm-error" hidden></div>
         </div>
       </div>
       <div class="bm-footer">
-        <button class="bm-btn-secondary" id="admin-bm-cancel-serie">Abbrechen</button>
-        <button class="bm-btn-primary" id="admin-bm-submit-serie">Serientermine erstellen</button>
+        <button class="bm-btn-secondary" id="admin-bm-cancel-recurring">Abbrechen</button>
+        <button class="bm-btn-primary" id="admin-bm-submit-recurring">Serientermine erstellen</button>
       </div>
     </div>
 
@@ -303,12 +303,12 @@
 @code {
     [Parameter] public string AdminUser { get; set; } = "admin";
 
-    private DateOnly _serieVon = DateOnly.FromDateTime(DateTime.Today);
-    private DateOnly _serieBis = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
-    private string _serieStartTime = "08:00";
-    private string _serieEndTime = "10:00";
-    private bool _buchungShowTitlePublic;
-    private bool _serieShowTitlePublic;
+    private DateOnly _seriesStart = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _seriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private string _seriesStartTime = "08:00";
+    private string _seriesEndTime = "10:00";
+    private bool _bookingShowTitlePublic;
+    private bool _seriesShowTitlePublic;
 
     private DotNetObjectReference<AdminCreateComponent>? _objRef;
 
@@ -335,7 +335,7 @@
             endUtc     = x.Slot.Slot.EndUtc.ToString("o"),
             title      = x.Slot.Title,
             color      = x.Slot.Color,
-            mieterName = x.Member is null ? null
+            renterName = x.Member is null ? null
                 : x.Member.Name ?? $"{x.Member.ContactFirstName} {x.Member.ContactLastName}".Trim()
         });
         return JsonSerializer.Serialize(dto);
@@ -379,7 +379,7 @@
                 payload.EventTitle?.Trim() ?? "Buchung",
                 string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim(),
                 string.IsNullOrWhiteSpace(payload.Notes) ? null : payload.Notes!.Trim(),
-                payload.MemberId.Value, AdminUser, _buchungShowTitlePublic);
+                payload.MemberId.Value, AdminUser, _bookingShowTitlePublic);
 
             return Ok(true);
         }
@@ -413,10 +413,10 @@
     }
 
     [JSInvokable]
-    public void SetSerieTimes(string start, string end)
+    public void SetRecurringTimes(string start, string end)
     {
-        _serieStartTime = start;
-        _serieEndTime = end;
+        _seriesStartTime = start;
+        _seriesEndTime = end;
         StateHasChanged();
     }
 
@@ -430,7 +430,7 @@
             if (payload is null) return JsonSerializer.Serialize(new { error = "Ungültige Daten." });
 
             var cmd = BuildRecurringSlotCommand(payload);
-            var result = await CreateSerie.CheckConflictsAsync(cmd);
+            var result = await CreateRecurring.CheckConflictsAsync(cmd);
 
             var conflictDates = result.Conflicts.Select(c => new { date = c.Date.ToString("yyyy-MM-dd"), label = c.Label }).ToArray();
             return JsonSerializer.Serialize(new { occurrenceCount = result.OccurrenceCount, conflicts = conflictDates });
@@ -450,8 +450,8 @@
             var payload = JsonSerializer.Deserialize<RecurringSlotPayload>(payloadJson, opts);
             if (payload is null) return Err("Ungültige Daten.");
 
-            var cmd = BuildRecurringSlotCommand(payload) with { ShowTitlePublic = _serieShowTitlePublic };
-            var result = await CreateSerie.ExecuteAsync(cmd, AdminUser, skipConflicts);
+            var cmd = BuildRecurringSlotCommand(payload) with { ShowTitlePublic = _seriesShowTitlePublic };
+            var result = await CreateRecurring.ExecuteAsync(cmd, AdminUser, skipConflicts);
 
             return JsonSerializer.Serialize(new { ok = true, created = result.Created, skipped = result.Skipped });
         }

@@ -10,19 +10,19 @@ public sealed class GetAvailableDaysQuery(
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    public async Task<IReadOnlyList<string>> GetAsync(string monat, int dauernMinuten)
+    public async Task<IReadOnlyList<string>> GetAsync(string month, int durationMinutes)
     {
-        if (!int.TryParse(monat.Split('-')[0], out var year) ||
-            !int.TryParse(monat.Split('-').ElementAtOrDefault(1) ?? "", out var month))
+        if (!int.TryParse(month.Split('-')[0], out var year) ||
+            !int.TryParse(month.Split('-').ElementAtOrDefault(1) ?? "", out var monthNum))
             return [];
 
         var openStart = await config.GetOpeningHourStartAsync();
         var openEnd = await config.GetOpeningHourEndAsync();
         var blockMin = await config.GetBlockDurationMinutesAsync();
-        var blocksNeeded = dauernMinuten / blockMin;
+        var blocksNeeded = durationMinutes / blockMin;
         var totalBlocks = (openEnd - openStart) * (60 / blockMin);
 
-        var firstDay = new DateOnly(year, month, 1);
+        var firstDay = new DateOnly(year, monthNum, 1);
         var lastDay = firstDay.AddMonths(1).AddDays(-1);
         var fromUtc = firstDay.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
         var toUtc = lastDay.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local).ToUniversalTime();
@@ -49,15 +49,15 @@ public sealed class GetAvailableDaysQuery(
             var localStart = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.StartUtc, Zurich);
             var localEnd = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.EndUtc, Zurich);
             if (DateOnly.FromDateTime(localStart) != date) continue;
-            var startBlock = (int)((localStart.Hour * 60 + localStart.Minute) -
-                openStart * 60) / blockMin;
-            var endBlock = (int)((localEnd.Hour * 60 + localEnd.Minute) -
-                openStart * 60) / blockMin;
+            var startBlock = ((localStart.Hour * 60 + localStart.Minute) -
+                              openStart * 60) / blockMin;
+            var endBlock = ((localEnd.Hour * 60 + localEnd.Minute) -
+                            openStart * 60) / blockMin;
             for (var b = startBlock; b < endBlock; b++)
                 takenBlocks.Add(b);
         }
 
-        int consecutive = 0;
+        var consecutive = 0;
         for (var b = 0; b < totalBlocks; b++)
         {
             if (!takenBlocks.Contains(b))

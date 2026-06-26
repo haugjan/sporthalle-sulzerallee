@@ -21,20 +21,20 @@
 
     @switch (_step)
     {
-        case PickerStep.Dauer:
+        case PickerStep.Duration:
             <h3 class="h5 mt-3">Buchungsdauer wählen</h3>
             <div class="dauerauswahl d-flex flex-wrap gap-2 mt-2">
-                @foreach (var d in _dauern)
+                @foreach (var d in _durations)
                 {
-                    <button class="btn @(_selectedDauer == d ? "btn-primary" : "btn-outline-primary")"
-                            @onclick="() => SelectDauerAsync(d)">
+                    <button class="btn @(_selectedDuration == d ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SelectDurationAsync(d)">
                         @(d >= 60 ? $"{d / 60} h" : $"{d} min")
                     </button>
                 }
             </div>
             break;
 
-        case PickerStep.Datum:
+        case PickerStep.Date:
             <div class="datum-nav d-flex align-items-center gap-3 mt-3">
                 <button class="btn btn-sm btn-outline-secondary" @onclick="PrevMonthAsync">&larr;</button>
                 <strong>@_month.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("de-CH"))</strong>
@@ -44,28 +44,28 @@
             {
                 <p class="mt-2">Lade verfügbare Tage…</p>
             }
-            else if (!_verfuegbareTage.Any())
+            else if (!_availableDays.Any())
             {
                 <p class="mt-2 text-muted">Keine verfügbaren Tage in diesem Monat.</p>
             }
             else
             {
                 <div class="datumauswahl d-flex flex-wrap gap-2 mt-2">
-                    @foreach (var tag in _verfuegbareTage)
+                    @foreach (var day in _availableDays)
                     {
-                        var tagDate = DateOnly.Parse(tag);
-                        <button class="btn btn-sm @(_selectedDate == tag ? "btn-primary" : "btn-outline-secondary")"
-                                @onclick="() => SelectDateAsync(tag)">
-                            @tagDate.ToString("ddd d. MMM", CultureInfo.GetCultureInfo("de-CH"))
+                        var dayDate = DateOnly.Parse(day);
+                        <button class="btn btn-sm @(_selectedDate == day ? "btn-primary" : "btn-outline-secondary")"
+                                @onclick="() => SelectDateAsync(day)">
+                            @dayDate.ToString("ddd d. MMM", CultureInfo.GetCultureInfo("de-CH"))
                         </button>
                     }
                 </div>
             }
-            <button class="btn btn-secondary mt-3" @onclick="() => _step = PickerStep.Dauer">&larr; Zurück</button>
+            <button class="btn btn-secondary mt-3" @onclick="() => _step = PickerStep.Duration">&larr; Zurück</button>
             break;
 
-        case PickerStep.Zeit:
-            <h3 class="h6 mt-3">@_selectedDate — @_selectedDauer min</h3>
+        case PickerStep.Time:
+            <h3 class="h6 mt-3">@_selectedDate — @_selectedDuration min</h3>
             @if (_loadingSlots)
             {
                 <p>Lade freie Zeitfenster…</p>
@@ -86,14 +86,14 @@
                     }
                 </div>
             }
-            <button class="btn btn-secondary mt-3" @onclick="() => _step = PickerStep.Datum">&larr; Zurück</button>
+            <button class="btn btn-secondary mt-3" @onclick="() => _step = PickerStep.Date">&larr; Zurück</button>
             break;
 
-        case PickerStep.Kontakt:
+        case PickerStep.Contact:
             <h3 class="h5 mt-3">Deine Kontaktdaten</h3>
             <p class="text-muted small mb-3">
                 @_selectedDate, @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr &middot;
-                @_selectedDauer min
+                @_selectedDuration min
             </p>
 
             @if (_isLoggedIn)
@@ -101,7 +101,7 @@
                 <div class="alert alert-info">
                     Angemeldet als <strong>@_email</strong>
                 </div>
-                <button class="btn btn-secondary mt-2" @onclick="() => _step = PickerStep.Zeit">&larr; Zurück</button>
+                <button class="btn btn-secondary mt-2" @onclick="() => _step = PickerStep.Time">&larr; Zurück</button>
                 <button class="btn btn-primary ms-2 mt-2" @onclick="() => _step = PickerStep.Confirm">Weiter &rarr;</button>
             }
             else
@@ -123,19 +123,19 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mietertyp *</label>
-                            <select class="form-select" @bind="_guestRenterTypeStr">
+                            <select class="form-select" @bind="_guestRenterType">
                                 <option value="Privatperson">Privatperson</option>
                                 <option value="Firma">Firma</option>
                                 <option value="Verein">Verein</option>
                                 <option value="Schule">Schule</option>
                             </select>
                         </div>
-                        @if (_kontaktError is not null)
+                        @if (_contactError is not null)
                         {
-                            <div class="alert alert-danger">@_kontaktError</div>
+                            <div class="alert alert-danger">@_contactError</div>
                         }
-                        <button class="btn btn-secondary" @onclick="() => _step = PickerStep.Zeit">&larr; Zurück</button>
-                        <button class="btn btn-primary ms-2" @onclick="KontaktWeiterAsync">Weiter &rarr;</button>
+                        <button class="btn btn-secondary" @onclick="() => _step = PickerStep.Time">&larr; Zurück</button>
+                        <button class="btn btn-primary ms-2" @onclick="ContactNextAsync">Weiter &rarr;</button>
                     </div>
 
                     <div class="col-md-5">
@@ -155,14 +155,14 @@
                 <dt class="col-sm-4">Datum / Zeit</dt>
                 <dd class="col-sm-8">@_selectedDate, @_selectedSlot!.StartLocal – @_selectedSlot.EndLocal Uhr</dd>
                 <dt class="col-sm-4">Dauer</dt>
-                <dd class="col-sm-8">@_selectedDauer min</dd>
+                <dd class="col-sm-8">@_selectedDuration min</dd>
                 <dt class="col-sm-4">Kontakt</dt>
                 <dd class="col-sm-8">@(_isLoggedIn ? _email : $"{_guestName} ({_guestEmail})")</dd>
             </dl>
             <div class="mb-3">
                 <label class="form-label">Anlass *</label>
-                <select class="form-select" @bind="_anlass">
-                    @foreach (var a in _anlaesse)
+                <select class="form-select" @bind="_eventType">
+                    @foreach (var a in _eventTypes)
                     {
                         <option value="@a">@a</option>
                     }
@@ -176,7 +176,7 @@
             {
                 <div class="alert alert-danger">@_error</div>
             }
-            <button class="btn btn-secondary" @onclick="() => _step = PickerStep.Kontakt">&larr; Zurück</button>
+            <button class="btn btn-secondary" @onclick="() => _step = PickerStep.Contact">&larr; Zurück</button>
             <button class="btn btn-primary ms-2" @onclick="SubmitAsync" disabled="@_submitting">
                 @(_submitting ? "Wird gesendet…" : "Buchungsanfrage absenden")
             </button>
@@ -210,7 +210,7 @@
 </div>
 
 @code {
-    private enum PickerStep { Dauer, Datum, Zeit, Kontakt, Confirm, Confirmation }
+    private enum PickerStep { Duration, Date, Time, Contact, Confirm, Confirmation }
 
     private bool _isLoggedIn;
     private int? _memberId;
@@ -222,21 +222,21 @@
     private string _guestName = "";
     private string _guestEmail = "";
     private string? _guestPhone;
-    private string _guestRenterTypeStr = "Privatperson";
-    private string? _kontaktError;
+    private string _guestRenterType = "Privatperson";
+    private string? _contactError;
 
-    private PickerStep _step = PickerStep.Dauer;
-    private IReadOnlyList<int> _dauern = [60, 120];
-    private IReadOnlyList<string> _anlaesse = [];
-    private int _selectedDauer;
+    private PickerStep _step = PickerStep.Duration;
+    private IReadOnlyList<int> _durations = [60, 120];
+    private IReadOnlyList<string> _eventTypes = [];
+    private int _selectedDuration;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
-    private IReadOnlyList<string> _verfuegbareTage = [];
+    private IReadOnlyList<string> _availableDays = [];
     private bool _loadingDays;
     private string? _selectedDate;
     private IReadOnlyList<SporthalleWeb.Application.Booking.SlotOption> _slots = [];
     private bool _loadingSlots;
     private SporthalleWeb.Application.Booking.SlotOption? _selectedSlot;
-    private string _anlass = "";
+    private string _eventType = "";
     private string? _notes;
     private string? _error;
     private bool _submitting;
@@ -263,9 +263,9 @@
             }
         }
 
-        _dauern = await Config.GetBookableDurationsAsync();
-        _anlaesse = await Config.GetEventTypesAsync();
-        _anlass = _anlaesse.FirstOrDefault() ?? "";
+        _durations = await Config.GetBookableDurationsAsync();
+        _eventTypes = await Config.GetEventTypesAsync();
+        _eventType = _eventTypes.FirstOrDefault() ?? "";
 
         var uri = new Uri(Nav.Uri);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
@@ -275,17 +275,17 @@
             _sessionError = "Der Anmelde-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.";
     }
 
-    private async Task SelectDauerAsync(int d)
+    private async Task SelectDurationAsync(int d)
     {
-        _selectedDauer = d;
+        _selectedDuration = d;
         await LoadDaysAsync();
-        _step = PickerStep.Datum;
+        _step = PickerStep.Date;
     }
 
     private async Task LoadDaysAsync()
     {
         _loadingDays = true;
-        _verfuegbareTage = await AvailDays.GetAsync(_month.ToString("yyyy-MM"), _selectedDauer);
+        _availableDays = await AvailDays.GetAsync(_month.ToString("yyyy-MM"), _selectedDuration);
         _loadingDays = false;
     }
 
@@ -304,9 +304,9 @@
     private async Task SelectDateAsync(string date)
     {
         _selectedDate = date;
-        _step = PickerStep.Zeit;
+        _step = PickerStep.Time;
         _loadingSlots = true;
-        _slots = await AvailSlots.GetAsync(date, _selectedDauer);
+        _slots = await AvailSlots.GetAsync(date, _selectedDuration);
         _loadingSlots = false;
     }
 
@@ -314,28 +314,28 @@
     {
         if (!slot.IsAvailable) return;
         _selectedSlot = slot;
-        _step = PickerStep.Kontakt;
+        _step = PickerStep.Contact;
     }
 
-    private async Task KontaktWeiterAsync()
+    private async Task ContactNextAsync()
     {
-        _kontaktError = null;
+        _contactError = null;
 
         if (string.IsNullOrWhiteSpace(_guestName))
         {
-            _kontaktError = "Bitte gib deinen Namen ein.";
+            _contactError = "Bitte gib deinen Namen ein.";
             return;
         }
         if (string.IsNullOrWhiteSpace(_guestEmail) || !_guestEmail.Contains('@'))
         {
-            _kontaktError = "Bitte gib eine gültige E-Mail-Adresse ein.";
+            _contactError = "Bitte gib eine gültige E-Mail-Adresse ein.";
             return;
         }
 
         var existing = await Members.FindByEmailAsync(_guestEmail.Trim());
         if (existing is not null)
         {
-            _kontaktError = "Diese E-Mail-Adresse ist bereits registriert. Bitte meld dich oben rechts an.";
+            _contactError = "Diese E-Mail-Adresse ist bereits registriert. Bitte meld dich oben rechts an.";
             return;
         }
 
@@ -362,7 +362,7 @@
                 var guestLastName  = guestSpaceIdx >= 0 ? guestFullName[(guestSpaceIdx + 1)..].Trim() : "";
                 var regCmd = new SporthalleWeb.Application.Booking.RegisterRenterCommand(
                     Email: _guestEmail.Trim(),
-                    RenterType: new SporthalleWeb.Domain.Booking.RenterType(_guestRenterTypeStr),
+                    RenterType: new SporthalleWeb.Domain.Booking.RenterType(_guestRenterType),
                     Name: null,
                     ContactFirstName: guestFirstName,
                     ContactLastName: guestLastName,
@@ -385,7 +385,7 @@
             }
 
             var bookCmd = new SporthalleWeb.Application.Booking.CreateBookingCommand(
-                memberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _anlass, _notes);
+                memberId, _selectedSlot!.StartUtc, _selectedSlot.EndUtc, _eventType, _notes);
             await CreateBooking.ExecuteAsync(bookCmd);
             _step = PickerStep.Confirmation;
         }
@@ -424,17 +424,17 @@
 
     private void Reset()
     {
-        _step = PickerStep.Dauer;
-        _selectedDauer = 0;
+        _step = PickerStep.Duration;
+        _selectedDuration = 0;
         _selectedDate = null;
         _selectedSlot = null;
-        _anlass = _anlaesse.FirstOrDefault() ?? "";
+        _eventType = _eventTypes.FirstOrDefault() ?? "";
         _notes = null;
         _error = null;
         _guestName = "";
         _guestEmail = "";
         _guestPhone = null;
-        _guestRenterTypeStr = "Privatperson";
-        _kontaktError = null;
+        _guestRenterType = "Privatperson";
+        _contactError = null;
     }
 }

@@ -1,7 +1,7 @@
-﻿@inject SporthalleWeb.Application.Booking.GetRecurringSlotsQuery SerienQuery
-@inject SporthalleWeb.Application.Booking.CreateRecurringSlotUseCase CreateSerie
-@inject SporthalleWeb.Application.Booking.UpdateRecurringSlotUseCase UpdateSerie
-@inject SporthalleWeb.Application.Booking.DeleteRecurringSlotUseCase DeleteSerie
+﻿@inject SporthalleWeb.Application.Booking.GetRecurringSlotsQuery RecurringQuery
+@inject SporthalleWeb.Application.Booking.CreateRecurringSlotUseCase CreateRecurring
+@inject SporthalleWeb.Application.Booking.UpdateRecurringSlotUseCase UpdateRecurring
+@inject SporthalleWeb.Application.Booking.DeleteRecurringSlotUseCase DeleteRecurring
 @inject SporthalleWeb.Application.Booking.BookingAdminService AdminService
 @inject SporthalleWeb.Domain.Booking.Ports.IHallConfigurationPort HallConfig
 
@@ -48,7 +48,7 @@
                 <div class="d-flex gap-2 mb-3">
                     <button type="button"
                             class="btn btn-sm @(!_fIsBlocker ? "btn-primary" : "btn-outline-secondary")"
-                            @onclick="SetTypeSerie">
+                            @onclick="SetTypeRecurring">
                         Serientermin
                     </button>
                     <button type="button"
@@ -60,7 +60,7 @@
                 <div class="row g-3">
                     <div class="col-sm-8">
                         <label class="form-label fw-semibold">Bezeichnung *</label>
-                        <input class="form-control" @bind="_fTitel" placeholder="@(_fIsBlocker ? "z.B. Hallenpflege, Wartung" : "z.B. Schulsport Klasse 3a")" />
+                        <input class="form-control" @bind="_fTitle" placeholder="@(_fIsBlocker ? "z.B. Hallenpflege, Wartung" : "z.B. Schulsport Klasse 3a")" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Wochentag *</label>
@@ -147,9 +147,9 @@
                     </div>
                     <div class="col-12">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="chk-stp-serie"
+                            <input class="form-check-input" type="checkbox" id="chk-stp-recurring"
                                    @bind="_fShowTitlePublic" />
-                            <label class="form-check-label" for="chk-stp-serie">
+                            <label class="form-check-label" for="chk-stp-recurring">
                                 Bezeichnung auf öffentlichem Kalender anzeigen
                             </label>
                         </div>
@@ -200,7 +200,7 @@
 {
     <p>Lade…</p>
 }
-else if (!_serien.Any())
+else if (!_recurringSlots.Any())
 {
     <div class="alert alert-info">Keine Serientermine für @_year.</div>
 }
@@ -220,7 +220,7 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in _serien)
+                @foreach (var item in _recurringSlots)
                 {
                     var s = item.Slot;
                     <tr>
@@ -297,7 +297,7 @@ else
     ];
 
     private int _year = DateTime.Today.Year;
-    private IReadOnlyList<SporthalleWeb.Application.Booking.RecurringSlotWithYearCount> _serien = [];
+    private IReadOnlyList<SporthalleWeb.Application.Booking.RecurringSlotWithYearCount> _recurringSlots = [];
     private bool _loading = true;
 
     private string? _successMsg;
@@ -307,7 +307,7 @@ else
     // Form state
     private bool _showForm;
     private int? _editingId;
-    private string _fTitel = "";
+    private string _fTitle = "";
     private int _fWeekday = 1;
     private TimeOnly _fStartTime = new(8, 0);
     private TimeOnly _fEndTime = new(10, 0);
@@ -341,7 +341,7 @@ else
     private async Task LoadAsync()
     {
         _loading = true;
-        _serien = await SerienQuery.GetForYearAsync(_year);
+        _recurringSlots = await RecurringQuery.GetForYearAsync(_year);
         _loading = false;
     }
 
@@ -351,7 +351,7 @@ else
     private void StartCreate()
     {
         _editingId = null;
-        _fTitel = "";
+        _fTitle = "";
         _fWeekday = 1;
         _fStartTime = new TimeOnly(8, 0);
         _fEndTime = new TimeOnly(10, 0);
@@ -374,7 +374,7 @@ else
     private void StartEdit(SporthalleWeb.Domain.Booking.RecurringSlot s)
     {
         _editingId = s.Id;
-        _fTitel = s.Title;
+        _fTitle = s.Title;
         _fWeekday = (int)s.Weekday;
         _fStartTime = s.StartTime;
         _fEndTime = s.EndTime;
@@ -403,7 +403,7 @@ else
         _pendingCommand = null;
     }
 
-    private void SetTypeSerie()
+    private void SetTypeRecurring()
     {
         _fIsBlocker = false;
         _fColor ??= "#C62828";
@@ -453,7 +453,7 @@ else
 
     private async Task SubmitAsync()
     {
-        if (string.IsNullOrWhiteSpace(_fTitel)) { _error = "Bezeichnung ist erforderlich."; return; }
+        if (string.IsNullOrWhiteSpace(_fTitle)) { _error = "Bezeichnung ist erforderlich."; return; }
         if (_fEndTime <= _fStartTime) { _error = "Endzeit muss nach Startzeit liegen."; return; }
         if (_fSeriesEnd < _fSeriesStart) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
 
@@ -467,9 +467,9 @@ else
         {
             SporthalleWeb.Application.Booking.RecurringSlotCheckResult checkResult;
             if (_editingId.HasValue)
-                checkResult = await UpdateSerie.CheckConflictsAsync(_editingId.Value, cmd);
+                checkResult = await UpdateRecurring.CheckConflictsAsync(_editingId.Value, cmd);
             else
-                checkResult = await CreateSerie.CheckConflictsAsync(cmd);
+                checkResult = await CreateRecurring.CheckConflictsAsync(cmd);
 
             if (checkResult.Conflicts.Count > 0)
             {
@@ -493,9 +493,9 @@ else
         {
             SporthalleWeb.Application.Booking.RecurringSlotCreateResult result;
             if (_editingId.HasValue)
-                result = await UpdateSerie.ExecuteAsync(_editingId.Value, cmd, AdminUser, skipConflicts);
+                result = await UpdateRecurring.ExecuteAsync(_editingId.Value, cmd, AdminUser, skipConflicts);
             else
-                result = await CreateSerie.ExecuteAsync(cmd, AdminUser, skipConflicts);
+                result = await CreateRecurring.ExecuteAsync(cmd, AdminUser, skipConflicts);
 
             _successMsg = $"{result.Created} Termine angelegt" +
                 (result.Skipped > 0 ? $", {result.Skipped} übersprungen (Konflikte)" : "") + ".";
@@ -520,7 +520,7 @@ else
         _saving = true;
         try
         {
-            await DeleteSerie.ExecuteAsync(_deleteId.Value);
+            await DeleteRecurring.ExecuteAsync(_deleteId.Value);
             _successMsg = $"Serientermin «{_deleteTitle}» und alle Einzeltermine wurden gelöscht.";
             _deleteId = null;
             await LoadAsync();
@@ -530,7 +530,7 @@ else
     }
 
     private SporthalleWeb.Application.Booking.RecurringSlotCommand BuildCommand() => new(
-        _fTitel.Trim(),
+        _fTitle.Trim(),
         (DayOfWeek)_fWeekday,
         _fStartTime,
         _fEndTime,

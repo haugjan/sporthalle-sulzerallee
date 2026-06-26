@@ -151,13 +151,13 @@ public sealed class BookingController(
 
     [HttpGet("verfuegbare-tage")]
     public async Task<IActionResult> GetAvailableDays(
-        [FromQuery] string monat, [FromQuery] int dauern = 60)
-        => Ok(await availableDaysQuery.GetAsync(monat, dauern));
+        [FromQuery] string month, [FromQuery] int duration = 60)
+        => Ok(await availableDaysQuery.GetAsync(month, duration));
 
     [HttpGet("verfuegbare-slots")]
     public async Task<IActionResult> GetAvailableTimeSlots(
-        [FromQuery] string datum, [FromQuery] int dauern = 60)
-        => Ok(await availableTimeSlotsQuery.GetAsync(datum, dauern));
+        [FromQuery] string date, [FromQuery] int duration = 60)
+        => Ok(await availableTimeSlotsQuery.GetAsync(date, duration));
 
     // ── Auth ─────────────────────────────────────────────────────────────────
 
