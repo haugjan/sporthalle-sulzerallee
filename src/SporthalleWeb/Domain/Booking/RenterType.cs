@@ -1,6 +1,6 @@
 ﻿namespace SporthalleWeb.Domain.Booking;
 
-public enum RenterTypeValue { Verein, Firma, Privatperson, Schule, Behörde }
+public enum RenterTypeValue { Verein, Firma, Privatperson, Schule }
 
 public record RenterType
 {
