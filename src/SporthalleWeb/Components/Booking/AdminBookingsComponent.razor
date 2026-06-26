@@ -134,28 +134,22 @@ else
                             else { <span class="text-muted">–</span> }
                         </td>
                         <td style="white-space:nowrap">
-                            @if (_confirmDeleteId == s.Id)
+                            @if (s.Type != SporthalleWeb.Domain.Booking.SlotType.Rejected)
                             {
-                                <button class="btn btn-sm btn-danger"
-                                        @onclick="() => ConfirmDeleteAsync(s.Id)">Wirklich löschen?</button>
-                                <button class="btn btn-sm btn-outline-secondary ms-1"
-                                        @onclick="() => _confirmDeleteId = null">Abbrechen</button>
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        @onclick="() => _editRef!.OpenAsync(s.Id)">Bearbeiten</button>
                             }
                             else
                             {
-                                @if (s.Type != SporthalleWeb.Domain.Booking.SlotType.Rejected)
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                            @onclick="() => _editRef!.OpenAsync(s.Id)">Bearbeiten</button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-success"
-                                            @onclick="() => ReactivateAsync(s.Id)">Reaktivieren</button>
-                                }
-                                <button class="btn btn-sm btn-outline-danger ms-1"
-                                        @onclick="() => _confirmDeleteId = s.Id">Löschen</button>
+                                <button class="btn btn-sm btn-outline-success"
+                                        @onclick="() => ReactivateAsync(s.Id)">Reaktivieren</button>
                             }
+                            <button class="btn btn-sm btn-outline-danger ms-1"
+                                    @onclick='() => _confirm!.Show(
+                                        "Buchung löschen",
+                                        $"Buchung #{s.Id} wirklich löschen?",
+                                        "Ja, löschen", "btn-danger",
+                                        () => ConfirmDeleteAsync(s.Id))'>Löschen</button>
                         </td>
                     </tr>
                 }
@@ -173,11 +167,13 @@ else
 </div>
 
 <AdminEditDialogComponent @ref="_editRef" AdminUser="@AdminUser" OnSaved="HandleEditSavedAsync" />
+<ConfirmDialogComponent @ref="_confirm" />
 
 @code {
     [Parameter] public string AdminUser { get; set; } = "admin";
 
     private AdminEditDialogComponent? _editRef;
+    private ConfirmDialogComponent? _confirm;
 
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
@@ -191,7 +187,6 @@ else
     private bool _showRejected;
     private string? _message;
     private string? _error;
-    private int? _confirmDeleteId;
 
     private DateOnly PeriodFrom => CalcFrom(_viewMode, _anchor);
     private DateOnly PeriodTo   => CalcTo(_viewMode, _anchor);
@@ -258,7 +253,6 @@ else
 
     private async Task ConfirmDeleteAsync(int slotId)
     {
-        _confirmDeleteId = null;
         _message = null;
         _error = null;
         try

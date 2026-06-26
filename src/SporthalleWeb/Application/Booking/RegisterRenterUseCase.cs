@@ -15,6 +15,11 @@ public sealed class RegisterRenterUseCase(
         if (!await captcha.VerifyAsync(captchaToken, remoteIp))
             throw new DomainException("CAPTCHA-Überprüfung fehlgeschlagen.");
 
+        // Umbraco rejects members with an empty Name ("All variants must have a name").
+        // Name is derived from ContactFirstName + ContactLastName, so at least one must be present.
+        if (string.IsNullOrWhiteSpace(cmd.ContactFirstName) && string.IsNullOrWhiteSpace(cmd.ContactLastName))
+            throw new DomainException("Vor- oder Nachname ist erforderlich.");
+
         if (await members.FindByEmailAsync(cmd.Email) is not null)
             throw new DomainException("Diese E-Mail-Adresse ist bereits registriert.");
 

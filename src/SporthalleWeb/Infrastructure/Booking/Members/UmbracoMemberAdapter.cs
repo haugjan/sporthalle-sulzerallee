@@ -56,17 +56,7 @@ public sealed class UmbracoMemberAdapter(
         var member = memberService.GetByEmail(cmd.Email)
             ?? throw new DomainException("Member konnte nach der Erstellung nicht gefunden werden.");
 
-        member.SetValue("renterType", cmd.RenterType.Value.ToString());
-        member.SetValue("orgName",cmd.Name ?? "");
-        member.SetValue("contactFirstName", cmd.ContactFirstName);
-        member.SetValue("contactLastName", cmd.ContactLastName);
-        member.SetValue("billingAddress", cmd.BillingAddress);
-        member.SetValue("addressLine2", cmd.AddressLine2 ?? "");
-        member.SetValue("billingPostalCode", cmd.BillingPostalCode);
-        member.SetValue("billingCity", cmd.BillingCity);
-        member.SetValue("billingCountry", cmd.BillingCountry);
-        member.SetValue("phone", cmd.Phone ?? "");
-        member.SetValue("hasKey", cmd.HasKey);
+        SetMemberProperties(member, cmd);
         memberService.Save(member);
 
         var freshUser = await memberManager.FindByEmailAsync(cmd.Email)
@@ -84,14 +74,14 @@ public sealed class UmbracoMemberAdapter(
             ?? throw new DomainException($"Member {memberId} nicht gefunden.");
 
         member.Name = $"{contactFirstName} {contactLastName}".Trim();
-        member.SetValue("orgName",name ?? "");
-        member.SetValue("contactFirstName", contactFirstName);
-        member.SetValue("contactLastName", contactLastName);
-        member.SetValue("billingAddress", billingAddress);
-        member.SetValue("addressLine2", addressLine2 ?? "");
-        member.SetValue("billingPostalCode", billingPostalCode);
-        member.SetValue("billingCity", billingCity);
-        member.SetValue("phone", phone ?? "");
+        member.SetValue(HallMemberAliases.OrgName,           name ?? "");
+        member.SetValue(HallMemberAliases.ContactFirstName,  contactFirstName);
+        member.SetValue(HallMemberAliases.ContactLastName,   contactLastName);
+        member.SetValue(HallMemberAliases.BillingAddress,    billingAddress);
+        member.SetValue(HallMemberAliases.AddressLine2,      addressLine2 ?? "");
+        member.SetValue(HallMemberAliases.BillingPostalCode, billingPostalCode);
+        member.SetValue(HallMemberAliases.BillingCity,       billingCity);
+        member.SetValue(HallMemberAliases.Phone,             phone ?? "");
         memberService.Save(member);
         return Task.CompletedTask;
     }
@@ -106,9 +96,9 @@ public sealed class UmbracoMemberAdapter(
 
         foreach (var member in members)
         {
-            var firstName = member.GetValue<string>("contactFirstName") ?? "";
-            var lastName  = member.GetValue<string>("contactLastName") ?? "";
-            var orgName   = member.GetValue<string>("orgName") ?? "";
+            var firstName = member.GetValue<string>(HallMemberAliases.ContactFirstName) ?? "";
+            var lastName  = member.GetValue<string>(HallMemberAliases.ContactLastName) ?? "";
+            var orgName   = member.GetValue<string>(HallMemberAliases.OrgName) ?? "";
             var email     = member.Email ?? "";
             var fullName  = $"{firstName} {lastName}".Trim();
 
@@ -121,18 +111,18 @@ public sealed class UmbracoMemberAdapter(
                 results.Add(new HallMember(
                     Id: member.Id,
                     Email: email,
-                    RenterType: new RenterType(GetDropdownValue(member, "renterType", "Privatperson")),
+                    RenterType: new RenterType(GetDropdownValue(member, HallMemberAliases.RenterType, "Privatperson")),
                     Name: orgName.NullIfEmpty(),
                     ContactFirstName: firstName,
                     ContactLastName: lastName,
-                    BillingAddress: member.GetValue<string>("billingAddress") ?? "",
-                    AddressLine2: member.GetValue<string>("addressLine2").NullIfEmpty(),
-                    BillingPostalCode: member.GetValue<string>("billingPostalCode") ?? "",
-                    BillingCity: member.GetValue<string>("billingCity") ?? "",
-                    BillingCountry: member.GetValue<string>("billingCountry") ?? "Schweiz",
-                    Phone: member.GetValue<string>("phone").NullIfEmpty(),
-                    Notes: member.GetValue<string>("notes").NullIfEmpty(),
-                    HasKey: member.GetValue<bool>("hasKey"),
+                    BillingAddress: member.GetValue<string>(HallMemberAliases.BillingAddress) ?? "",
+                    AddressLine2: member.GetValue<string>(HallMemberAliases.AddressLine2).NullIfEmpty(),
+                    BillingPostalCode: member.GetValue<string>(HallMemberAliases.BillingPostalCode) ?? "",
+                    BillingCity: member.GetValue<string>(HallMemberAliases.BillingCity) ?? "",
+                    BillingCountry: member.GetValue<string>(HallMemberAliases.BillingCountry) ?? "Schweiz",
+                    Phone: member.GetValue<string>(HallMemberAliases.Phone).NullIfEmpty(),
+                    Notes: member.GetValue<string>(HallMemberAliases.Notes).NullIfEmpty(),
+                    HasKey: member.GetValue<bool>(HallMemberAliases.HasKey),
                     HasPassword: false));
             }
         }
@@ -191,37 +181,40 @@ public sealed class UmbracoMemberAdapter(
             throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 
-    private static string GetDropdownValue(IMember member, string alias, string fallback)
+    // internal for MemberTypeConsistencyTests
+    internal static void SetMemberProperties(IMember member, RegisterRenterCommand cmd)
     {
-        var raw = member.GetValue<string>(alias);
-        if (raw is null) return fallback;
-        if (raw.StartsWith('['))
-        {
-            try
-            {
-                var items = System.Text.Json.JsonSerializer.Deserialize<string[]>(raw);
-                return items?.FirstOrDefault() ?? fallback;
-            }
-            catch { return fallback; }
-        }
-        return raw;
+        member.SetValue(HallMemberAliases.RenterType,        cmd.RenterType.Value.ToString());
+        member.SetValue(HallMemberAliases.OrgName,           cmd.Name ?? "");
+        member.SetValue(HallMemberAliases.ContactFirstName,  cmd.ContactFirstName);
+        member.SetValue(HallMemberAliases.ContactLastName,   cmd.ContactLastName);
+        member.SetValue(HallMemberAliases.BillingAddress,    cmd.BillingAddress);
+        member.SetValue(HallMemberAliases.AddressLine2,      cmd.AddressLine2 ?? "");
+        member.SetValue(HallMemberAliases.BillingPostalCode, cmd.BillingPostalCode);
+        member.SetValue(HallMemberAliases.BillingCity,       cmd.BillingCity);
+        member.SetValue(HallMemberAliases.BillingCountry,    cmd.BillingCountry);
+        member.SetValue(HallMemberAliases.Phone,             cmd.Phone ?? "");
+        member.SetValue(HallMemberAliases.HasKey,            cmd.HasKey);
     }
+
+    private static string GetDropdownValue(IMember member, string alias, string fallback) =>
+        UmbracoDropdownHelper.ParseDropdownValue(member.GetValue<string>(alias), fallback);
 
     private static HallMember Map(MemberIdentityUser user, IMember member) => new(
         Id: int.Parse(user.Id),
         Email: user.Email ?? "",
-        RenterType: new RenterType(GetDropdownValue(member, "renterType", "Privatperson")),
-        Name: member.GetValue<string>("orgName").NullIfEmpty(),
-        ContactFirstName: member.GetValue<string>("contactFirstName") ?? "",
-        ContactLastName: member.GetValue<string>("contactLastName") ?? "",
-        BillingAddress: member.GetValue<string>("billingAddress") ?? "",
-        AddressLine2: member.GetValue<string>("addressLine2").NullIfEmpty(),
-        BillingPostalCode: member.GetValue<string>("billingPostalCode") ?? "",
-        BillingCity: member.GetValue<string>("billingCity") ?? "",
-        BillingCountry: member.GetValue<string>("billingCountry") ?? "Schweiz",
-        Phone: member.GetValue<string>("phone").NullIfEmpty(),
-        Notes: member.GetValue<string>("notes").NullIfEmpty(),
-        HasKey: member.GetValue<bool>("hasKey"),
+        RenterType: new RenterType(GetDropdownValue(member, HallMemberAliases.RenterType, "Privatperson")),
+        Name: member.GetValue<string>(HallMemberAliases.OrgName).NullIfEmpty(),
+        ContactFirstName: member.GetValue<string>(HallMemberAliases.ContactFirstName) ?? "",
+        ContactLastName: member.GetValue<string>(HallMemberAliases.ContactLastName) ?? "",
+        BillingAddress: member.GetValue<string>(HallMemberAliases.BillingAddress) ?? "",
+        AddressLine2: member.GetValue<string>(HallMemberAliases.AddressLine2).NullIfEmpty(),
+        BillingPostalCode: member.GetValue<string>(HallMemberAliases.BillingPostalCode) ?? "",
+        BillingCity: member.GetValue<string>(HallMemberAliases.BillingCity) ?? "",
+        BillingCountry: member.GetValue<string>(HallMemberAliases.BillingCountry) ?? "Schweiz",
+        Phone: member.GetValue<string>(HallMemberAliases.Phone).NullIfEmpty(),
+        Notes: member.GetValue<string>(HallMemberAliases.Notes).NullIfEmpty(),
+        HasKey: member.GetValue<bool>(HallMemberAliases.HasKey),
         HasPassword: user.PasswordHash is not null
     );
 }

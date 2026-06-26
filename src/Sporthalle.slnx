@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SporthalleWeb\SporthalleWeb.csproj" />
+  <Project Path="SporthalleWeb.Tests\SporthalleWeb.Tests.csproj" />
+</Solution>

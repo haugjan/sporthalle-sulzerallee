@@ -69,14 +69,23 @@ else
                   <div class="text-muted" style="font-size:0.75rem;">@m.PaidBy</div>
                 }
                 <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem;"
-                        disabled="@_busy.Contains(id)" @onclick="() => MarkUnpaid(id)">
+                        disabled="@_busy.Contains(id)"
+                        @onclick='() => _confirm!.Show(
+                            "1. Rate zurücksetzen",
+                            "Zahlung wirklich zurücksetzen?",
+                            "Ja, zurücksetzen", "btn-danger",
+                            () => MarkUnpaid(id))'>
                   Zurücksetzen
                 </button>
               }
               else
               {
                 <button class="btn btn-sm btn-success" disabled="@_busy.Contains(id)"
-                        @onclick="() => MarkPaid(id)">
+                        @onclick='() => _confirm!.Show(
+                            "1. Rate bestätigen",
+                            "Zahlung als bezahlt markieren?",
+                            "Ja, markieren", "btn-success",
+                            () => MarkPaid(id))'>
                   Als bezahlt markieren
                 </button>
               }
@@ -92,14 +101,23 @@ else
                   <div class="text-muted" style="font-size:0.75rem;">@m.ExportedToAccountingBy</div>
                 }
                 <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem;"
-                        disabled="@_busy.Contains(id)" @onclick="() => UnmarkAccounting(id)">
+                        disabled="@_busy.Contains(id)"
+                        @onclick='() => _confirm!.Show(
+                            "FiBu-Eintrag zurücksetzen",
+                            "FiBu-Eintrag wirklich zurücksetzen?",
+                            "Ja, zurücksetzen", "btn-danger",
+                            () => UnmarkAccounting(id))'>
                   Zurücksetzen
                 </button>
               }
               else
               {
                 <button class="btn btn-sm btn-success" disabled="@_busy.Contains(id)"
-                        @onclick="() => MarkAccounting(id)">
+                        @onclick='() => _confirm!.Show(
+                            "In FiBu übertragen",
+                            "Als in FiBu eingetragen markieren?",
+                            "Ja, markieren", "btn-success",
+                            () => MarkAccounting(id))'>
                   Als eingetragen markieren
                 </button>
               }
@@ -120,9 +138,12 @@ else
 
 </div>
 
+<ConfirmDialogComponent @ref="_confirm" />
+
 @code {
     [Parameter] public string AdminUser { get; set; } = "";
 
+    private ConfirmDialogComponent? _confirm;
     private IReadOnlyList<PassiveMember> _members = [];
     private Dictionary<int, string?> _notes = [];
     private HashSet<int> _busy = [];

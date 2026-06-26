@@ -1338,3 +1338,8 @@ window.SporthalleAdmin = (function () {
     }
   };
 })();
+
+window.bookingGetElementRect = function (element) {
+  var r = element.getBoundingClientRect();
+  return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height, viewportWidth: window.innerWidth };
+};

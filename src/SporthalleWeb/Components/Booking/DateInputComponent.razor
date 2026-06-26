@@ -1,4 +1,5 @@
 @using System.Globalization
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <div class="date-input-nav">
 
@@ -17,7 +18,7 @@
         <span class="date-nav-empty">Kein Datum</span>
     }
 
-    <button type="button" class="dp-toggle-btn date-nav-dp-btn @(_open ? "dp-active" : "")"
+    <button @ref="_toggleBtn" type="button" class="dp-toggle-btn date-nav-dp-btn @(_open ? "dp-active" : "")"
             @onclick="TogglePicker" aria-label="Datum wählen" title="Datum wählen">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -47,7 +48,7 @@
     @if (_open)
     {
         <div style="position:fixed;inset:0;z-index:1090;" @onclick="ClosePicker"></div>
-        <div class="dp-popup dp-open din-popup" style="z-index:1100;">
+        <div class="dp-popup dp-open" style="z-index:1100;@_popupStyle">
             <div class="dp-nav">
                 <button type="button" class="dp-nav-btn" @onclick:stopPropagation @onclick="PrevMonth">&#8249;</button>
                 <span class="dp-month-label">@_pickerMonth.ToString("MMMM yyyy", DeCh)</span>
@@ -96,6 +97,8 @@
 
     private bool _open;
     private DateOnly _pickerMonth;
+    private ElementReference _toggleBtn;
+    private string _popupStyle = "";
 
     protected override void OnInitialized()
     {
@@ -103,13 +106,25 @@
         _pickerMonth = new DateOnly(v.Year, v.Month, 1);
     }
 
-    private void TogglePicker()
+    private async Task TogglePicker()
     {
         _open = !_open;
         if (_open)
         {
             var v = Value ?? _today;
             _pickerMonth = new DateOnly(v.Year, v.Month, 1);
+            try
+            {
+                var rect = await JS.InvokeAsync<BoundingRect>("bookingGetElementRect", _toggleBtn);
+                var left = rect.Left;
+                if (left + 260 > rect.ViewportWidth - 8)
+                    left = Math.Max(8, rect.ViewportWidth - 268);
+                _popupStyle = $"position:fixed;top:{rect.Bottom + 4:F0}px;left:{left:F0}px;transform:none;right:auto;";
+            }
+            catch
+            {
+                _popupStyle = "";
+            }
         }
     }
 
@@ -142,4 +157,6 @@
         for (int i = 0; i < offset; i++) yield return null;
         for (int day = 1; day <= count; day++) yield return new DateOnly(_pickerMonth.Year, _pickerMonth.Month, day);
     }
+
+    private record BoundingRect(double Left, double Top, double Right, double Bottom, double Width, double Height, double ViewportWidth);
 }

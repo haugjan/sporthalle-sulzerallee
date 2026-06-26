@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SporthalleWeb\SporthalleWeb.csproj" />
+    <ProjectReference Include="..\SporthalleWeb\SporthalleWeb.csproj" />
   </ItemGroup>
 
 </Project>

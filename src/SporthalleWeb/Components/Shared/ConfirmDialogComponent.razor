@@ -1,0 +1,45 @@
+@if (_visible)
+{
+    <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1060">
+        <div class="card" style="max-width:440px;width:90%">
+            <div class="card-header"><strong>@_title</strong></div>
+            <div class="card-body">
+                <p class="mb-0">@_message</p>
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="Cancel">Abbrechen</button>
+                <button class="btn @_confirmCss" @onclick="ConfirmAsync">@_confirmLabel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private string _title = "";
+    private string _message = "";
+    private string _confirmLabel = "Bestätigen";
+    private string _confirmCss = "btn-primary";
+    private Func<Task>? _onConfirm;
+
+    public void Show(string title, string message, string confirmLabel, string confirmCss, Func<Task> onConfirm)
+    {
+        _title = title;
+        _message = message;
+        _confirmLabel = confirmLabel;
+        _confirmCss = confirmCss;
+        _onConfirm = onConfirm;
+        _visible = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _visible = false;
+        if (_onConfirm is not null)
+            await _onConfirm();
+    }
+
+    private void Cancel() => _visible = false;
+}

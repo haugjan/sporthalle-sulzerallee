@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using SporthalleWeb.Domain.PassiveMembership;
 using SporthalleWeb.Domain.PassiveMembership.Ports;
+using SporthalleWeb.Infrastructure.Booking.Members;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
@@ -13,11 +15,14 @@ public class PassiveMemberRepository : IPassiveMemberRepository
 
     private readonly IMemberService _memberService;
     private readonly IMemberManager _memberManager;
+    private readonly ILogger<PassiveMemberRepository> _logger;
 
-    public PassiveMemberRepository(IMemberService memberService, IMemberManager memberManager)
+    public PassiveMemberRepository(IMemberService memberService, IMemberManager memberManager,
+        ILogger<PassiveMemberRepository> logger)
     {
         _memberService = memberService;
         _memberManager = memberManager;
+        _logger = logger;
     }
 
     // ── Query ─────────────────────────────────────────────────────────────────
@@ -27,14 +32,14 @@ public class PassiveMemberRepository : IPassiveMemberRepository
         var fieldStr = field.Value.ToString();
         var taken = _memberService.GetMembersByMemberType(MemberTypeAlias)
             .Any(m => m.GetValue<string>("fieldNumber") == fieldStr
-                   && m.GetValue<string>("status") != MemberStatus.Deleted);
+                   && UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted);
         return Task.FromResult(taken);
     }
 
     public Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
     {
         var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => (m.GetValue<string>("status") ?? MemberStatus.Pending) == MemberStatus.Pending)
+            .Where(m => (UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) ?? MemberStatus.Pending) == MemberStatus.Pending)
             .OrderBy(m => m.CreateDate)
             .Select(Reconstitute)
             .ToList();
@@ -44,7 +49,7 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     public Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
     {
         var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => m.GetValue<string>("status") == MemberStatus.Confirmed)
+            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) == MemberStatus.Confirmed)
             .OrderBy(m => int.TryParse(m.GetValue<string>("fieldNumber"), out var fn) ? fn : 0)
             .Select(Reconstitute)
             .ToList();
@@ -62,11 +67,11 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     public Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
     {
         var result = _memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => m.GetValue<string>("status") != MemberStatus.Deleted)
+            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted)
             .Select(m =>
             {
                 _ = int.TryParse(m.GetValue<string>("fieldNumber"), out var fn);
-                var status = m.GetValue<string>("status");
+                var status = UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null);
                 var show = m.GetValue<bool>("showNameOnFloor");
                 var displayName = show && status == MemberStatus.Confirmed
                     ? m.GetValue<string>("floorDisplayName").NullIfEmpty()
@@ -80,6 +85,23 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     // ── Mutations ─────────────────────────────────────────────────────────────
 
     public async Task<PassiveMember> SaveAsync(PassiveMember member)
+    {
+        try
+        {
+            return await SaveInternalAsync(member);
+        }
+        catch (DomainException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save PassiveMember for field {Field}", member.FieldNumber.Value);
+            throw new DomainException($"Registrierung fehlgeschlagen: {ex.Message}");
+        }
+    }
+
+    private async Task<PassiveMember> SaveInternalAsync(PassiveMember member)
     {
         var username = Username(member.FieldNumber.Value);
 
@@ -98,11 +120,11 @@ public class PassiveMemberRepository : IPassiveMemberRepository
 
         var user = new MemberIdentityUser
         {
-            UserName = username,
-            Email = SyntheticEmail(member.FieldNumber.Value),
-            Name = $"{member.FirstName} {member.LastName}".Trim(),
+            UserName        = username,
+            Email           = SyntheticEmail(member.FieldNumber.Value),
+            Name            = $"{member.FirstName} {member.LastName}".Trim(),
             MemberTypeAlias = MemberTypeAlias,
-            IsApproved = true
+            IsApproved      = true
         };
 
         var result = await _memberManager.CreateAsync(user);
@@ -135,64 +157,62 @@ public class PassiveMemberRepository : IPassiveMemberRepository
     private static string Username(int fieldNumber) => $"pm-{fieldNumber:D3}";
     private static string SyntheticEmail(int fieldNumber) => $"pm-{fieldNumber:D3}@passiv.internal";
 
-    private static void SetProperties(IMember m, PassiveMember pm)
+    // internal for MemberTypeConsistencyTests
+    internal static void SetProperties(IMember m, PassiveMember pm)
     {
-        m.SetValue("email",                  pm.Email.Value);
-        m.SetValue("firstName",              pm.FirstName);
-        m.SetValue("lastName",               pm.LastName);
-        m.SetValue("fieldNumber",            pm.FieldNumber.Value.ToString());
-        m.SetValue("membershipLevel",        pm.Level.Key);
-        m.SetValue("billingAddress",         pm.AddressLine);
-        m.SetValue("addressLine2",           pm.AddressLine2 ?? "");
-        m.SetValue("billingPostalCode",      pm.PostalCode);
-        m.SetValue("billingCity",            pm.City);
-        m.SetValue("billingCountry",         pm.Country);
-        m.SetValue("phone",                  pm.Phone ?? "");
-        m.SetValue("showNameOnFloor",        pm.ShowNameOnFloor);
-        m.SetValue("floorDisplayName",       pm.DisplayName ?? "");
-        m.SetValue("status",                 pm.Status);
-        m.SetValue("paidAt",                 pm.PaidAt?.ToString("O") ?? "");
-        m.SetValue("paidBy",                 pm.PaidBy ?? "");
-        m.SetValue("confirmedAt",            pm.ConfirmedAt?.ToString("O") ?? "");
-        m.SetValue("confirmedBy",            pm.ConfirmedBy ?? "");
-        m.SetValue("exportedToAccountingAt", pm.ExportedToAccountingAt?.ToString("O") ?? "");
-        m.SetValue("exportedToAccountingBy", pm.ExportedToAccountingBy ?? "");
-        m.SetValue("notes",                  pm.Notes ?? "");
+        m.SetValue(PassivMemberAliases.Email,                  pm.Email.Value);
+        m.SetValue(PassivMemberAliases.FirstName,              pm.FirstName);
+        m.SetValue(PassivMemberAliases.LastName,               pm.LastName);
+        m.SetValue(PassivMemberAliases.FieldNumber,            pm.FieldNumber.Value.ToString());
+        m.SetValue(PassivMemberAliases.MembershipLevel,        pm.Level.Key);
+        m.SetValue(PassivMemberAliases.BillingAddress,         pm.AddressLine);
+        m.SetValue(PassivMemberAliases.AddressLine2,           pm.AddressLine2 ?? "");
+        m.SetValue(PassivMemberAliases.BillingPostalCode,      pm.PostalCode);
+        m.SetValue(PassivMemberAliases.BillingCity,            pm.City);
+        m.SetValue(PassivMemberAliases.BillingCountry,         pm.Country);
+        m.SetValue(PassivMemberAliases.Phone,                  pm.Phone ?? "");
+        m.SetValue(PassivMemberAliases.ShowNameOnFloor,        pm.ShowNameOnFloor);
+        m.SetValue(PassivMemberAliases.FloorDisplayName,       pm.DisplayName ?? "");
+        m.SetValue(PassivMemberAliases.Status,                 pm.Status);
+        m.SetValue(PassivMemberAliases.PaidAt,                 (object?)pm.PaidAt);
+        m.SetValue(PassivMemberAliases.PaidBy,                 pm.PaidBy ?? "");
+        m.SetValue(PassivMemberAliases.ConfirmedAt,            (object?)pm.ConfirmedAt);
+        m.SetValue(PassivMemberAliases.ConfirmedBy,            pm.ConfirmedBy ?? "");
+        m.SetValue(PassivMemberAliases.ExportedToAccountingAt, (object?)pm.ExportedToAccountingAt);
+        m.SetValue(PassivMemberAliases.ExportedToAccountingBy, pm.ExportedToAccountingBy ?? "");
+        m.SetValue(PassivMemberAliases.Notes,                  pm.Notes ?? "");
     }
 
     private static PassiveMember Reconstitute(IMember m)
     {
-        _ = int.TryParse(m.GetValue<string>("fieldNumber"), out var fieldNumber);
+        _ = int.TryParse(m.GetValue<string>(PassivMemberAliases.FieldNumber), out var fieldNumber);
         return PassiveMember.Reconstitute(
-            id:                    m.Id,
-            fieldNumber:           fieldNumber,
-            firstName:             m.GetValue<string>("firstName") ?? "",
-            lastName:              m.GetValue<string>("lastName") ?? "",
-            addressLine:           m.GetValue<string>("billingAddress") ?? "",
-            addressLine2:          m.GetValue<string>("addressLine2").NullIfEmpty(),
-            postalCode:            m.GetValue<string>("billingPostalCode") ?? "",
-            city:                  m.GetValue<string>("billingCity") ?? "",
-            country:               m.GetValue<string>("billingCountry").NullIfEmpty() ?? "Schweiz",
-            phone:                 m.GetValue<string>("phone").NullIfEmpty(),
-            email:                 m.GetValue<string>("email") ?? "",
-            levelKey:              m.GetValue<string>("membershipLevel") ?? "Bronze",
-            showNameOnFloor:       m.GetValue<bool>("showNameOnFloor"),
-            displayName:           m.GetValue<string>("floorDisplayName").NullIfEmpty(),
-            createdAt:             m.CreateDate,
-            status:                m.GetValue<string>("status").NullIfEmpty() ?? MemberStatus.Pending,
-            confirmedAt:           Iso(m.GetValue<string>("confirmedAt")),
-            confirmedBy:           m.GetValue<string>("confirmedBy").NullIfEmpty(),
-            paidAt:                Iso(m.GetValue<string>("paidAt")),
-            paidBy:                m.GetValue<string>("paidBy").NullIfEmpty(),
-            exportedToAccountingAt: Iso(m.GetValue<string>("exportedToAccountingAt")),
-            exportedToAccountingBy: m.GetValue<string>("exportedToAccountingBy").NullIfEmpty(),
-            notes:                 m.GetValue<string>("notes").NullIfEmpty()
+            id:                     m.Id,
+            fieldNumber:            fieldNumber,
+            firstName:              m.GetValue<string>(PassivMemberAliases.FirstName) ?? "",
+            lastName:               m.GetValue<string>(PassivMemberAliases.LastName) ?? "",
+            addressLine:            m.GetValue<string>(PassivMemberAliases.BillingAddress) ?? "",
+            addressLine2:           m.GetValue<string>(PassivMemberAliases.AddressLine2).NullIfEmpty(),
+            postalCode:             m.GetValue<string>(PassivMemberAliases.BillingPostalCode) ?? "",
+            city:                   m.GetValue<string>(PassivMemberAliases.BillingCity) ?? "",
+            country:                m.GetValue<string>(PassivMemberAliases.BillingCountry).NullIfEmpty() ?? "Schweiz",
+            phone:                  m.GetValue<string>(PassivMemberAliases.Phone).NullIfEmpty(),
+            email:                  m.GetValue<string>(PassivMemberAliases.Email) ?? "",
+            levelKey:               UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.MembershipLevel), null) ?? "Bronze",
+            showNameOnFloor:        m.GetValue<bool>(PassivMemberAliases.ShowNameOnFloor),
+            displayName:            m.GetValue<string>(PassivMemberAliases.FloorDisplayName).NullIfEmpty(),
+            createdAt:              m.CreateDate,
+            status:                 UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.Status), null) ?? MemberStatus.Pending,
+            confirmedAt:            m.GetValue<DateTime?>(PassivMemberAliases.ConfirmedAt),
+            confirmedBy:            m.GetValue<string>(PassivMemberAliases.ConfirmedBy).NullIfEmpty(),
+            paidAt:                 m.GetValue<DateTime?>(PassivMemberAliases.PaidAt),
+            paidBy:                 m.GetValue<string>(PassivMemberAliases.PaidBy).NullIfEmpty(),
+            exportedToAccountingAt: m.GetValue<DateTime?>(PassivMemberAliases.ExportedToAccountingAt),
+            exportedToAccountingBy: m.GetValue<string>(PassivMemberAliases.ExportedToAccountingBy).NullIfEmpty(),
+            notes:                  m.GetValue<string>(PassivMemberAliases.Notes).NullIfEmpty()
         );
     }
 
-    private static DateTime? Iso(string? s)
-        => string.IsNullOrWhiteSpace(s) ? null
-            : DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt) ? dt : null;
 }
 
 file static class StringExtensions
