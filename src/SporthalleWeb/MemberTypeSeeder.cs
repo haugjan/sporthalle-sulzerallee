@@ -150,26 +150,29 @@ public sealed class MemberTypeSeeder(
             throw new InvalidOperationException("Umbraco.ColorPicker property editor not found.");
 
         // Umbraco.ColorPicker expects { "useLabel": false, "items": [{ "value": "RRGGBB", "label": "..." }] }.
+        // The ColorListValidator calls ToString() on the items value and deserializes it as JSON,
+        // so items must be a JsonElement (stringifies to JSON, persists as an array) — NOT a plain List,
+        // whose ToString() yields a type name and fails validation.
         var config = new Dictionary<string, object>
         {
             ["useLabel"] = false,
-            ["items"]    = colors
-                .Select(hex => (object)new Dictionary<string, object>
-                {
-                    ["value"] = hex,
-                    ["label"] = "#" + hex
-                })
-                .ToList()
+            ["items"]    = ColorItemsElement(colors)
         };
 
-        // Only write when the stored config actually differs — a redundant data type
-        // save triggers a ModelsBuilder regeneration (see GetOrCreateDropdown).
+        // The backoffice resolves the property editor UI from EditorUiAlias; unlike the
+        // dropdown editor it has no null-fallback, so it must be set explicitly.
+        const string uiAlias = "Umb.PropertyEditorUi.ColorPicker";
+
+        // Only write when something actually differs — a redundant data type save
+        // triggers a ModelsBuilder regeneration (see GetOrCreateDropdown).
         var existing = all.FirstOrDefault(d => d.Name == name);
         if (existing is not null)
         {
-            if (!ColorPickerConfigMatches(existing.ConfigurationData, colors))
+            if (!ColorPickerConfigMatches(existing.ConfigurationData, colors)
+                || existing.EditorUiAlias != uiAlias)
             {
                 existing.ConfigurationData = config;
+                existing.EditorUiAlias = uiAlias;
                 dataTypeService.Save(existing);
             }
             return existing;
@@ -178,12 +181,22 @@ public sealed class MemberTypeSeeder(
         var dt = new DataType(editor, serializer)
         {
             Name              = name,
+            EditorUiAlias     = uiAlias,
             DatabaseType      = ValueStorageType.Nvarchar,
             ConfigurationData = config
         };
         dataTypeService.Save(dt);
         all.Add(dt);
         return dt;
+    }
+
+    // Builds the colour-picker "items" as a JsonElement: { value, label } per colour,
+    // values WITHOUT the leading '#' (the editor adds it). A JsonElement stringifies to
+    // JSON (so the ColorListValidator accepts it) and persists as a JSON array.
+    private static System.Text.Json.JsonElement ColorItemsElement(string[] colors)
+    {
+        var items = colors.Select(hex => new { value = hex, label = "#" + hex }).ToArray();
+        return System.Text.Json.JsonSerializer.SerializeToElement(items);
     }
 
     // True when the stored config is a single-value colour picker whose swatch values
@@ -194,13 +207,31 @@ public sealed class MemberTypeSeeder(
         if (config.TryGetValue("useLabel", out var useLabelObj)
             && bool.TryParse(useLabelObj?.ToString(), out var useLabel) && useLabel)
             return false;
-        if (!config.TryGetValue("items", out var itemsObj)
-            || itemsObj is string
-            || itemsObj is not System.Collections.IEnumerable items)
+        if (!config.TryGetValue("items", out var itemsObj))
             return false;
-        var stored = items.Cast<object?>().Select(ColorPickerItemValue).ToList();
-        return stored.Count == colors.Length
+
+        var stored = ColorItemValues(itemsObj);
+        return stored is not null
+            && stored.Count == colors.Length
             && stored.SequenceEqual(colors, StringComparer.OrdinalIgnoreCase);
+    }
+
+    // Enumerates the stored item "value"s. Handles the JsonElement array produced on
+    // reload as well as an in-memory IEnumerable, so the match never triggers a
+    // redundant save (which would force a ModelsBuilder regeneration).
+    private static List<string?>? ColorItemValues(object? itemsObj)
+    {
+        switch (itemsObj)
+        {
+            case System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Array:
+                return je.EnumerateArray().Select(e => (object?)e).Select(ColorPickerItemValue).ToList();
+            case string:
+                return null;
+            case System.Collections.IEnumerable en:
+                return en.Cast<object?>().Select(ColorPickerItemValue).ToList();
+            default:
+                return null;
+        }
     }
 
     // Reads the "value" of a stored colour-picker item, which round-trips as a
