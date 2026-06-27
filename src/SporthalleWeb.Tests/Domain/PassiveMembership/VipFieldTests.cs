@@ -1,4 +1,4 @@
-using SporthalleWeb.Domain.PassiveMembership;
+using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Domain.PassiveMembership;

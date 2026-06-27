@@ -1,0 +1,56 @@
+@using SporthalleWeb.Features.PassiveMembership.MemberAdmin
+@inject PassiveMemberAdmin AdminService
+@inject IJSRuntime JS
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; font-size: 14px; color: #1a1a2e; background: #f5f6fa; margin: 0; }
+  .exports { padding: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 0.65rem 1.4rem; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn-excel   { background: #1d6f42; color: #fff; }
+  .btn-abaninja { background: #1A5FAD; color: #fff; }
+  .msg { padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.85rem; font-weight: 600; margin: 0 1.5rem; }
+  .msg-err { background: #fee2e2; color: #991b1b; }
+</style>
+
+<div class="exports">
+  <button class="btn btn-excel" disabled="@_busy" @onclick="DownloadExcel">Excel-Export</button>
+  <button class="btn btn-abaninja" disabled="@_busy" @onclick="DownloadAbaninja">AbaNinja-CSV</button>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+  <div class="msg msg-err">@_error</div>
+}
+
+@code {
+    private bool _busy;
+    private string? _error;
+
+    private async Task DownloadExcel()
+    {
+        _busy = true;
+        try
+        {
+            var bytes = await AdminService.ExportExcelAsync();
+            await JS.InvokeVoidAsync("pmDownload", bytes, "passivmitglieder.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task DownloadAbaninja()
+    {
+        _busy = true;
+        try
+        {
+            var bytes = await AdminService.ExportAbaninjaAsync();
+            await JS.InvokeVoidAsync("pmDownload", bytes, "passivmitglieder-abaninja.csv", "text/csv");
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+}

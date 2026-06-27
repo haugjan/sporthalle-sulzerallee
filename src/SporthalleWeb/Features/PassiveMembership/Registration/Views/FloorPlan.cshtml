@@ -1,0 +1,52 @@
+@using SporthalleWeb.Features.PassiveMembership.Registration
+@model string
+@{
+    Layout = null;
+    var siteKey = Model ?? "1x00000000000000000000AA";
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Hallenboden</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>html, body { margin: 0; padding: 0; font-family: "Manrope", sans-serif; }</style>
+</head>
+<body>
+    <component type="typeof(FloorPlanComponent)" render-mode="Server"
+               param-TurnstileSiteKey="@siteKey" />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="/_framework/blazor.server.js"></script>
+    <script>
+        var _pmTurnstileToken = null;
+        var _pmWidgetId = null;
+        window.pmInitTurnstile = function(siteKey, containerId) {
+            _pmTurnstileToken = null;
+            if (!window.turnstile) return;
+            if (_pmWidgetId) {
+                // Widget already exists — reset it to get a fresh token via the original callback.
+                window.turnstile.reset(_pmWidgetId);
+                return;
+            }
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            _pmWidgetId = window.turnstile.render('#' + containerId, {
+                sitekey: siteKey,
+                callback: function(token) { _pmTurnstileToken = token; }
+            });
+        };
+        window.pmClearTurnstile = function() {
+            _pmTurnstileToken = null;
+            _pmWidgetId = null;
+        };
+        window.pmGetTurnstileToken = function() { return _pmTurnstileToken; };
+        window.pmNotifyExpand = function(expanded) {
+            window.parent.postMessage({ type: 'pm-expand', expanded: !!expanded }, '*');
+        };
+    </script>
+</body>
+</html>

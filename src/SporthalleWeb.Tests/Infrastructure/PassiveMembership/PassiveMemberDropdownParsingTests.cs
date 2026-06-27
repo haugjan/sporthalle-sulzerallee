@@ -1,4 +1,4 @@
-using SporthalleWeb.Domain.PassiveMembership;
+using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
 using SporthalleWeb.Infrastructure.Booking.Members;
 using Xunit;
 
