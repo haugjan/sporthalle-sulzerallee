@@ -1,21 +1,21 @@
 using Moq;
-using SporthalleWeb.Application.Booking;
-using SporthalleWeb.Domain.Booking;
-using SporthalleWeb.Domain.Booking.Ports;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Application.Booking;
 
 public sealed class SendMagicLinkUseCaseTests
 {
-    private readonly Mock<IMemberManagerPort> _members = new();
-    private readonly Mock<IMagicLinkTokenRepository> _tokenRepo = new();
-    private readonly Mock<IBookingEmailPort> _email = new();
-    private readonly SendMagicLinkUseCase _sut;
+    private readonly Mock<IHallMembers> _members = new();
+    private readonly Mock<IMagicLinkTokens> _tokenRepo = new();
+    private readonly Mock<IBookingEmail> _email = new();
+    private readonly SendMagicLink _sut;
 
     public SendMagicLinkUseCaseTests()
     {
-        _sut = new SendMagicLinkUseCase(_members.Object, _tokenRepo.Object, _email.Object);
+        _sut = new SendMagicLink(_members.Object, _tokenRepo.Object, _email.Object);
     }
 
     private static HallMember MakeHallMember(int id = 1) => new(
@@ -51,8 +51,8 @@ public sealed class SendMagicLinkUseCaseTests
     [Fact]
     public void GenerateToken_ProducesUniqueTokenPairs()
     {
-        var (plain1, hash1) = SendMagicLinkUseCase.GenerateToken();
-        var (plain2, hash2) = SendMagicLinkUseCase.GenerateToken();
+        var (plain1, hash1) = SendMagicLink.GenerateToken();
+        var (plain2, hash2) = SendMagicLink.GenerateToken();
 
         Assert.NotEqual(plain1, plain2);
         Assert.NotEqual(hash1, hash2);
@@ -63,7 +63,7 @@ public sealed class SendMagicLinkUseCaseTests
     [Fact]
     public void GenerateToken_HashIsHexString()
     {
-        var (_, hash) = SendMagicLinkUseCase.GenerateToken();
+        var (_, hash) = SendMagicLink.GenerateToken();
         Assert.Matches("^[0-9A-F]+$", hash);
     }
 }

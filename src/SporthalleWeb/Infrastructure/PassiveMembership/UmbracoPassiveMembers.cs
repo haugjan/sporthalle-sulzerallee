@@ -1,6 +1,6 @@
 using SporthalleWeb.Features.PassiveMembership.Registration;
 using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
-using SporthalleWeb.Infrastructure.Booking.Members;
+using SporthalleWeb.Infrastructure.Shared;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;

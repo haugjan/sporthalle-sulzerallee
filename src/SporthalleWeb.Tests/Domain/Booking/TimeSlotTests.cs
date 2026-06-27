@@ -1,4 +1,4 @@
-using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Features.Booking;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Domain.Booking;

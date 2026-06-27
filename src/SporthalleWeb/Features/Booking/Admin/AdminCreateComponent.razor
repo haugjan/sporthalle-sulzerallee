@@ -1,0 +1,513 @@
+@namespace SporthalleWeb.Features.Booking
+@using Microsoft.JSInterop
+@using System.Text.Json
+@using System.Globalization
+@inject IJSRuntime JS
+@inject SporthalleWeb.Features.Booking.BookingAdminService AdminService
+@inject SporthalleWeb.Features.Booking.CreateRecurringSlot CreateRecurring
+@inject SporthalleWeb.Features.Booking.IHallMembers Members
+@implements IAsyncDisposable
+
+<!-- Kalender (exakt gleich wie öffentliche Seite) -->
+<div style="padding: 0.5rem 0 1rem;">
+
+  <div class="week-nav" style="padding: 0 1.5rem;">
+    <button id="prev-week" aria-label="Vorwoche">&#8249;</button>
+    <div class="week-nav-center">
+      <span id="week-label"></span>
+      <button type="button" id="dp-toggle" class="dp-toggle-btn" aria-label="Datum wählen" title="Zu Datum springen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </button>
+      <div id="date-picker" class="dp-popup"></div>
+    </div>
+    <button id="next-week" aria-label="Nächste Woche">&#8250;</button>
+  </div>
+
+  <div class="reservierung-layout" style="padding: 0 1.5rem; gap: 1.5rem;">
+
+    <div class="reservierung-cal-col">
+      <div class="calendar-scroll-wrapper">
+        <div id="calendar-grid"></div>
+      </div>
+      <div class="calendar-legend" style="margin-top: 0.75rem;">
+        <div class="legend-item"><span class="legend-dot confirmed"></span> Bestätigt</div>
+        <div class="legend-item"><span class="legend-dot provisional"></span> Angefragt</div>
+        <div class="legend-item"><span class="legend-dot recurring"></span> Blocker</div>
+        <div class="legend-item"><span class="legend-dot free"></span> Frei</div>
+      </div>
+    </div>
+
+    <div class="reservierung-panel-col">
+      <div class="slot-panel" id="slot-panel">
+
+        <div id="slot-panel-hint">
+          Zeitraum im Kalender aufziehen, um einen Termin zu erfassen.
+        </div>
+
+        <div id="slot-panel-detail" hidden>
+          <h3>Ausgewählter Termin</h3>
+          <p id="slot-date-label" class="slot-panel__date"></p>
+          <div class="slot-panel__times">
+            <div class="slot-panel__time-item">
+              <span class="slot-panel__time-label">Von</span>
+              <span class="slot-panel__time-val" id="slot-von">–</span>
+            </div>
+            <span class="slot-panel__time-dash">bis</span>
+            <div class="slot-panel__time-item">
+              <span class="slot-panel__time-label">Bis</span>
+              <span class="slot-panel__time-val" id="slot-bis">–</span>
+            </div>
+          </div>
+          <p class="slot-panel__meta" id="slot-meta"></p>
+          <button class="btn-buchen" id="admin-btn-create">Slot erfassen</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Admin-Buchungsmodal -->
+<div class="bm-overlay" id="admin-booking-modal" hidden aria-modal="true" role="dialog">
+  <div class="bm-card">
+
+    <div class="bm-header">
+      <span class="bm-title" id="admin-bm-title">Slot erfassen</span>
+      <button class="bm-close" id="admin-bm-close" aria-label="Schliessen">&#x2715;</button>
+    </div>
+
+    <div class="bm-slot-summary" id="admin-bm-slot-summary"></div>
+
+    <!-- Typ-Wahl -->
+    <div style="display:flex; gap:0.75rem; padding: 0.75rem 1.5rem 0.5rem;">
+      <button id="admin-type-blocker" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Blocker</button>
+      <button id="admin-type-booking" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Buchung</button>
+    </div>
+    <div style="display:flex; gap:0.75rem; padding: 0 1.5rem 0.75rem; border-bottom: 1px solid #eee;">
+      <button id="admin-sched-single" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Einzeltermin</button>
+      <button id="admin-sched-recurring" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Serientermin</button>
+    </div>
+
+    <!-- Blocker-Formular -->
+    <div id="admin-bm-body-blocker-single">
+      <div class="bm-body">
+        <div class="bm-form">
+          <div class="bm-field bm-field--2col">
+            <label>Bezeichnung *
+              <input type="text" id="admin-bm-blocker-title" placeholder="z.B. Hallenpflege, Wartung, Internes Training" />
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label>Farbe
+              <span style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem">
+                <span style="width:22px;height:22px;border-radius:4px;background:#78909C;display:inline-block;border:2px solid #333"></span>
+                <span style="font-size:0.85rem;color:#555;font-weight:400;text-transform:none;letter-spacing:0">Immer Grau</span>
+              </span>
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label>Bemerkungen (optional)
+              <textarea id="admin-bm-notes-blocker" rows="2" placeholder="Interne Notiz"></textarea>
+            </label>
+          </div>
+          <div id="admin-bm-error-blocker" class="bm-error" hidden></div>
+        </div>
+      </div>
+      <div class="bm-footer">
+        <button class="bm-btn-secondary" id="admin-bm-cancel">Abbrechen</button>
+        <button class="bm-btn-primary" id="admin-bm-submit-blocker">Blocker speichern</button>
+      </div>
+    </div>
+
+    <!-- Buchungsformular -->
+    <div id="admin-bm-body-booking-single" hidden>
+      <div class="bm-body">
+        <div class="bm-form">
+
+          <div class="bm-field bm-field--2col">
+            <label>Anlass *
+              <input type="text" id="admin-bm-event" placeholder="z.B. Unihockeytraining, Plauschturnier, Gymnastik" />
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:400;font-size:0.85rem;color:#666;text-transform:none;letter-spacing:0;margin-top:0.3rem">
+              <input type="checkbox" @bind="_bookingShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              Bezeichnung auf öffentlichem Kalender anzeigen
+            </label>
+          </div>
+
+          <div class="bm-field bm-field--2col" style="position:relative">
+            <label>Mieter suchen *
+              <input type="text" id="admin-bm-member-search"
+                     placeholder="Name, Firma oder E-Mail eingeben…"
+                     autocomplete="off" />
+              <div id="admin-bm-member-results" class="bm-search-results" hidden></div>
+            </label>
+          </div>
+          <div id="admin-bm-member-selected" class="bm-field bm-field--2col" hidden>
+            <div class="bm-member-badge">
+              <div>
+                <span id="admin-bm-member-badge-name" class="bm-member-badge__name"></span>
+                <span id="admin-bm-member-badge-email" class="bm-member-badge__email"></span>
+              </div>
+              <button type="button" id="admin-bm-member-clear" class="bm-member-badge__clear" aria-label="Auswahl aufheben">&#x2715;</button>
+            </div>
+            <input type="hidden" id="admin-bm-member-id" value="" />
+          </div>
+
+          <div class="bm-field bm-field--2col">
+            <label>Farbe
+              <div id="admin-bm-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
+                <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#C62828" style="background:#C62828" title="#C62828"></button>
+                <button type="button" class="bm-color-swatch" data-color="#FFD54F" style="background:#FFD54F" title="#FFD54F"></button>
+                <button type="button" class="bm-color-swatch" data-color="#1A1A1A" style="background:#1A1A1A" title="#1A1A1A"></button>
+                <button type="button" class="bm-color-swatch" data-color="#2B6CB0" style="background:#2B6CB0" title="#2B6CB0"></button>
+                <button type="button" class="bm-color-swatch" data-color="#2F855A" style="background:#2F855A" title="#2F855A"></button>
+                <button type="button" class="bm-color-swatch" data-color="#702459" style="background:#702459" title="#702459"></button>
+                <button type="button" class="bm-color-swatch" data-color="#D97706" style="background:#D97706" title="#D97706"></button>
+                <button type="button" class="bm-color-swatch" data-color="#0E7490" style="background:#0E7490" title="#0E7490"></button>
+              </div>
+            </label>
+          </div>
+
+          <div class="bm-field bm-field--2col">
+            <label>Bemerkungen
+              <textarea id="admin-bm-notes" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
+            </label>
+          </div>
+
+          <div id="admin-bm-error" class="bm-error" hidden></div>
+        </div>
+      </div>
+      <div class="bm-footer">
+        <button class="bm-btn-secondary" id="admin-bm-cancel2">Abbrechen</button>
+        <button class="bm-btn-primary" id="admin-bm-submit">Buchung erfassen</button>
+      </div>
+    </div>
+
+    <!-- Serientermin-Formular -->
+    <div id="admin-bm-body-recurring" hidden>
+      <div class="bm-body">
+        <div class="bm-form">
+
+          <div class="bm-field bm-field--2col">
+            <label>Bezeichnung *
+              <input type="text" id="admin-bm-recurring-title" placeholder="z.B. Schulsport, Training" />
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label>Wochentag *
+              <select id="admin-bm-recurring-weekday">
+                <option value="1">Montag</option>
+                <option value="2">Dienstag</option>
+                <option value="3">Mittwoch</option>
+                <option value="4">Donnerstag</option>
+                <option value="5">Freitag</option>
+                <option value="6">Samstag</option>
+                <option value="0">Sonntag</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="bm-field">
+            <label class="d-block">Zeit von *</label>
+            <TimePickerComponent HiddenInputId="admin-bm-recurring-start-time"
+                                 Value="@_seriesStartTime"
+                                 ValueChanged="@(v => _seriesStartTime = v)"
+                                 Step="30" />
+          </div>
+
+          <div class="bm-field">
+            <label class="d-block">Zeit bis *</label>
+            <TimePickerComponent HiddenInputId="admin-bm-recurring-end-time"
+                                 Value="@_seriesEndTime"
+                                 ValueChanged="@(v => _seriesEndTime = v)"
+                                 Step="30" />
+          </div>
+
+          <div class="bm-field">
+            <label class="d-block">Serie von *</label>
+            <DateInputComponent Value="_seriesStart" ValueChanged="@(d => { if (d.HasValue) _seriesStart = d.Value; })"
+                                HiddenInputId="admin-bm-recurring-start" />
+          </div>
+
+          <div class="bm-field">
+            <label class="d-block">Serie bis *</label>
+            <DateInputComponent Value="_seriesEnd" ValueChanged="@(d => { if (d.HasValue) _seriesEnd = d.Value; })"
+                                HiddenInputId="admin-bm-recurring-end" />
+          </div>
+
+          <div class="bm-field bm-field--2col" id="admin-bm-recurring-color-row">
+            <label>Farbe
+              <div id="admin-bm-recurring-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
+                <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#C62828" style="background:#C62828" title="#C62828"></button>
+                <button type="button" class="bm-color-swatch" data-color="#FFD54F" style="background:#FFD54F" title="#FFD54F"></button>
+                <button type="button" class="bm-color-swatch" data-color="#1A1A1A" style="background:#1A1A1A" title="#1A1A1A"></button>
+                <button type="button" class="bm-color-swatch" data-color="#2B6CB0" style="background:#2B6CB0" title="#2B6CB0"></button>
+                <button type="button" class="bm-color-swatch" data-color="#2F855A" style="background:#2F855A" title="#2F855A"></button>
+                <button type="button" class="bm-color-swatch" data-color="#702459" style="background:#702459" title="#702459"></button>
+                <button type="button" class="bm-color-swatch" data-color="#D97706" style="background:#D97706" title="#D97706"></button>
+                <button type="button" class="bm-color-swatch" data-color="#0E7490" style="background:#0E7490" title="#0E7490"></button>
+              </div>
+            </label>
+          </div>
+
+          <div class="bm-field bm-field--2col">
+            <label>Bemerkungen
+              <textarea id="admin-bm-recurring-notes" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
+            </label>
+          </div>
+          <div class="bm-field bm-field--2col">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">
+              <input type="checkbox" @bind="_seriesShowTitlePublic" style="width:1em;height:1em;flex-shrink:0" />
+              Bezeichnung auf öffentlichem Kalender anzeigen
+            </label>
+          </div>
+
+          <!-- Konflikt-Panel (hidden initially) -->
+          <div id="admin-bm-recurring-conflicts" hidden style="width:100%">
+            <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:0.9rem 1rem;color:#664d03">
+              <strong>Konflikte gefunden:</strong>
+              <p id="admin-bm-recurring-conflict-text" style="margin:0.4rem 0 0.7rem"></p>
+              <div style="display:flex;gap:0.75rem">
+                <button type="button" class="bm-btn-secondary" style="flex:1" id="admin-bm-recurring-retry">Nochmals bearbeiten</button>
+                <button type="button" class="bm-btn-primary" style="flex:1" id="admin-bm-recurring-skip">Trotzdem speichern</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="admin-bm-error-recurring" class="bm-error" hidden></div>
+        </div>
+      </div>
+      <div class="bm-footer">
+        <button class="bm-btn-secondary" id="admin-bm-cancel-recurring">Abbrechen</button>
+        <button class="bm-btn-primary" id="admin-bm-submit-recurring">Serientermine erstellen</button>
+      </div>
+    </div>
+
+    <!-- Erfolgsmeldung -->
+    <div class="bm-success" id="admin-bm-success" hidden>
+      <div class="bm-success-icon">&#x2713;</div>
+      <h3 id="admin-bm-success-title">Gespeichert!</h3>
+      <p id="admin-bm-success-msg"></p>
+      <button class="bm-btn-primary" id="admin-bm-done">Fertig</button>
+    </div>
+
+  </div>
+</div>
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+
+    private DateOnly _seriesStart = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _seriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private string _seriesStartTime = "08:00";
+    private string _seriesEndTime = "10:00";
+    private bool _bookingShowTitlePublic;
+    private bool _seriesShowTitlePublic;
+
+    private DotNetObjectReference<AdminCreateComponent>? _objRef;
+
+    protected override void OnInitialized()
+    {
+        _objRef = DotNetObjectReference.Create(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("SporthalleAdmin.initKalender", _objRef);
+    }
+
+    [JSInvokable]
+    public async Task<string> GetWeekSlotsAsync(string from)
+    {
+        var monday = DateOnly.Parse(from);
+        var items = await AdminService.GetWeekSlotsWithMembersAsync(monday);
+        var dto = items.Select(x => new
+        {
+            type       = x.Slot.Type.ToString(),
+            startUtc   = x.Slot.Slot.StartUtc.ToString("o"),
+            endUtc     = x.Slot.Slot.EndUtc.ToString("o"),
+            title      = x.Slot.Title,
+            color      = x.Slot.Color,
+            renterName = x.Member is null ? null
+                : x.Member.Name ?? $"{x.Member.ContactFirstName} {x.Member.ContactLastName}".Trim()
+        });
+        return JsonSerializer.Serialize(dto);
+    }
+
+    [JSInvokable]
+    public async Task<string> CreateSlotAsync(string payloadJson)
+    {
+        try
+        {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var payload = JsonSerializer.Deserialize<AdminBookingPayload>(payloadJson, opts);
+            if (payload is null)
+                return Err("Ungültige Daten.");
+
+            var startUtc = ParseUtc(payload.StartUtc);
+            var endUtc   = ParseUtc(payload.EndUtc);
+
+            if (payload.IsBlocker)
+            {
+                if (string.IsNullOrWhiteSpace(payload.Title))
+                    return Err("Bezeichnung ist erforderlich.");
+
+                await AdminService.CreateSlotAsync(
+                    SporthalleWeb.Features.Booking.SlotType.Blocker,
+                    startUtc, endUtc,
+                    payload.Title.Trim(), "#78909C",
+                    string.IsNullOrWhiteSpace(payload.Notes) ? null : payload.Notes.Trim(),
+                    null, AdminUser, false);
+
+                return Ok(true);
+            }
+
+            // Buchung direkt als bestätigt erfassen
+            if (payload.MemberId is null)
+                return Err("Bitte wähle einen Mieter aus.");
+
+            await AdminService.CreateSlotAsync(
+                SporthalleWeb.Features.Booking.SlotType.Booked,
+                startUtc, endUtc,
+                payload.EventTitle?.Trim() ?? "Buchung",
+                string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim(),
+                string.IsNullOrWhiteSpace(payload.Notes) ? null : payload.Notes!.Trim(),
+                payload.MemberId.Value, AdminUser, _bookingShowTitlePublic);
+
+            return Ok(true);
+        }
+        catch (SporthalleWeb.Features.Booking.SlotConflictException)
+        {
+            return Err("Dieser Zeitslot ist nicht mehr verfügbar. Bitte einen anderen Termin wählen.");
+        }
+        catch (SporthalleWeb.Features.Booking.DomainException ex)
+        {
+            return Err(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Err("Unerwarteter Fehler: " + ex.Message);
+        }
+    }
+
+    [JSInvokable]
+    public async Task<string> SearchMembersAsync(string query)
+    {
+        var members = await Members.SearchAsync(query);
+        var result = members.Select(m => new
+        {
+            id = m.Id,
+            email = m.Email,
+            name = m.Name,
+            contactFirstName = m.ContactFirstName,
+            contactLastName = m.ContactLastName,
+        });
+        return JsonSerializer.Serialize(result);
+    }
+
+    [JSInvokable]
+    public void SetRecurringTimes(string start, string end)
+    {
+        _seriesStartTime = start;
+        _seriesEndTime = end;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task<string> CheckRecurringConflictsAsync(string payloadJson)
+    {
+        try
+        {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var payload = JsonSerializer.Deserialize<RecurringSlotPayload>(payloadJson, opts);
+            if (payload is null) return JsonSerializer.Serialize(new { error = "Ungültige Daten." });
+
+            var cmd = BuildRecurringSlotCommand(payload);
+            var result = await CreateRecurring.CheckConflictsAsync(cmd);
+
+            var conflictDates = result.Conflicts.Select(c => new { date = c.Date.ToString("yyyy-MM-dd"), label = c.Label }).ToArray();
+            return JsonSerializer.Serialize(new { occurrenceCount = result.OccurrenceCount, conflicts = conflictDates });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+    }
+
+    [JSInvokable]
+    public async Task<string> CreateRecurringSlotAsync(string payloadJson, bool skipConflicts)
+    {
+        try
+        {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var payload = JsonSerializer.Deserialize<RecurringSlotPayload>(payloadJson, opts);
+            if (payload is null) return Err("Ungültige Daten.");
+
+            var cmd = BuildRecurringSlotCommand(payload) with { ShowTitlePublic = _seriesShowTitlePublic };
+            var result = await CreateRecurring.ExecuteAsync(cmd, AdminUser, skipConflicts);
+
+            return JsonSerializer.Serialize(new { ok = true, created = result.Created, skipped = result.Skipped });
+        }
+        catch (SporthalleWeb.Features.Booking.DomainException ex) { return Err(ex.Message); }
+        catch (Exception ex) { return Err("Fehler: " + ex.Message); }
+    }
+
+    private static SporthalleWeb.Features.Booking.RecurringSlotCommand BuildRecurringSlotCommand(RecurringSlotPayload p) => new(
+        p.Title!.Trim(),
+        (DayOfWeek)p.Weekday,
+        TimeOnly.Parse(p.StartTime!, CultureInfo.InvariantCulture),
+        TimeOnly.Parse(p.EndTime!, CultureInfo.InvariantCulture),
+        DateOnly.Parse(p.SeriesStart!, CultureInfo.InvariantCulture),
+        DateOnly.Parse(p.SeriesEnd!, CultureInfo.InvariantCulture),
+        string.IsNullOrWhiteSpace(p.Color) ? null : p.Color.Trim(),
+        string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes.Trim(),
+        IsBlocker: p.IsBlocker);
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("SporthalleAdmin.destroyKalender"); } catch { /* component gone */ }
+        _objRef?.Dispose();
+    }
+
+    private static DateTime ParseUtc(string? iso) =>
+        DateTime.Parse(iso!, null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+    private static string Ok(bool isBlocker) =>
+        JsonSerializer.Serialize(new { ok = true, isBlocker });
+
+    private static string Err(string message) =>
+        JsonSerializer.Serialize(new { ok = false, error = message });
+
+    private sealed class RecurringSlotPayload
+    {
+        public string? Title { get; set; }
+        public int Weekday { get; set; }
+        public string? StartTime { get; set; }
+        public string? EndTime { get; set; }
+        public string? SeriesStart { get; set; }
+        public string? SeriesEnd { get; set; }
+        public string? Color { get; set; }
+        public string? Notes { get; set; }
+        public bool IsBlocker { get; set; }
+    }
+
+    private sealed class AdminBookingPayload
+    {
+        public bool IsBlocker { get; set; }
+        public string? StartUtc { get; set; }
+        public string? EndUtc { get; set; }
+        public string? Title { get; set; }
+        public string? EventTitle { get; set; }
+        public string? Color { get; set; }
+        public string? Notes { get; set; }
+        public int? MemberId { get; set; }
+    }
+}

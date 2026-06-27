@@ -1,21 +1,21 @@
 using Moq;
-using SporthalleWeb.Application.Booking;
-using SporthalleWeb.Domain.Booking;
-using SporthalleWeb.Domain.Booking.Ports;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Application.Booking;
 
 public sealed class GetWeekSlotsQueryTests
 {
-    private readonly Mock<IBookingSlotRepository> _repo = new();
-    private readonly GetWeekSlotsQuery _sut;
+    private readonly Mock<IBookingSlots> _repo = new();
+    private readonly GetWeekSlots _sut;
 
     private static readonly DateTime BaseUtc = new(2025, 6, 2, 8, 0, 0, DateTimeKind.Utc);
 
     public GetWeekSlotsQueryTests()
     {
-        _sut = new GetWeekSlotsQuery(_repo.Object);
+        _sut = new GetWeekSlots(_repo.Object);
     }
 
     private static BookingSlot MakeSlot(SlotType type, string title, bool showTitlePublic) =>

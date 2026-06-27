@@ -1,5 +1,5 @@
 using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
-using SporthalleWeb.Infrastructure.Booking.Members;
+using SporthalleWeb.Infrastructure.Shared;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Infrastructure.PassiveMembership;

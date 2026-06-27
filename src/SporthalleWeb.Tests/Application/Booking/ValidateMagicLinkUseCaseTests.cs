@@ -1,20 +1,20 @@
 using Moq;
-using SporthalleWeb.Application.Booking;
-using SporthalleWeb.Domain.Booking;
-using SporthalleWeb.Domain.Booking.Ports;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Application.Booking;
 
 public sealed class ValidateMagicLinkUseCaseTests
 {
-    private readonly Mock<IMagicLinkTokenRepository> _tokenRepo = new();
-    private readonly Mock<IMemberManagerPort> _members = new();
-    private readonly ValidateMagicLinkUseCase _sut;
+    private readonly Mock<IMagicLinkTokens> _tokenRepo = new();
+    private readonly Mock<IHallMembers> _members = new();
+    private readonly ValidateMagicLink _sut;
 
     public ValidateMagicLinkUseCaseTests()
     {
-        _sut = new ValidateMagicLinkUseCase(_tokenRepo.Object, _members.Object);
+        _sut = new ValidateMagicLink(_tokenRepo.Object, _members.Object);
     }
 
     private static HallMember MakeHallMember(int id = 1) => new(
@@ -25,7 +25,7 @@ public sealed class ValidateMagicLinkUseCaseTests
 
     private static MagicLinkToken ValidToken(int memberId = 1)
     {
-        var (_, hash) = SendMagicLinkUseCase.GenerateToken();
+        var (_, hash) = SendMagicLink.GenerateToken();
         return MagicLinkToken.FromPersistence(
             1, memberId, hash,
             expiresAt: DateTime.UtcNow.AddMinutes(15),
