@@ -1,10 +1,15 @@
 using NPoco;
-using SporthalleWeb.Infrastructure.Booking;
+using SporthalleWeb.Features.Booking.Ports;
 using Umbraco.Cms.Infrastructure.Scoping;
 
-namespace SporthalleWeb.Features.Booking.Configuration;
+namespace SporthalleWeb.Infrastructure.Booking;
 
-public sealed class HallConfigService(IScopeProvider scopeProvider)
+/// <summary>
+/// NPoco-backed adapter for <see cref="IHallConfigStore"/>. Owns all raw SQL
+/// against the <c>HallConfig</c> table; the application layer never touches the
+/// database directly.
+/// </summary>
+public sealed class UmbracoHallConfigStore(IScopeProvider scopeProvider) : IHallConfigStore
 {
     public async Task<string?> GetAsync(string key)
     {

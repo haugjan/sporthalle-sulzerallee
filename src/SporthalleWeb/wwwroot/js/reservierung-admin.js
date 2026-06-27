@@ -1,4 +1,4 @@
-﻿/* Admin-Kalender – initialisiert via Blazor JSInterop (SporthalleAdmin.initKalender) */
+﻿/* Admin calendar – initialised via Blazor JSInterop (SporthalleAdmin.initCalendar) */
 window.SporthalleAdmin = (function () {
   'use strict';
 
@@ -1074,7 +1074,7 @@ window.SporthalleAdmin = (function () {
   // ── Public API ────────────────────────────────────────────────────────────────
 
   return {
-    initKalender: function (dotNetRef) {
+    initCalendar: function (dotNetRef) {
       _dotNet = dotNetRef;
       currentMonday = getMonday(new Date());
       lastSlots = [];
@@ -1176,7 +1176,7 @@ window.SporthalleAdmin = (function () {
       loadConfig(function () { loadWeek(); });
     },
 
-    destroyKalender: function () {
+    destroyCalendar: function () {
       closeDatePicker();
       removeAllHandlers();
       _dotNet = null;

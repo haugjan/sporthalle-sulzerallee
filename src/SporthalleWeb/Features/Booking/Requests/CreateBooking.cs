@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
-using SporthalleWeb.Features.Booking.Configuration;
 using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Features.Booking.Requests;
@@ -10,7 +9,7 @@ public sealed class CreateBooking(
     IHallMembers members,
     IBookingAudit audit,
     IBookingEmail email,
-    HallConfigService hallConfig)
+    IHallConfigStore hallConfig)
 {
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");

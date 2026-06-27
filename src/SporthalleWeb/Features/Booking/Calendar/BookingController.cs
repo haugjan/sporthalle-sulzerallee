@@ -46,7 +46,7 @@ public sealed class BookingController(
         });
     }
 
-    // ── Gast-Buchung ─────────────────────────────────────────────────────────
+    // ── Guest booking ─────────────────────────────────────────────────────────
 
     [HttpPost("gast-buchung")]
     public async Task<IActionResult> GuestBooking([FromBody] GuestBookingRequest req)

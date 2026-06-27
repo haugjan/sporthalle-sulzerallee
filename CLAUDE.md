@@ -55,7 +55,7 @@ Sporthalle-Sulzerallee/
           Auth/                 # SendMagicLink, ValidateMagicLink, RegisterRenter (+Command), Login/Set/Reset password, BookingAuthController
           Admin/                # BookingAdminService, API/view/backoffice controllers, admin components, BookingManifestComposer
           Recurring/            # Create/Update/Delete recurring, GetRecurringSlots, AdminRecurringComponent
-          Configuration/        # HallConfigService, AdminConfigurationComponent
+          Configuration/        # AdminConfigurationComponent (raw config via IHallConfigStore port)
           Dtos/                 # API request/response records
         PassiveMembership/  # sub-namespaces per slice (Registration, MemberAdmin)
           Registration/         # ports, RegisterMember, GetFieldStatuses, FloorPlan controller+component+view
@@ -94,7 +94,7 @@ the adapters. Features depend on `Domain`; `Domain` depends on nothing.
 Naming rules inside a slice:
 
 - **Ports**: no `Port`/`Repository` suffix — `IBookingSlots`, `IRecurringSlots`, `IHallMembers`, `IHallConfiguration`, `ICaptcha`, `IPassiveMembers`, `IPassiveMemberEmail`.
-- **Application classes**: no `UseCase`/`Query`/`Service`/`Manager` suffix — `CreateBooking`, `GetWeekSlots`, `RegisterRenter`, `RegisterMember`, `GetFieldStatuses`. `Command` records are kept (`CreateBookingCommand`). Exceptions kept for historical reasons: `BookingAdminService`, `HallConfigService`, `PassiveMemberAdmin`.
+- **Application classes**: no `UseCase`/`Query`/`Service`/`Manager` suffix — `CreateBooking`, `GetWeekSlots`, `RegisterRenter`, `RegisterMember`, `GetFieldStatuses`. `Command` records are kept (`CreateBookingCommand`). Exceptions kept for historical reasons: `BookingAdminService`, `PassiveMemberAdmin`.
 - **Adapters**: technology prefix, no `Adapter` suffix — `UmbracoHallMembers`, `UmbracoHallConfiguration`, `BrevoBookingEmail`, `BookingCsvExport`, `TurnstileBookingCaptcha`, `UmbracoPassiveMembers`, `BrevoPassiveMemberEmail`, `TurnstilePassiveCaptcha`, `ClosedXmlPassiveMemberExport`, `AbaninjaPassiveMemberExport`.
 
 Namespaces:
@@ -104,6 +104,8 @@ Namespaces:
 - **Infrastructure**: `SporthalleWeb.Infrastructure.{Feature}` (flat) and `SporthalleWeb.Infrastructure.Shared`.
 
 HTTP routes, view contents, Umbraco aliases, and runtime behaviour are unchanged by the slicing; only code organisation and type names changed. Umbraco templates (e.g. `Views/Reservierung.cshtml`, `Views/PassivMitgliedschaft.cshtml`) stay in `Views/` because Umbraco resolves templates from there.
+
+The layering is enforced (not just by convention) by `SporthalleWeb.Tests/Architecture/LayerDependencyTests.cs`: a dependency-free source scan that fails the suite if `Domain/` references an outer layer or framework (Infrastructure, Features, Umbraco, NPoco) or if `Features/` references `SporthalleWeb.Infrastructure` directly instead of going through a Port.
 
 ## Security Constraints
 
@@ -417,7 +419,8 @@ Domain/Booking/         namespace SporthalleWeb.Domain.Booking
 
 Features/Booking/
   Ports/                IBookingSlots, IRecurringSlots, IMagicLinkTokens, IBookingAudit,
-                        IBookingEmail, IBookingCsv, IHallConfiguration, IHallMembers, ICaptcha
+                        IBookingEmail, IBookingCsv, IHallConfiguration, IHallConfigStore, IHallMembers, ICaptcha
+                        (port files are named exactly after the interface they declare, e.g. IHallMembers.cs)
   Calendar/             GetWeekSlots, GetAvailableDays, GetAvailableTimeSlots, SlotOption, WeekSlotDto,
                         BookingController (public REST), WeeklyCalendarComponent, BookingPickerComponent,
                         DateInputComponent, TimePickerComponent
@@ -430,14 +433,15 @@ Features/Booking/
                         AdminBlockerComponent (Blocker), AdminCreateComponent (Erfassen), AdminEditDialogComponent
   Recurring/            CreateRecurringSlot (+RecurringSlotCommand), UpdateRecurringSlot, DeleteRecurringSlot,
                         GetRecurringSlots, AdminRecurringComponent (Serientermine)
-  Configuration/        HallConfigService (key-value config), AdminConfigurationComponent (Konfiguration)
+  Configuration/        AdminConfigurationComponent (Konfiguration); raw key-value config is the IHallConfigStore port (adapter UmbracoHallConfigStore)
   Dtos/                 BookingSlotDto, AdminBookingResponse, HallMemberDto, CreateBookingRequest,
                         LoginRequest, RegisterRenterRequest, ResetPasswordRequest, SendMagicLinkRequest,
                         SetPasswordRequest, ValidateMagicLinkRequest
 
 Infrastructure/Booking/    (flat, ns SporthalleWeb.Infrastructure.Booking)
   BookingComposer.cs                  IComposer, DI registration
-  UmbracoHallConfiguration.cs         IHallConfiguration
+  UmbracoHallConfiguration.cs         IHallConfiguration (typed, domain-shaped config reader)
+  UmbracoHallConfigStore.cs           IHallConfigStore (raw key-value access to the HallConfig table; owns all HallConfig SQL)
   UmbracoHallMembers.cs               IHallMembers via IMemberManager + SignInManager
   BrevoBookingEmail.cs                IBookingEmail (Brevo REST API)
   BookingCsvExport.cs                 IBookingCsv

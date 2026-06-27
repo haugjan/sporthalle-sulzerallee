@@ -8,7 +8,7 @@
 @inject IHallMembers Members
 @implements IAsyncDisposable
 
-<!-- Kalender (exakt gleich wie öffentliche Seite) -->
+<!-- Calendar (identical to the public page) -->
 <div style="padding: 0.5rem 0 1rem;">
 
   <div class="week-nav" style="padding: 0 1.5rem;">
@@ -340,7 +340,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await JS.InvokeVoidAsync("SporthalleAdmin.initKalender", _objRef);
+            await JS.InvokeVoidAsync("SporthalleAdmin.initCalendar", _objRef);
     }
 
     [JSInvokable]
@@ -389,7 +389,7 @@
                 return Ok(true);
             }
 
-            // Buchung direkt als bestätigt erfassen
+            // Record the booking directly as confirmed
             if (payload.MemberId is null)
                 return Err("Bitte wähle einen Mieter aus.");
 
@@ -492,7 +492,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("SporthalleAdmin.destroyKalender"); } catch { /* component gone */ }
+        try { await JS.InvokeVoidAsync("SporthalleAdmin.destroyCalendar"); } catch { /* component gone */ }
         _objRef?.Dispose();
     }
 

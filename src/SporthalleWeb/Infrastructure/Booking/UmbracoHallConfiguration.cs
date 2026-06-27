@@ -1,17 +1,12 @@
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
 using Umbraco.Cms.Core.Services;
-
-
 using SporthalleWeb.Domain.Booking;
-using SporthalleWeb.Features.Booking.Configuration;
 using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 
 public sealed class UmbracoHallConfiguration(
     IContentService contentService,
-    HallConfigService hallConfigService) : IHallConfiguration
+    IHallConfigStore hallConfigService) : IHallConfiguration
 {
     private const string ConfigAlias = "reservierungKonfiguration";
 

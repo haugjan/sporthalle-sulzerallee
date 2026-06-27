@@ -1,5 +1,5 @@
 ﻿@namespace SporthalleWeb.Features.Booking.Configuration
-@inject HallConfigService Config
+@inject IHallConfigStore Config
 
 @if (_loading)
 {
@@ -10,7 +10,7 @@ else
     <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
         <div class="row g-4">
 
-            <!-- Kalender-Zeiten -->
+            <!-- Calendar hours -->
             <div class="col-12">
                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size:0.75rem;letter-spacing:.08em">
                     Kalender

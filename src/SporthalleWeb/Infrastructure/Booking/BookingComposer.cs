@@ -38,8 +38,8 @@ public class BookingComposer : IComposer
         builder.Services.AddScoped<GetAvailableDays>();
         builder.Services.AddScoped<GetAvailableTimeSlots>();
 
-        // Config service
-        builder.Services.AddScoped<HallConfigService>();
+        // Config store (raw key-value)
+        builder.Services.AddScoped<IHallConfigStore, UmbracoHallConfigStore>();
 
         // Application use cases
         builder.Services.AddScoped<CreateBooking>();
