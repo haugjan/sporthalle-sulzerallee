@@ -56,19 +56,28 @@ public class UmbracoPassiveMembers(
 
     public Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
     {
-        var result = memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted.Key)
-            .Select(m =>
+        var result = new List<(FieldNumber, string?)>();
+        foreach (var m in memberService.GetMembersByMemberType(MemberTypeAlias))
+        {
+            var status = UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null);
+            if (status == MemberStatus.Deleted.Key) continue;
+
+            // Skip members with a missing/invalid field number instead of letting the
+            // FieldNumber value object throw — one bad row must not blank the whole floor plan.
+            var raw = m.GetValue<string>("fieldNumber");
+            if (!int.TryParse(raw, out var fn) || fn is < 1 or > 300)
             {
-                _ = int.TryParse(m.GetValue<string>("fieldNumber"), out var fn);
-                var status = UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null);
-                var show = m.GetValue<bool>("showNameOnFloor");
-                var displayName = show && status == MemberStatus.Confirmed.Key
-                    ? m.GetValue<string>("floorDisplayName").NullIfEmpty()
-                    : null;
-                return (new FieldNumber(fn), displayName);
-            })
-            .ToList();
+                logger.LogWarning(
+                    "Skipping passivMember {MemberId} with invalid fieldNumber '{FieldNumber}'.", m.Id, raw);
+                continue;
+            }
+
+            var show = m.GetValue<bool>("showNameOnFloor");
+            var displayName = show && status == MemberStatus.Confirmed.Key
+                ? m.GetValue<string>("floorDisplayName").NullIfEmpty()
+                : null;
+            result.Add((new FieldNumber(fn), displayName));
+        }
         return Task.FromResult<IReadOnlyList<(FieldNumber, string?)>>(result);
     }
 
