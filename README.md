@@ -72,30 +72,39 @@ The Cloudflare Turnstile test keys (always-pass) are already in `appsettings.Dev
 
 ## Repository Structure
 
+The code is organised by **feature (vertical slices)** rather than technical
+layers. Each feature owns its domain, application, presentation, and component
+code under `Features/{Feature}/`; only cross-cutting infrastructure lives outside.
+
 ```
 src/SporthalleWeb/
-  Application/       Business logic: use cases, queries, services
+  Features/                 Vertical slices (domain + application + UI per feature)
     Booking/
-    PassivMitgliedschaft/
-  Components/        Blazor admin components
-    Booking/
-  ContentSeeder.cs   Seeds Umbraco pages on first boot
-  Domain/            Entities, value objects, ports
-    Booking/
-    PassivMitgliedschaft/
-    Shared/
-  Infrastructure/    Persistence, email, CAPTCHA adapters
-    Booking/
-    PassivMitgliedschaft/
-    Shared/
-  Presentation/      MVC controllers and DTOs
-    Booking/
-    PassivMitgliedschaft/
-  Views/             Razor templates
-  uSync/             Content type XML (committed, imported on startup)
-  wwwroot/           CSS, JS, media files
-  Program.cs         App entry point
-  appsettings.json   Base config (secrets empty)
+      SlotAggregate/        BookingSlot, SlotType, TimeSlot, exceptions
+      RecurringAggregate/   RecurringSlot
+      HallMemberAggregate/  HallMember, RenterType, RenterEmail, MagicLinkToken
+      Ports/                Interfaces (no Port/Repository suffix)
+      Calendar/             Week view, availability queries, public controller, calendar components
+      Requests/             Create/Confirm/Reject booking
+      Auth/                 Magic link, register, login, password reset, auth controller
+      Admin/                Admin service, API + view controllers, admin components, manifest
+      Recurring/            Create/Update/Delete recurring + admin component
+      Configuration/        HallConfigService, config component
+      Dtos/                 API request/response records
+    PassiveMembership/
+      Registration/         Aggregate, ports, RegisterMember, GetFieldStatuses, floor plan
+      MemberAdmin/          PassiveMemberAdmin, admin API + view, admin components
+  Infrastructure/           Adapters implementing feature ports (flat per feature)
+    Booking/                Umbraco/Brevo/Turnstile/NPoco adapters, migration, composer
+    PassiveMembership/      Umbraco/Brevo/Turnstile/ClosedXML adapters, migration, composer
+    Shared/                 UmbracoDropdownHelper (shared by both features)
+  ContentSeeder.cs          Seeds Umbraco pages on first boot
+  MemberTypeSeeder.cs       Seeds hallMember + passivMember member types
+  Views/                    Razor templates (Umbraco templates + MVC host views)
+  uSync/                    Content type XML (committed, imported on startup)
+  wwwroot/                  CSS, JS, media files
+  Program.cs                App entry point
+  appsettings.json          Base config (secrets empty)
   appsettings.Development.json  SQLite + dev overrides
 ```
 
@@ -135,17 +144,23 @@ Code (namespaces, class names, method names, variable names, comments) is writte
 
 ## Architecture Notes
 
-The codebase follows a hexagonal (ports and adapters) architecture for the two main features:
+The codebase is organised into **vertical slices**: each feature lives under
+`Features/{Feature}/` and contains its own domain aggregates, ports, application
+logic, controllers, and Blazor components together, instead of being spread
+across technical layers. Inside a slice, the ports-and-adapters (hexagonal) style
+still applies: the feature defines interfaces (ports), and `Infrastructure/{Feature}/`
+provides the adapters.
+
+Naming conventions inside a slice:
+
+- **Ports** have no `Port`/`Repository` suffix (`IBookingSlots`, `IPassiveMembers`, `ICaptcha`).
+- **Application classes** have no `UseCase`/`Query` suffix (`CreateBooking`, `GetWeekSlots`, `RegisterMember`); `Command` records are kept.
+- **Adapters** carry a technology prefix (`UmbracoHallMembers`, `BrevoBookingEmail`, `TurnstileBookingCaptcha`, `ClosedXmlPassiveMemberExport`).
 
 ```
-Domain (no dependencies)
-  └── Ports (interfaces)
-Application (depends on Domain)
-  └── Use cases and queries
-Infrastructure (depends on Domain)
-  └── Adapters implementing ports
-Presentation (depends on Application)
-  └── Controllers and Razor views
+Features/{Feature}/        Aggregates, ports, application, controllers, components
+Infrastructure/{Feature}/  Adapters implementing the feature's ports (flat)
+Infrastructure/Shared/     Cross-feature helpers
 ```
 
 Database access uses **NPoco** (Umbraco's built-in ORM) via `IScopeProvider` from `Umbraco.Cms.Infrastructure.Scoping`. Schema migrations run automatically on startup.
