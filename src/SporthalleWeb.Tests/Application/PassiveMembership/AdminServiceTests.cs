@@ -1,21 +1,21 @@
 using Moq;
-using SporthalleWeb.Application.PassiveMembership;
-using SporthalleWeb.Domain.PassiveMembership;
-using SporthalleWeb.Domain.PassiveMembership.Ports;
+using SporthalleWeb.Features.PassiveMembership.MemberAdmin;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
+using SporthalleWeb.Features.PassiveMembership.Registration;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Application.PassiveMembership;
 
 public sealed class AdminServiceTests
 {
-    private readonly Mock<IPassiveMemberRepository> _repo = new();
-    private readonly Mock<IExcelPort> _excel = new();
-    private readonly Mock<IAbaninjaCsvPort> _abaninja = new();
-    private readonly AdminService _sut;
+    private readonly Mock<IPassiveMembers> _repo = new();
+    private readonly Mock<IPassiveMemberExport> _excel = new();
+    private readonly Mock<IPassiveMemberAbaninja> _abaninja = new();
+    private readonly PassiveMemberAdmin _sut;
 
     public AdminServiceTests()
     {
-        _sut = new AdminService(_repo.Object, _excel.Object, _abaninja.Object);
+        _sut = new PassiveMemberAdmin(_repo.Object, _excel.Object, _abaninja.Object);
     }
 
     private static PassiveMember MakeMember(int id = 1, string status = MemberStatus.Pending) =>

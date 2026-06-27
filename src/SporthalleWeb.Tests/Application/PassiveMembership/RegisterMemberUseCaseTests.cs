@@ -1,23 +1,23 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using SporthalleWeb.Application.PassiveMembership;
-using SporthalleWeb.Domain.PassiveMembership;
-using SporthalleWeb.Domain.PassiveMembership.Ports;
+using SporthalleWeb.Features.PassiveMembership.MemberAdmin;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
+using SporthalleWeb.Features.PassiveMembership.Registration;
 using Xunit;
 
 namespace SporthalleWeb.Tests.Application.PassiveMembership;
 
 public sealed class RegisterMemberUseCaseTests
 {
-    private readonly Mock<IPassiveMemberRepository> _repo = new();
-    private readonly Mock<IEmailPort> _email = new();
-    private readonly RegisterMemberUseCase _sut;
+    private readonly Mock<IPassiveMembers> _repo = new();
+    private readonly Mock<IPassiveMemberEmail> _email = new();
+    private readonly RegisterMember _sut;
 
     public RegisterMemberUseCaseTests()
     {
-        _sut = new RegisterMemberUseCase(
+        _sut = new RegisterMember(
             _repo.Object, _email.Object,
-            NullLogger<RegisterMemberUseCase>.Instance);
+            NullLogger<RegisterMember>.Instance);
     }
 
     private static RegisterMemberCommand ValidCommand(int field = 1) => new(

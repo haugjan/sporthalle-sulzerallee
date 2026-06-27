@@ -1,0 +1,571 @@
+﻿@namespace SporthalleWeb.Features.Booking.Recurring
+@inject SporthalleWeb.Features.Booking.GetRecurringSlots RecurringQuery
+@inject SporthalleWeb.Features.Booking.CreateRecurringSlot CreateRecurring
+@inject SporthalleWeb.Features.Booking.UpdateRecurringSlot UpdateRecurring
+@inject SporthalleWeb.Features.Booking.DeleteRecurringSlot DeleteRecurring
+@inject SporthalleWeb.Features.Booking.BookingAdminService AdminService
+@inject SporthalleWeb.Features.Booking.IHallConfiguration HallConfig
+
+<div>
+
+@if (_successMsg is not null)
+{
+    <div class="alert alert-success alert-dismissible">
+        @_successMsg
+        <button type="button" class="btn-close" @onclick="() => _successMsg = null"></button>
+    </div>
+}
+@if (_error is not null && !_showForm)
+{
+    <div class="alert alert-danger alert-dismissible">
+        @_error
+        <button type="button" class="btn-close" @onclick="() => _error = null"></button>
+    </div>
+}
+
+<!-- Jahr-Navigation und Neue-Serie-Button -->
+<div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+    <button class="btn btn-sm btn-outline-secondary" @onclick="PrevYear">‹ @(_year - 1)</button>
+    <strong>@_year</strong>
+    <button class="btn btn-sm btn-outline-secondary" @onclick="NextYear">@(_year + 1) ›</button>
+    <button class="btn btn-sm btn-primary ms-auto" @onclick="StartCreate">+ Neue Serie</button>
+</div>
+
+@if (_showForm)
+{
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1050;display:flex;align-items:center;justify-content:center">
+        <div class="card" style="min-width:540px;max-width:700px;width:90vw;max-height:90vh;overflow-y:auto">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>@(_editingId.HasValue ? "Serie bearbeiten" : "Neue Serie erstellen")</strong>
+                @if (_editingId.HasValue)
+                {
+                    <span class="badge bg-warning text-dark" style="font-size:0.8rem">
+                        Speichern löscht alle bestehenden Einzeltermine und legt sie neu an.
+                    </span>
+                }
+            </div>
+            <div class="card-body">
+                <!-- Art der Serie -->
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button"
+                            class="btn btn-sm @(!_fIsBlocker ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="SetTypeRecurring">
+                        Serientermin
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm @(_fIsBlocker ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="SetTypeBlocker">
+                        Serien-Blocker
+                    </button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-sm-8">
+                        <label class="form-label fw-semibold">Bezeichnung *</label>
+                        <input class="form-control" @bind="_fTitle" placeholder="@(_fIsBlocker ? "z.B. Hallenpflege, Wartung" : "z.B. Schulsport Klasse 3a")" />
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label fw-semibold">Wochentag *</label>
+                        <select class="form-select" @bind="_fWeekday">
+                            <option value="1">Montag</option>
+                            <option value="2">Dienstag</option>
+                            <option value="3">Mittwoch</option>
+                            <option value="4">Donnerstag</option>
+                            <option value="5">Freitag</option>
+                            <option value="6">Samstag</option>
+                            <option value="0">Sonntag</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label fw-semibold">Von (Zeit) *</label>
+                        <TimePickerComponent Value="@_fStartTime.ToString("HH:mm")"
+                                             ValueChanged="SetStartTime"
+                                             Step="15" />
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label fw-semibold">Bis (Zeit) *</label>
+                        <TimePickerComponent Value="@_fEndTime.ToString("HH:mm")"
+                                             ValueChanged="SetEndTime"
+                                             Step="15" />
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold d-block">Serie von *</label>
+                        <DateInputComponent Value="_fSeriesStart" ValueChanged="@(d => { if (d.HasValue) _fSeriesStart = d.Value; })" />
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold d-block">Serie bis *</label>
+                        <DateInputComponent Value="_fSeriesEnd" ValueChanged="@(d => { if (d.HasValue) _fSeriesEnd = d.Value; })" />
+                    </div>
+                    @if (!_fIsBlocker)
+                    {
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Farbe</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var c in Colors)
+                                {
+                                    <button type="button"
+                                            style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_fColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
+                                            @onclick="() => _fColor = c"
+                                            title="@c"></button>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Mieter</label>
+                            @if (_fMemberId.HasValue)
+                            {
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-success">
+                                        @(!string.IsNullOrEmpty(_fMemberName) ? _fMemberName : $"Mieter #{_fMemberId}")
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-danger"
+                                            @onclick="ClearMember">Entfernen</button>
+                                </div>
+                            }
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" placeholder="Name oder E-Mail suchen…"
+                                       value="@_fMemberSearch"
+                                       @oninput="OnMemberSearchInput" />
+                            </div>
+                            @if (_memberResults.Count > 0)
+                            {
+                                <div class="list-group mt-1" style="max-height:160px;overflow-y:auto;font-size:0.85rem">
+                                    @foreach (var m in _memberResults)
+                                    {
+                                        <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                                                @onclick="() => SelectMember(m)">
+                                            <strong>@($"{m.ContactFirstName} {m.ContactLastName}".Trim())</strong>
+                                            @if (!string.IsNullOrEmpty(m.Name)) { <span class="text-muted ms-1">(@m.Name)</span> }
+                                            <small class="d-block text-muted">@m.Email</small>
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Bemerkungen</label>
+                        <textarea class="form-control" @bind="_fNotes" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chk-stp-recurring"
+                                   @bind="_fShowTitlePublic" />
+                            <label class="form-check-label" for="chk-stp-recurring">
+                                Bezeichnung auf öffentlichem Kalender anzeigen
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                @if (_conflictDates.Count > 0)
+                {
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <strong>@_conflictDates.Count Konflikt(e) gefunden:</strong>
+                        <ul class="mb-2 mt-1">
+                            @foreach (var d in _conflictDates.Take(3))
+                            {
+                                <li>@d</li>
+                            }
+                            @if (_conflictDates.Count > 3)
+                            {
+                                <li>… und @(_conflictDates.Count - 3) weitere</li>
+                            }
+                        </ul>
+                        <p class="mb-2 small">Diese Termine überschneiden sich mit bestehenden Buchungen. Sie können die Serie anpassen oder nur die konfliktfreien Termine anlegen.</p>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="DismissConflicts">Nochmals bearbeiten</button>
+                            <button class="btn btn-sm btn-warning" @onclick="() => ExecuteAsync(skipConflicts: true)" disabled="@_saving">
+                                Trotzdem speichern (Konflikte überspringen)
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                @if (_error is not null)
+                {
+                    <div class="alert alert-danger mt-3 mb-0">@_error</div>
+                }
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelForm">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="SubmitAsync" disabled="@(_saving || _conflictDates.Count > 0)">
+                    @(_saving ? "Bitte warten…" : (_editingId.HasValue ? "Speichern" : "Erstellen"))
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Serienliste -->
+@if (_loading)
+{
+    <p>Lade…</p>
+}
+else if (!_recurringSlots.Any())
+{
+    <div class="alert alert-info">Keine Serientermine für @_year.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" style="font-size:0.875rem">
+            <thead>
+                <tr>
+                    <th>Art</th>
+                    <th>Bezeichnung</th>
+                    <th>Wochentag</th>
+                    <th style="white-space:nowrap">Zeit</th>
+                    <th style="white-space:nowrap">Serie von – bis</th>
+                    <th>Termine @_year</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _recurringSlots)
+                {
+                    var s = item.Slot;
+                    <tr>
+                        <td>
+                            @if (s.IsBlocker)
+                            {
+                                <span class="badge bg-secondary" style="font-size:0.75rem">Blocker</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info text-dark" style="font-size:0.75rem">Serie</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(s.Color))
+                            {
+                                <span style="display:block;width:28px;height:5px;background:@s.Color;border-radius:2px;margin-bottom:3px"></span>
+                            }
+                            <strong>@s.Title</strong>
+                            @if (!string.IsNullOrEmpty(s.Notes))
+                            {
+                                <br /><small class="text-muted">@s.Notes</small>
+                            }
+                        </td>
+                        <td>@WeekdayName(s.Weekday)</td>
+                        <td style="white-space:nowrap">@s.StartTime.ToString("HH:mm") – @s.EndTime.ToString("HH:mm")</td>
+                        <td style="white-space:nowrap">
+                            @s.SeriesStart.ToString("d. MMM yyyy", DeCh)<br />
+                            <small class="text-muted">bis @s.SeriesEnd.ToString("d. MMM yyyy", DeCh)</small>
+                        </td>
+                        <td>@item.OccurrencesThisYear</td>
+                        <td style="white-space:nowrap">
+                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                    @onclick="() => StartEdit(s)">Bearbeiten</button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    @onclick="() => ConfirmDelete(s.Id, s.Title)">Löschen</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Lösch-Bestätigung -->
+@if (_deleteId.HasValue)
+{
+    <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);z-index:1050">
+        <div class="card" style="max-width:440px;width:90%">
+            <div class="card-header"><strong>Serie löschen</strong></div>
+            <div class="card-body">
+                <p>Serientermin <strong>«@_deleteTitle»</strong> und alle zugehörigen Einzeltermine wirklich löschen?</p>
+                <p class="text-muted small">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+            </div>
+            <div class="card-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-secondary" @onclick="CancelDelete">Abbrechen</button>
+                <button class="btn btn-danger" @onclick="DeleteAsync" disabled="@_saving">Löschen</button>
+            </div>
+        </div>
+    </div>
+}
+
+</div>
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "admin";
+
+    private static readonly System.Globalization.CultureInfo DeCh =
+        System.Globalization.CultureInfo.GetCultureInfo("de-CH");
+
+    private static readonly string[] Colors = [
+        "#C62828","#FFD54F","#1A1A1A","#2B6CB0","#2F855A","#702459","#D97706","#0E7490"
+    ];
+
+    private int _year = DateTime.Today.Year;
+    private IReadOnlyList<SporthalleWeb.Features.Booking.RecurringSlotWithYearCount> _recurringSlots = [];
+    private bool _loading = true;
+
+    private string? _successMsg;
+    private string? _error;
+    private bool _saving;
+
+    // Form state
+    private bool _showForm;
+    private int? _editingId;
+    private string _fTitle = "";
+    private int _fWeekday = 1;
+    private TimeOnly _fStartTime = new(8, 0);
+    private TimeOnly _fEndTime = new(10, 0);
+    private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private DateOnly? _cutoffDate;
+    private string? _fColor = "#C62828";
+    private string _fNotes = "";
+    private bool _fIsBlocker;
+    private bool _fShowTitlePublic;
+    private int? _fMemberId;
+    private string? _fMemberName;
+    private string _fMemberSearch = "";
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
+
+    // Conflict state
+    private List<string> _conflictDates = [];
+    private SporthalleWeb.Features.Booking.RecurringSlotCommand? _pendingCommand;
+
+    // Delete state
+    private int? _deleteId;
+    private string _deleteTitle = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cutoffDate = await HallConfig.GetBookingCutoffDateAsync();
+        _fSeriesEnd = _cutoffDate ?? DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _recurringSlots = await RecurringQuery.GetForYearAsync(_year);
+        _loading = false;
+    }
+
+    private async Task PrevYear() { _year--; await LoadAsync(); }
+    private async Task NextYear() { _year++; await LoadAsync(); }
+
+    private void StartCreate()
+    {
+        _editingId = null;
+        _fTitle = "";
+        _fWeekday = 1;
+        _fStartTime = new TimeOnly(8, 0);
+        _fEndTime = new TimeOnly(10, 0);
+        _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
+        _fSeriesEnd = _cutoffDate ?? DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+        _fColor = "#C62828";
+        _fNotes = "";
+        _fIsBlocker = false;
+        _fShowTitlePublic = false;
+        _fMemberId = null;
+        _fMemberName = null;
+        _fMemberSearch = "";
+        _memberResults = [];
+        _conflictDates = [];
+        _pendingCommand = null;
+        _error = null;
+        _showForm = true;
+    }
+
+    private void StartEdit(SporthalleWeb.Domain.Booking.RecurringSlot s)
+    {
+        _editingId = s.Id;
+        _fTitle = s.Title;
+        _fWeekday = (int)s.Weekday;
+        _fStartTime = s.StartTime;
+        _fEndTime = s.EndTime;
+        _fSeriesStart = s.SeriesStart;
+        _fSeriesEnd = s.SeriesEnd;
+        _fColor = s.Color ?? "#C62828";
+        _fNotes = s.Notes ?? "";
+        _fIsBlocker = s.IsBlocker;
+        _fShowTitlePublic = s.ShowTitlePublic;
+        _fMemberId = s.MemberId;
+        _fMemberName = null;
+        _fMemberSearch = "";
+        _memberResults = [];
+        _conflictDates = [];
+        _pendingCommand = null;
+        _error = null;
+        _showForm = true;
+    }
+
+    private void CancelForm()
+    {
+        _showForm = false;
+        _editingId = null;
+        _memberResults = [];
+        _conflictDates = [];
+        _pendingCommand = null;
+    }
+
+    private void SetTypeRecurring()
+    {
+        _fIsBlocker = false;
+        _fColor ??= "#C62828";
+    }
+
+    private void SetTypeBlocker()
+    {
+        _fIsBlocker = true;
+        _fMemberId = null;
+        _fMemberName = null;
+    }
+
+    private void ClearMember()
+    {
+        _fMemberId = null;
+        _fMemberName = null;
+        _fMemberSearch = "";
+        _memberResults = [];
+    }
+
+    private async Task OnMemberSearchInput(ChangeEventArgs e)
+    {
+        _fMemberSearch = e.Value?.ToString() ?? "";
+        if (_fMemberSearch.Length < 2)
+        {
+            _memberResults = [];
+            return;
+        }
+        _memberResults = await AdminService.SearchMembersAsync(_fMemberSearch);
+    }
+
+    private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
+    {
+        _fMemberId = m.Id;
+        _fMemberName = !string.IsNullOrEmpty(m.Name)
+            ? m.Name
+            : $"{m.ContactFirstName} {m.ContactLastName}".Trim();
+        _fMemberSearch = "";
+        _memberResults = [];
+    }
+
+    private void DismissConflicts()
+    {
+        _conflictDates = [];
+        _pendingCommand = null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_fTitle)) { _error = "Bezeichnung ist erforderlich."; return; }
+        if (_fEndTime <= _fStartTime) { _error = "Endzeit muss nach Startzeit liegen."; return; }
+        if (_fSeriesEnd < _fSeriesStart) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
+
+        _error = null;
+        _conflictDates = [];
+
+        var cmd = BuildCommand();
+        _saving = true;
+
+        try
+        {
+            SporthalleWeb.Features.Booking.RecurringSlotCheckResult checkResult;
+            if (_editingId.HasValue)
+                checkResult = await UpdateRecurring.CheckConflictsAsync(_editingId.Value, cmd);
+            else
+                checkResult = await CreateRecurring.CheckConflictsAsync(cmd);
+
+            if (checkResult.Conflicts.Count > 0)
+            {
+                _pendingCommand = cmd;
+                _conflictDates = checkResult.Conflicts.Select(c => c.Label).ToList();
+                return;
+            }
+
+            await ExecuteAsync(skipConflicts: false, cmd: cmd);
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private async Task ExecuteAsync(bool skipConflicts, SporthalleWeb.Features.Booking.RecurringSlotCommand? cmd = null)
+    {
+        cmd ??= _pendingCommand ?? BuildCommand();
+        _saving = true;
+        _error = null;
+        try
+        {
+            SporthalleWeb.Features.Booking.RecurringSlotCreateResult result;
+            if (_editingId.HasValue)
+                result = await UpdateRecurring.ExecuteAsync(_editingId.Value, cmd, AdminUser, skipConflicts);
+            else
+                result = await CreateRecurring.ExecuteAsync(cmd, AdminUser, skipConflicts);
+
+            _successMsg = $"{result.Created} Termine angelegt" +
+                (result.Skipped > 0 ? $", {result.Skipped} übersprungen (Konflikte)" : "") + ".";
+            CancelForm();
+            await LoadAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private void ConfirmDelete(int id, string title)
+    {
+        _deleteId = id;
+        _deleteTitle = title;
+    }
+
+    private void CancelDelete() { _deleteId = null; }
+
+    private async Task DeleteAsync()
+    {
+        if (!_deleteId.HasValue) return;
+        _saving = true;
+        try
+        {
+            await DeleteRecurring.ExecuteAsync(_deleteId.Value);
+            _successMsg = $"Serientermin «{_deleteTitle}» und alle Einzeltermine wurden gelöscht.";
+            _deleteId = null;
+            await LoadAsync();
+        }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private SporthalleWeb.Features.Booking.RecurringSlotCommand BuildCommand() => new(
+        _fTitle.Trim(),
+        (DayOfWeek)_fWeekday,
+        _fStartTime,
+        _fEndTime,
+        _fSeriesStart,
+        _fSeriesEnd,
+        _fIsBlocker ? null : _fColor,
+        string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim(),
+        IsBlocker: _fIsBlocker,
+        MemberId: _fIsBlocker ? null : _fMemberId,
+        ShowTitlePublic: _fShowTitlePublic);
+
+    private static readonly System.Globalization.CultureInfo Ic = System.Globalization.CultureInfo.InvariantCulture;
+
+    private void SetStartTime(string v)
+    {
+        if (TimeOnly.TryParseExact(v, "HH:mm", Ic, System.Globalization.DateTimeStyles.None, out var t))
+            _fStartTime = t;
+    }
+
+    private void SetEndTime(string v)
+    {
+        if (TimeOnly.TryParseExact(v, "HH:mm", Ic, System.Globalization.DateTimeStyles.None, out var t))
+            _fEndTime = t;
+    }
+
+    private static string WeekdayName(DayOfWeek d) => d switch
+    {
+        DayOfWeek.Monday    => "Montag",
+        DayOfWeek.Tuesday   => "Dienstag",
+        DayOfWeek.Wednesday => "Mittwoch",
+        DayOfWeek.Thursday  => "Donnerstag",
+        DayOfWeek.Friday    => "Freitag",
+        DayOfWeek.Saturday  => "Samstag",
+        DayOfWeek.Sunday    => "Sonntag",
+        _ => d.ToString()
+    };
+}

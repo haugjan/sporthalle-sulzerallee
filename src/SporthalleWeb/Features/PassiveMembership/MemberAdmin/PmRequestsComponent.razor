@@ -1,0 +1,159 @@
+@using SporthalleWeb.Features.PassiveMembership.MemberAdmin
+@using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate
+@inject PassiveMemberAdmin AdminService
+
+<div class="p-3">
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div class="alert @(_isError ? "alert-danger" : "alert-success") py-2 px-3 mb-3" role="alert">@_message</div>
+}
+
+@if (_loading)
+{
+  <p class="text-muted">Lade Anfragen…</p>
+}
+else if (_members.Count == 0)
+{
+  <p class="text-muted">Keine offenen Anfragen.</p>
+}
+else
+{
+  <p class="text-muted mb-2" style="font-size:0.875rem;">@_members.Count offene Anfrage@(_members.Count == 1 ? "" : "n")</p>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle" style="font-size:0.875rem;">
+      <thead>
+        <tr>
+          <th>Feld</th>
+          <th>VIP</th>
+          <th>Stufe</th>
+          <th>Name</th>
+          <th>E-Mail</th>
+          <th>Adresse</th>
+          <th>Angemeldet</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var m in _members)
+        {
+          var id = m.Id;
+          <tr>
+            <td class="fw-semibold">@m.FieldNumber.Value</td>
+            <td><span class="text-muted">@(VipField.GetLabel(m.FieldNumber.Value) ?? "")</span></td>
+            <td>
+              <span class="badge" style="@LevelBadgeStyle(m.Level.Key)">@m.Level.Key</span>
+            </td>
+            <td>@m.FirstName @m.LastName</td>
+            <td><a href="mailto:@m.Email.Value" class="text-decoration-none">@m.Email.Value</a></td>
+            <td class="text-muted" style="font-size:0.8rem;">@m.AddressLine<br />@m.PostalCode @m.City</td>
+            <td class="text-nowrap" style="font-size:0.8rem;">
+              @m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")<br />
+              <span class="text-muted">@m.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+            </td>
+            <td class="text-nowrap">
+              @if (_confirmingId == id)
+              {
+                <span class="me-2" style="font-size:0.82rem;">Bereits bezahlt?</span>
+                <button class="btn btn-sm btn-success me-1" disabled="@_busy.Contains(id)"
+                        @onclick="() => Confirm(id, true)">Ja</button>
+                <button class="btn btn-sm btn-outline-secondary me-2" disabled="@_busy.Contains(id)"
+                        @onclick="() => Confirm(id, false)">Nein</button>
+                <button class="btn btn-sm btn-link text-muted p-0" @onclick="() => _confirmingId = null">Abbrechen</button>
+              }
+              else
+              {
+                <button class="btn btn-sm btn-success me-1" @onclick="() => _confirmingId = id">
+                  Bestätigen
+                </button>
+                <button class="btn btn-sm btn-danger" disabled="@_busy.Contains(id)"
+                        @onclick="() => SoftDelete(id)">
+                  Ablehnen
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+</div>
+
+@code {
+    [Parameter] public string AdminUser { get; set; } = "";
+    [Parameter] public EventCallback OnConfirmed { get; set; }
+    [Parameter] public EventCallback<int> OnCountChanged { get; set; }
+
+    private IReadOnlyList<PassiveMember> _members = [];
+    private HashSet<int> _busy = [];
+    private bool _loading = true;
+    private string? _message;
+    private bool _isError;
+    private int? _confirmingId;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _members = await AdminService.GetPendingAsync();
+        _loading = false;
+        await OnCountChanged.InvokeAsync(_members.Count);
+    }
+
+    private async Task Confirm(int id, bool isPaid)
+    {
+        _busy.Add(id);
+        _confirmingId = null;
+        try
+        {
+            await AdminService.ConfirmAsync(id, isPaid, AdminUser);
+            await LoadAsync();
+            await OnConfirmed.InvokeAsync();
+            ShowMsg("Mitgliedschaft bestätigt.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMsg($"Fehler: {ex.Message}", true);
+        }
+        finally
+        {
+            _busy.Remove(id);
+        }
+    }
+
+    private async Task SoftDelete(int id)
+    {
+        _busy.Add(id);
+        try
+        {
+            await AdminService.SoftDeleteAsync(id);
+            await LoadAsync();
+            ShowMsg("Anfrage abgelehnt.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMsg($"Fehler: {ex.Message}", true);
+        }
+        finally
+        {
+            _busy.Remove(id);
+        }
+    }
+
+    private static string LevelBadgeStyle(string key) => key.ToLower() switch
+    {
+        "gold"   => "background:#b08000;color:#fff",
+        "silber" => "background:#909090;color:#fff",
+        _        => "background:#cd7f32;color:#fff",
+    };
+
+    private void ShowMsg(string msg, bool isError)
+    {
+        _message = msg;
+        _isError = isError;
+        _ = Task.Delay(4000).ContinueWith(_ => { _message = null; InvokeAsync(StateHasChanged); });
+    }
+}

@@ -2,7 +2,7 @@ namespace SporthalleWeb.Infrastructure.PassiveMembership;
 
 /// <summary>
 /// Single source of truth for all Umbraco member property aliases on the passivMember type.
-/// Both <see cref="SporthalleWeb.MemberTypeSeeder"/> and <see cref="Persistence.PassiveMemberRepository"/>
+/// Both <see cref="SporthalleWeb.MemberTypeSeeder"/> and <see cref="UmbracoPassiveMembers"/>
 /// reference these constants, so a rename or typo is caught at compile time.
 /// </summary>
 internal static class PassivMemberAliases

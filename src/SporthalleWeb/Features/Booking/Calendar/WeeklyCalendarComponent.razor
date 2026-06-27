@@ -1,0 +1,68 @@
+﻿@namespace SporthalleWeb.Features.Booking.Calendar
+@inject SporthalleWeb.Features.Booking.GetWeekSlots WeekSlotsQuery
+
+<div class="wochenkalender">
+    <div class="kalender-nav">
+        <button class="btn btn-sm btn-outline-secondary" @onclick="PreviousWeek">&laquo; Vorwoche</button>
+        <span class="kalender-titel">@_monday.ToString("dd.MM.") – @_monday.AddDays(6).ToString("dd.MM.yyyy")</span>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="NextWeek">Nächste Woche &raquo;</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="kalender-loading">Lade Belegungsplan…</div>
+    }
+    else
+    {
+        <div class="kalender-grid">
+            @foreach (var slot in _slots)
+            {
+                <div class="kalender-slot kalender-slot--@slot.Type.ToLowerInvariant()"
+                     style="@(slot.Color is not null ? $"border-left-color:{slot.Color}" : "")">
+                    <span class="slot-time">@FormatTime(slot.StartUtc) – @FormatTime(slot.EndUtc)</span>
+                    <span class="slot-label">@(string.IsNullOrEmpty(slot.Title) ? slot.Type : slot.Title)</span>
+                </div>
+            }
+            @if (!_slots.Any())
+            {
+                <div class="kalender-leer">Keine Buchungen in dieser Woche.</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+
+    private DateOnly _monday = GetMonday(DateOnly.FromDateTime(DateTime.Today));
+    private IReadOnlyList<SporthalleWeb.Features.Booking.WeekSlotDto> _slots = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _slots = await WeekSlotsQuery.ExecuteAsync(_monday);
+        _loading = false;
+    }
+
+    private async Task PreviousWeek()
+    {
+        _monday = _monday.AddDays(-7);
+        await LoadAsync();
+    }
+
+    private async Task NextWeek()
+    {
+        _monday = _monday.AddDays(7);
+        await LoadAsync();
+    }
+
+    private string FormatTime(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(utc, Zurich).ToString("HH:mm");
+
+    private static DateOnly GetMonday(DateOnly d) =>
+        d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
+}

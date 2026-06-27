@@ -1,30 +1,37 @@
 using Moq;
-using SporthalleWeb.Application.Booking;
-using SporthalleWeb.Domain.Booking;
-using SporthalleWeb.Domain.Booking.Ports;
-using SporthalleWeb.Domain.Shared;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
 using Xunit;
+
+
+using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Auth;
+using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Tests.Application.Booking;
 
 public sealed class RegisterRenterUseCaseTests
 {
-    private readonly Mock<IMemberManagerPort> _members = new();
-    private readonly Mock<IMagicLinkTokenRepository> _tokens = new();
-    private readonly Mock<ICaptchaPort> _captcha = new();
-    private readonly Mock<IBookingEmailPort> _email = new();
-    private readonly RegisterRenterUseCase _sut;
+    private readonly Mock<IHallMembers> _members = new();
+    private readonly Mock<IMagicLinkTokens> _tokens = new();
+    private readonly Mock<ICaptcha> _captcha = new();
+    private readonly Mock<IBookingEmail> _email = new();
+    private readonly RegisterRenter _sut;
 
     public RegisterRenterUseCaseTests()
     {
         _captcha.Setup(c => c.VerifyAsync(It.IsAny<string?>(), It.IsAny<string?>()))
                 .ReturnsAsync(true);
-        _sut = new RegisterRenterUseCase(_members.Object, _tokens.Object, _captcha.Object, _email.Object);
+        _sut = new RegisterRenter(_members.Object, _tokens.Object, _captcha.Object, _email.Object);
     }
 
     // ── Name validation ───────────────────────────────────────────────────────
     // Umbraco rejects members with an empty Name ("All variants must have a name").
-    // UmbracoMemberAdapter derives Name from ContactFirstName + ContactLastName.
+    // UmbracoHallMembers derives Name from ContactFirstName + ContactLastName.
 
     [Theory]
     [InlineData("", "")]

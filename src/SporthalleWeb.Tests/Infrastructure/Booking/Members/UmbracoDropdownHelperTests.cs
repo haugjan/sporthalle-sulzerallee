@@ -1,6 +1,10 @@
-using SporthalleWeb.Domain.Booking;
-using SporthalleWeb.Infrastructure.Booking.Members;
+using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Infrastructure.Shared;
 using Xunit;
+
+
+using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 
 namespace SporthalleWeb.Tests.Infrastructure.Booking.Members;
 
@@ -64,7 +68,7 @@ public sealed class UmbracoDropdownHelperTests
     [Fact]
     public void ParseDropdownValue_UmbracoFlexDropdownFormat_ProducesValidRenterType()
     {
-        // Before the fix, UmbracoMemberAdapter passed the raw JSON string directly to
+        // Before the fix, UmbracoHallMembers passed the raw JSON string directly to
         // new RenterType(...), causing DomainException("Unbekannter Mietertyp: [\"Privatperson\"]").
         // After the fix the adapter calls ParseDropdownValue first.
         var raw = "[\"Privatperson\"]";

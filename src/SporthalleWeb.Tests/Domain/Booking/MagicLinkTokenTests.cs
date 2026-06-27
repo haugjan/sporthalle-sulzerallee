@@ -1,5 +1,9 @@
-using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Features.Booking;
 using Xunit;
+
+
+using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 
 namespace SporthalleWeb.Tests.Domain.Booking;
 
