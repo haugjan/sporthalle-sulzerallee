@@ -71,10 +71,10 @@ else
                 </div>
             </div>
 
-            <!-- E-Mail Buchungsbestätigung -->
+            <!-- E-Mail Reservationsbestätigung (Bestätigt) -->
             <div class="col-12">
                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size:0.75rem;letter-spacing:.08em">
-                    E-Mail: Buchungsbestätigung (Bestätigt)
+                    E-Mail: Reservationsbestätigung (Bestätigt)
                 </h6>
                 <div class="row g-3">
                     <div class="col-sm-6">
@@ -86,7 +86,7 @@ else
                 <div class="mt-3">
                     <label class="form-label fw-semibold">Mailtext an den Mieter</label>
                     <textarea class="form-control font-monospace" @bind="_mailBestaetigungText" rows="8"
-                              placeholder="Hallo {Vorname}, deine Buchung wurde bestätigt…"></textarea>
+                              placeholder="Hallo {Vorname}, deine Reservation wurde bestätigt…"></textarea>
                     <div class="form-text">Verfügbare Platzhalter: {Vorname}, {Name}, {Anlass}, {Datum}, {Von}, {Bis}</div>
                 </div>
             </div>
