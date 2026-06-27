@@ -1,0 +1,7 @@
+@* Razor host views live under Features/{Feature}/Views/ (e.g. FloorPlan.cshtml,
+   PassiveMember Admin.cshtml). They embed Blazor components via the <component>
+   tag helper, which must be registered here — the Views/_ViewImports.cshtml only
+   applies to the Views/ tree, not to feature-local views. Without this, <component>
+   is emitted as literal markup and nothing renders. *@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, Microsoft.AspNetCore.Mvc.Razor
