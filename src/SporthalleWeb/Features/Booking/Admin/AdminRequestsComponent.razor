@@ -1,8 +1,8 @@
 ﻿@namespace SporthalleWeb.Features.Booking.Admin
-@inject SporthalleWeb.Features.Booking.BookingAdminService AdminService
-@inject SporthalleWeb.Features.Booking.ConfirmBooking ConfirmUseCase
-@inject SporthalleWeb.Features.Booking.RejectBooking RejectUseCase
-@inject SporthalleWeb.Features.Booking.HallConfigService Config
+@inject BookingAdminService AdminService
+@inject ConfirmBooking ConfirmUseCase
+@inject RejectBooking RejectUseCase
+@inject HallConfigService Config
 
 @if (_message is not null)
 {
@@ -218,7 +218,7 @@ else
     private static readonly System.Globalization.CultureInfo DeCh =
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
-    private IReadOnlyList<(SporthalleWeb.Domain.Booking.BookingSlot Slot, SporthalleWeb.Domain.Booking.HallMember? Member)> _pending = [];
+    private IReadOnlyList<(BookingSlot Slot, HallMember? Member)> _pending = [];
     private bool _loading = true;
     private string? _message;
     private string? _error;
@@ -291,7 +291,7 @@ else
             _message = $"Buchung #{id} wurde bestätigt.";
             await LoadPendingAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
     }
 
     private async Task OpenRejectDialog(int id)
@@ -328,7 +328,7 @@ else
             _rejectSlotId = null;
             await LoadPendingAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
     }
 
     private void CancelReject() { _rejectSlotId = null; _rejectReason = null; }

@@ -41,7 +41,7 @@ public sealed class ClosedXmlPassiveMemberExport : IPassiveMemberExport
             ws.Cell(r, 7).Value = m.LastName;
             ws.Cell(r, 8).Value = m.AddressLine;
             ws.Cell(r, 9).Value = m.AddressLine2 ?? "";
-            ws.Cell(r, 10).Value = m.PostalCode;
+            ws.Cell(r, 10).Value = m.PostalCode.Value;
             ws.Cell(r, 11).Value = m.City;
             ws.Cell(r, 12).Value = m.Phone ?? "";
             ws.Cell(r, 13).Value = m.Email.Value;

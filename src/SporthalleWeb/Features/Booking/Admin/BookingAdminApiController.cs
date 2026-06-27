@@ -151,7 +151,7 @@ public sealed class BookingAdminApiController(
         return Ok(members.Select(m => new
         {
             id = m.Id,
-            email = m.Email,
+            email = m.Email.Value,
             name = m.Name,
             contactFirstName = m.ContactFirstName,
             contactLastName = m.ContactLastName,
@@ -188,13 +188,13 @@ public sealed class BookingAdminApiController(
         member   = member is null ? null : new
         {
             id               = member.Id,
-            email            = member.Email,
+            email            = member.Email.Value,
             contactFirstName = member.ContactFirstName,
             contactLastName  = member.ContactLastName,
             name             = member.Name,
             address          = member.BillingAddress,
             addressLine2     = member.AddressLine2,
-            postalCode       = member.BillingPostalCode,
+            postalCode       = member.BillingPostalCode.Value,
             city             = member.BillingCity,
             phone            = member.Phone,
         }
@@ -246,7 +246,7 @@ public sealed class BookingAdminApiController(
         return Ok(members.Select(m => new
         {
             id = m.Id,
-            email = m.Email,
+            email = m.Email.Value,
             name = m.Name,
             contactFirstName = m.ContactFirstName,
             contactLastName = m.ContactLastName,

@@ -24,12 +24,12 @@ public sealed class CreateBooking(
         var slot = new TimeSlot(cmd.StartUtc, cmd.EndUtc);
 
         var booking = BookingSlot.CreateReserved(
-            cmd.MemberId, slot, cmd.Title, cmd.Color ?? "#0078D4", cmd.Notes, member.Email);
+            cmd.MemberId, slot, cmd.Title, cmd.Color ?? "#0078D4", cmd.Notes, member.Email.Value);
 
         booking = await slotRepo.CheckConflictAndSaveAsync(booking, slot);
 
         await audit.LogAsync("BookingSlot", booking.Id, "Created",
-            member.Email, null,
+            member.Email.Value, null,
             new { Type = booking.Type.ToString(), slot.StartUtc, slot.EndUtc });
 
         var reservationText = await hallConfig.GetAsync("mail_reservation_text");

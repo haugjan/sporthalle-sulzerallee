@@ -8,7 +8,7 @@ public sealed class PassiveMember
     public string LastName { get; private set; } = "";
     public string AddressLine { get; private set; } = "";
     public string? AddressLine2 { get; private set; }
-    public string PostalCode { get; private set; } = "";
+    public PostalCode PostalCode { get; private set; } = null!;
     public string City { get; private set; } = "";
     public string Country { get; private set; } = "Schweiz";
     public string? Phone { get; private set; }
@@ -17,7 +17,7 @@ public sealed class PassiveMember
     public bool ShowNameOnFloor { get; private set; }
     public string? DisplayName { get; private set; }
     public DateTime CreatedAt { get; private set; }
-    public string Status { get; private set; } = MemberStatus.Pending;
+    public MemberStatus Status { get; private set; } = MemberStatus.Pending;
     public DateTime? ConfirmedAt { get; private set; }
     public string? ConfirmedBy { get; private set; }
     public DateTime? PaidAt { get; private set; }
@@ -53,7 +53,7 @@ public sealed class PassiveMember
             LastName = lastName.Trim(),
             AddressLine = addressLine.Trim(),
             AddressLine2 = string.IsNullOrWhiteSpace(addressLine2) ? null : addressLine2.Trim(),
-            PostalCode = postalCode.Trim(),
+            PostalCode = PostalCode.Create(postalCode, "Schweiz"),
             City = city.Trim(),
             Country = "Schweiz",
             Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
@@ -83,7 +83,7 @@ public sealed class PassiveMember
         LastName = lastName,
         AddressLine = addressLine,
         AddressLine2 = addressLine2,
-        PostalCode = postalCode,
+        PostalCode = PostalCode.FromPersistence(postalCode),
         City = city,
         Country = country,
         Phone = phone,
@@ -92,7 +92,7 @@ public sealed class PassiveMember
         ShowNameOnFloor = showNameOnFloor,
         DisplayName = displayName,
         CreatedAt = createdAt,
-        Status = status,
+        Status = MemberStatus.FromKey(status),
         ConfirmedAt = confirmedAt,
         ConfirmedBy = confirmedBy,
         PaidAt = paidAt,

@@ -1,5 +1,7 @@
-﻿@namespace SporthalleWeb.Features.Booking.Admin
-@inject SporthalleWeb.Features.Booking.BookingAdminService AdminService
+﻿@using SporthalleWeb.Domain.Booking.HallMemberAggregate
+@using SporthalleWeb.Domain.Booking.SlotAggregate
+@namespace SporthalleWeb.Features.Booking.Admin
+@inject BookingAdminService AdminService
 
 @if (_message is not null)
 {
@@ -69,7 +71,7 @@ else
                 {
                     var s = item.Slot;
                     var m = item.Member;
-                    <tr class="@(s.Type == SporthalleWeb.Domain.Booking.SlotType.Rejected ? "table-light text-muted" : "")">
+                    <tr class="@(s.Type == SlotType.Rejected ? "table-light text-muted" : "")">
                         <td style="white-space:nowrap">
                             @{ var eingegangen = TimeZoneInfo.ConvertTimeFromUtc(s.CreatedAt, Zurich); }
                             @eingegangen.ToString("d. MMM yyyy", DeCh)<br />
@@ -135,7 +137,7 @@ else
                             else { <span class="text-muted">–</span> }
                         </td>
                         <td style="white-space:nowrap">
-                            @if (s.Type != SporthalleWeb.Domain.Booking.SlotType.Rejected)
+                            @if (s.Type != SlotType.Rejected)
                             {
                                 <button class="btn btn-sm btn-outline-secondary"
                                         @onclick="() => _editRef!.OpenAsync(s.Id)">Bearbeiten</button>
@@ -183,7 +185,7 @@ else
 
     private string _viewMode = "Woche";
     private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
-    private IReadOnlyList<(SporthalleWeb.Domain.Booking.BookingSlot Slot, SporthalleWeb.Domain.Booking.HallMember? Member)> _periodSlots = [];
+    private IReadOnlyList<(BookingSlot Slot, HallMember? Member)> _periodSlots = [];
     private bool _loadingPeriod;
     private bool _showRejected;
     private string? _message;
@@ -262,7 +264,7 @@ else
             _message = $"Buchung #{slotId} wurde gelöscht.";
             await LoadPeriodAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
     }
 
     private async Task ReactivateAsync(int slotId)
@@ -275,7 +277,7 @@ else
             _message = $"Buchung #{slotId} wurde reaktiviert.";
             await LoadPeriodAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
     }
 
     private string FormatSlot(DateTime startUtc, DateTime endUtc)
@@ -295,13 +297,13 @@ else
         _           => "bg-secondary"
     };
 
-    private static string TypeLabel(SporthalleWeb.Domain.Booking.SlotType type) => type switch
+    private static string TypeLabel(SlotType type) => type switch
     {
-        SporthalleWeb.Domain.Booking.SlotType.Booked    => "Bestätigt",
-        SporthalleWeb.Domain.Booking.SlotType.Reserved  => "Angefragt",
-        SporthalleWeb.Domain.Booking.SlotType.Blocker   => "Blocker",
-        SporthalleWeb.Domain.Booking.SlotType.Rejected  => "Abgelehnt",
-        SporthalleWeb.Domain.Booking.SlotType.Recurring     => "Serientermin",
+        SlotType.Booked    => "Bestätigt",
+        SlotType.Reserved  => "Angefragt",
+        SlotType.Blocker   => "Blocker",
+        SlotType.Rejected  => "Abgelehnt",
+        SlotType.Recurring     => "Serientermin",
         _ => type.ToString()
     };
 

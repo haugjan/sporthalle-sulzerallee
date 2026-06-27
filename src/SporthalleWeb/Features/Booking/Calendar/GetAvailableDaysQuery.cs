@@ -49,10 +49,12 @@ public sealed class GetAvailableDays(
             var localStart = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.StartUtc, Zurich);
             var localEnd = TimeZoneInfo.ConvertTimeFromUtc(s.Slot.EndUtc, Zurich);
             if (DateOnly.FromDateTime(localStart) != date) continue;
-            var startBlock = ((localStart.Hour * 60 + localStart.Minute) -
-                              openStart * 60) / blockMin;
-            var endBlock = ((localEnd.Hour * 60 + localEnd.Minute) -
-                            openStart * 60) / blockMin;
+            // Any overlap into a public block (even a few minutes from a 5-minute admin
+            // booking) makes the whole block unavailable: floor the start, ceil the end.
+            var startBlock = (int)Math.Floor(((localStart.Hour * 60 + localStart.Minute) -
+                                              openStart * 60) / (double)blockMin);
+            var endBlock = (int)Math.Ceiling(((localEnd.Hour * 60 + localEnd.Minute) -
+                                              openStart * 60) / (double)blockMin);
             for (var b = startBlock; b < endBlock; b++)
                 takenBlocks.Add(b);
         }

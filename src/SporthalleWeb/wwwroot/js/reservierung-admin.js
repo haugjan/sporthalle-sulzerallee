@@ -96,6 +96,27 @@ window.SporthalleAdmin = (function () {
     return h + ':' + m;
   }
 
+  function timeStrToMinutes(str) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(str || '');
+    if (!m) return null;
+    var h = parseInt(m[1], 10), mi = parseInt(m[2], 10);
+    if (h < 0 || h > 23 || mi < 0 || mi > 59) return null;
+    return h * 60 + mi;
+  }
+
+  // Build start/end UTC ISO from the admin single-form time inputs (5-minute precision),
+  // anchored to the dragged day. Returns null when invalid (bis must be after von).
+  function adminSlotTimesUtc(startId, endId) {
+    if (!selectedSlot) return null;
+    var sm = timeStrToMinutes(getVal(startId));
+    var em = timeStrToMinutes(getVal(endId));
+    if (sm === null || em === null || em <= sm) return null;
+    return {
+      startUtc: localDateToUtcIso(selectedSlot.day, sm),
+      endUtc: localDateToUtcIso(selectedSlot.day, em)
+    };
+  }
+
   function fmtTime(h, m) {
     return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
   }
@@ -480,6 +501,13 @@ window.SporthalleAdmin = (function () {
     var title = document.getElementById('admin-bm-title');
     if (title) title.textContent = 'Slot erfassen';
     resetAdminModal();
+    // Prefill the 5-minute time inputs from the dragged (30-minute) selection.
+    var stStr = minutesToTimeStr(selectedSlot.startMin);
+    var enStr = minutesToTimeStr(selectedSlot.endMin);
+    setEl('admin-bm-blocker-start', stStr);
+    setEl('admin-bm-blocker-end', enStr);
+    setEl('admin-bm-booking-start', stStr);
+    setEl('admin-bm-booking-end', enStr);
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
     setTimeout(function () {
@@ -688,10 +716,12 @@ window.SporthalleAdmin = (function () {
     if (_modalType === 'blocker') {
       var title = getVal('admin-bm-blocker-title');
       if (!title) { showError('admin-bm-error-blocker', 'Bezeichnung ist erforderlich.'); return; }
+      var bt = adminSlotTimesUtc('admin-bm-blocker-start', 'admin-bm-blocker-end');
+      if (!bt) { showError('admin-bm-error-blocker', 'Ungültige Zeit: «Bis» muss nach «Von» liegen.'); return; }
       payload = {
         isBlocker: true,
-        startUtc: selectedSlot.startUtcIso,
-        endUtc: selectedSlot.endUtcIso,
+        startUtc: bt.startUtc,
+        endUtc: bt.endUtc,
         title: title,
         notes: getVal('admin-bm-notes-blocker') || null
       };
@@ -701,10 +731,12 @@ window.SporthalleAdmin = (function () {
       var eventTitle = getVal('admin-bm-event');
       if (!memberId) { showError('admin-bm-error', 'Bitte wähle einen Mieter aus.'); return; }
       if (!eventTitle) { showError('admin-bm-error', 'Anlass ist erforderlich.'); return; }
+      var bkt = adminSlotTimesUtc('admin-bm-booking-start', 'admin-bm-booking-end');
+      if (!bkt) { showError('admin-bm-error', 'Ungültige Zeit: «Bis» muss nach «Von» liegen.'); return; }
       payload = {
         isBlocker: false,
-        startUtc: selectedSlot.startUtcIso,
-        endUtc: selectedSlot.endUtcIso,
+        startUtc: bkt.startUtc,
+        endUtc: bkt.endUtc,
         eventTitle: eventTitle,
         color: _selectedColor,
         memberId: parseInt(memberId, 10),

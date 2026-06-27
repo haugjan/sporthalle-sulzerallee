@@ -18,8 +18,8 @@ public sealed class PassiveMemberDropdownParsingTests
     [InlineData("[\"Pending\"]")]
     public void ParseDropdownValue_PendingStatus_ReturnsPendingString(string raw)
     {
-        var result = UmbracoDropdownHelper.ParseDropdownValue(raw, MemberStatus.Pending);
-        Assert.Equal(MemberStatus.Pending, result);
+        var result = UmbracoDropdownHelper.ParseDropdownValue(raw, MemberStatus.Pending.Key);
+        Assert.Equal(MemberStatus.Pending.Key, result);
     }
 
     [Theory]
@@ -27,8 +27,8 @@ public sealed class PassiveMemberDropdownParsingTests
     [InlineData("[\"Confirmed\"]")]
     public void ParseDropdownValue_ConfirmedStatus_ReturnsConfirmedString(string raw)
     {
-        var result = UmbracoDropdownHelper.ParseDropdownValue(raw, MemberStatus.Pending);
-        Assert.Equal(MemberStatus.Confirmed, result);
+        var result = UmbracoDropdownHelper.ParseDropdownValue(raw, MemberStatus.Pending.Key);
+        Assert.Equal(MemberStatus.Confirmed.Key, result);
     }
 
     [Theory]
@@ -36,15 +36,15 @@ public sealed class PassiveMemberDropdownParsingTests
     [InlineData("[\"Deleted\"]")]
     public void ParseDropdownValue_DeletedStatus_ReturnsDeletedString(string raw)
     {
-        var result = UmbracoDropdownHelper.ParseDropdownValue(raw, MemberStatus.Pending);
-        Assert.Equal(MemberStatus.Deleted, result);
+        var result = UmbracoDropdownHelper.ParseDropdownValue(raw, MemberStatus.Pending.Key);
+        Assert.Equal(MemberStatus.Deleted.Key, result);
     }
 
     [Fact]
     public void ParseDropdownValue_NullStatus_ReturnsFallback()
     {
-        var result = UmbracoDropdownHelper.ParseDropdownValue(null, MemberStatus.Pending);
-        Assert.Equal(MemberStatus.Pending, result);
+        var result = UmbracoDropdownHelper.ParseDropdownValue(null, MemberStatus.Pending.Key);
+        Assert.Equal(MemberStatus.Pending.Key, result);
     }
 
     // ── MembershipLevel parsing ────────────────────────────────────────────────
@@ -100,9 +100,9 @@ public sealed class PassiveMemberDropdownParsingTests
     {
         // Documents why the old filtering code (GetValue<string>("status") == "Pending")
         // silently returned zero results: the JSON array string never equals the plain key.
-        Assert.NotEqual(MemberStatus.Pending, jsonArray);
-        Assert.NotEqual(MemberStatus.Confirmed, jsonArray);
-        Assert.NotEqual(MemberStatus.Deleted, jsonArray);
+        Assert.NotEqual(MemberStatus.Pending.Key, jsonArray);
+        Assert.NotEqual(MemberStatus.Confirmed.Key, jsonArray);
+        Assert.NotEqual(MemberStatus.Deleted.Key, jsonArray);
     }
 
     // ── Reconstitute mapping integration ──────────────────────────────────────
@@ -120,26 +120,26 @@ public sealed class PassiveMemberDropdownParsingTests
         var member = PassiveMember.Reconstitute(
             1, 42, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
             null, "max@muster.ch", levelKey, false, null,
-            DateTime.UtcNow, MemberStatus.Pending, null, null, null, null, null, null, null);
+            DateTime.UtcNow, MemberStatus.Pending.Key, null, null, null, null, null, null, null);
 
         Assert.Equal(expectedKey, member.Level.Key);
     }
 
     [Theory]
-    [InlineData("Pending",          MemberStatus.Pending)]
-    [InlineData("[\"Pending\"]",    MemberStatus.Pending)]
-    [InlineData("Confirmed",        MemberStatus.Confirmed)]
-    [InlineData("[\"Confirmed\"]",  MemberStatus.Confirmed)]
-    [InlineData("Deleted",          MemberStatus.Deleted)]
-    [InlineData("[\"Deleted\"]",    MemberStatus.Deleted)]
-    public void Reconstitute_Status_HandlesJsonArrayAndPlainString(string rawStatus, string expectedStatus)
+    [InlineData("Pending",          "Pending")]
+    [InlineData("[\"Pending\"]",    "Pending")]
+    [InlineData("Confirmed",        "Confirmed")]
+    [InlineData("[\"Confirmed\"]",  "Confirmed")]
+    [InlineData("Deleted",          "Deleted")]
+    [InlineData("[\"Deleted\"]",    "Deleted")]
+    public void Reconstitute_Status_HandlesJsonArrayAndPlainString(string rawStatus, string expectedStatusKey)
     {
-        var status = UmbracoDropdownHelper.ParseDropdownValue(rawStatus, MemberStatus.Pending) ?? MemberStatus.Pending;
+        var status = UmbracoDropdownHelper.ParseDropdownValue(rawStatus, MemberStatus.Pending.Key) ?? MemberStatus.Pending.Key;
         var member = PassiveMember.Reconstitute(
             1, 42, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
             null, "max@muster.ch", "Bronze", false, null,
             DateTime.UtcNow, status, null, null, null, null, null, null, null);
 
-        Assert.Equal(expectedStatus, member.Status);
+        Assert.Equal(expectedStatusKey, member.Status.Key);
     }
 }

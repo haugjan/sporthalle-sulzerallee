@@ -66,7 +66,7 @@ public sealed class PassiveMemberTests
         Assert.Equal("Max", m.FirstName);
         Assert.Equal("Muster", m.LastName);
         Assert.Equal("Musterstrasse 1", m.AddressLine);
-        Assert.Equal("8400", m.PostalCode);
+        Assert.Equal("8400", m.PostalCode.Value);
         Assert.Equal("Winterthur", m.City);
     }
 

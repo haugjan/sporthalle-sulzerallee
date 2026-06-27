@@ -1,10 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-
-
 using SporthalleWeb.Domain.Booking;
 using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
@@ -30,7 +26,7 @@ public sealed class BrevoBookingEmail(
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> ist bei uns eingegangen und wird geprüft.";
-        return SendAsync(member.Email, contactName,
+        return SendAsync(member.Email.Value, contactName,
             "Buchungsanfrage erhalten – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage erhalten",
@@ -47,7 +43,7 @@ public sealed class BrevoBookingEmail(
                 title: "Neue Buchungsanfrage",
                 greeting: "Hallo",
                 body: $"Eine neue Buchungsanfrage ist eingegangen.",
-                detail: $"Mieter: {ContactName(member)} ({member.Email})<br>Zeitslot: {FormatSlot(slot)}<br>Anlass: {slot.Title}",
+                detail: $"Mieter: {ContactName(member)} ({member.Email.Value})<br>Zeitslot: {FormatSlot(slot)}<br>Anlass: {slot.Title}",
                 ctaUrl: "https://www.sporthalle-sulzerallee.ch/umbraco",
                 ctaLabel: "Zur Verwaltung"));
 
@@ -57,7 +53,7 @@ public sealed class BrevoBookingEmail(
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Ihre Buchung für <strong>{FormatSlot(slot)}</strong> wurde bestätigt.";
-        return SendAsync(member.Email, contactName,
+        return SendAsync(member.Email.Value, contactName,
             "Buchung bestätigt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchung bestätigt",
@@ -73,7 +69,7 @@ public sealed class BrevoBookingEmail(
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Leider können wir Ihre Buchungsanfrage für <strong>{FormatSlot(slot)}</strong> nicht bestätigen.";
-        return SendAsync(member.Email, contactName,
+        return SendAsync(member.Email.Value, contactName,
             "Buchungsanfrage abgelehnt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage abgelehnt",

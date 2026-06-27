@@ -18,8 +18,8 @@ public sealed record HallMemberDto(
     bool HasKey)
 {
     public static HallMemberDto From(HallMember m) => new(
-        m.Id, m.Email, m.RenterType.Value.ToString(),
+        m.Id, m.Email.Value, m.RenterType.Value.ToString(),
         m.Name, m.ContactFirstName, m.ContactLastName,
-        m.BillingAddress, m.AddressLine2, m.BillingPostalCode, m.BillingCity, m.BillingCountry,
+        m.BillingAddress, m.AddressLine2, m.BillingPostalCode.Value, m.BillingCity, m.BillingCountry,
         m.Phone, m.HasKey);
 }

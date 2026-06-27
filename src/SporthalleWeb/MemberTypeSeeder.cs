@@ -49,7 +49,7 @@ public sealed class MemberTypeSeeder(
             ?? throw new InvalidOperationException("Umbraco.DateTime data type not found.");
 
         var statusDropdown        = GetOrCreateDropdown(all, "Passive Member Status",
-            new[] { MemberStatus.Pending, MemberStatus.Confirmed, MemberStatus.Deleted });
+            new[] { MemberStatus.Pending.Key, MemberStatus.Confirmed.Key, MemberStatus.Deleted.Key });
 
         var membershipLevelDropdown = GetOrCreateDropdown(all, "Passive Member Membership Level",
             new[] { "Bronze", "Silber", "Gold" });
@@ -57,7 +57,9 @@ public sealed class MemberTypeSeeder(
         var renterTypeDropdown = GetOrCreateDropdown(all, "Hall Renter Type",
             new[] { "Privatperson", "Verein", "Firma", "Schule" });
 
-        EnsureHallMemberType(textBox, textArea, trueFalse, renterTypeDropdown);
+        var renterColorPicker = GetOrCreateColorPicker(all, "Hall Member Color", AppointmentColors);
+
+        EnsureHallMemberType(textBox, textArea, trueFalse, renterTypeDropdown, renterColorPicker);
         EnsurePassivMemberType(textBox, textArea, trueFalse, emailType, dateType, statusDropdown, membershipLevelDropdown);
 
         return Task.CompletedTask;
@@ -136,9 +138,85 @@ public sealed class MemberTypeSeeder(
         return stored.Count == values.Length && stored.SequenceEqual(values);
     }
 
+    // The appointment colour palette offered for booking slots (see the admin
+    // calendar components). Stored as swatch values WITHOUT the leading '#'; the
+    // ColorPicker editor adds it back when rendering and on the saved value.
+    private static readonly string[] AppointmentColors =
+        ["C62828", "FFD54F", "1A1A1A", "2B6CB0", "2F855A", "702459", "D97706", "0E7490"];
+
+    private IDataType GetOrCreateColorPicker(List<IDataType> all, string name, string[] colors)
+    {
+        if (!propertyEditors.TryGet("Umbraco.ColorPicker", out var editor))
+            throw new InvalidOperationException("Umbraco.ColorPicker property editor not found.");
+
+        // Umbraco.ColorPicker expects { "useLabel": false, "items": [{ "value": "RRGGBB", "label": "..." }] }.
+        var config = new Dictionary<string, object>
+        {
+            ["useLabel"] = false,
+            ["items"]    = colors
+                .Select(hex => (object)new Dictionary<string, object>
+                {
+                    ["value"] = hex,
+                    ["label"] = "#" + hex
+                })
+                .ToList()
+        };
+
+        // Only write when the stored config actually differs — a redundant data type
+        // save triggers a ModelsBuilder regeneration (see GetOrCreateDropdown).
+        var existing = all.FirstOrDefault(d => d.Name == name);
+        if (existing is not null)
+        {
+            if (!ColorPickerConfigMatches(existing.ConfigurationData, colors))
+            {
+                existing.ConfigurationData = config;
+                dataTypeService.Save(existing);
+            }
+            return existing;
+        }
+
+        var dt = new DataType(editor, serializer)
+        {
+            Name              = name,
+            DatabaseType      = ValueStorageType.Nvarchar,
+            ConfigurationData = config
+        };
+        dataTypeService.Save(dt);
+        all.Add(dt);
+        return dt;
+    }
+
+    // True when the stored config is a single-value colour picker whose swatch values
+    // match exactly (in order), so the seeder can skip a redundant save.
+    private static bool ColorPickerConfigMatches(IDictionary<string, object>? config, string[] colors)
+    {
+        if (config is null) return false;
+        if (config.TryGetValue("useLabel", out var useLabelObj)
+            && bool.TryParse(useLabelObj?.ToString(), out var useLabel) && useLabel)
+            return false;
+        if (!config.TryGetValue("items", out var itemsObj)
+            || itemsObj is string
+            || itemsObj is not System.Collections.IEnumerable items)
+            return false;
+        var stored = items.Cast<object?>().Select(ColorPickerItemValue).ToList();
+        return stored.Count == colors.Length
+            && stored.SequenceEqual(colors, StringComparer.OrdinalIgnoreCase);
+    }
+
+    // Reads the "value" of a stored colour-picker item, which round-trips as a
+    // System.Text.Json.JsonElement (object) or, before persistence, an IDictionary.
+    private static string? ColorPickerItemValue(object? item) => item switch
+    {
+        System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Object
+            => je.TryGetProperty("value", out var v) ? v.GetString() : null,
+        IDictionary<string, object> d
+            => d.TryGetValue("value", out var v) ? v?.ToString() : null,
+        _ => null
+    };
+
     // ── Hall Renter (hallMember) ──────────────────────────────────────────────
 
-    private void EnsureHallMemberType(IDataType textBox, IDataType textArea, IDataType trueFalse, IDataType renterTypeDropdown)
+    private void EnsureHallMemberType(IDataType textBox, IDataType textArea, IDataType trueFalse, IDataType renterTypeDropdown, IDataType colorPicker)
     {
         const string alias = "hallMember";
 
@@ -171,6 +249,7 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, textBox,            HallMemberAliases.Phone,             "Phone",               mandatory: false, sort: 9,  g, gn);
         EnsureProperty(memberType, trueFalse,          HallMemberAliases.HasKey,            "Has Key",             mandatory: false, sort: 10, g, gn);
         EnsureProperty(memberType, textArea,           HallMemberAliases.Notes,             "Notes",               mandatory: false, sort: 11, g, gn);
+        EnsureProperty(memberType, colorPicker,        HallMemberAliases.Color,             "Color",               mandatory: false, sort: 12, g, gn);
 
         if (isNew || _propertyChanges != before)
             memberTypeService.Save(memberType);

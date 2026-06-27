@@ -37,6 +37,9 @@ public sealed class UmbracoHallMembers(
 
     public async Task<HallMember> CreateAsync(RegisterRenterCommand cmd)
     {
+        // Validate postal-code format (Swiss 4-digit / foreign lenient) before persisting.
+        _ = PostalCode.Create(cmd.BillingPostalCode, cmd.BillingCountry);
+
         var displayName = $"{cmd.ContactFirstName} {cmd.ContactLastName}".Trim();
 
         var user = new MemberIdentityUser
@@ -71,6 +74,9 @@ public sealed class UmbracoHallMembers(
     {
         var member = memberService.GetById(memberId)
             ?? throw new DomainException($"Member {memberId} nicht gefunden.");
+
+        // Validate postal-code format before persisting profile changes.
+        _ = PostalCode.Create(billingPostalCode);
 
         member.Name = $"{contactFirstName} {contactLastName}".Trim();
         member.SetValue(HallMemberAliases.OrgName,           name ?? "");
@@ -109,18 +115,19 @@ public sealed class UmbracoHallMembers(
             {
                 results.Add(new HallMember(
                     Id: member.Id,
-                    Email: email,
+                    Email: new RenterEmail(email),
                     RenterType: new RenterType(GetDropdownValue(member, HallMemberAliases.RenterType, "Privatperson")),
                     Name: orgName.NullIfEmpty(),
                     ContactFirstName: firstName,
                     ContactLastName: lastName,
                     BillingAddress: member.GetValue<string>(HallMemberAliases.BillingAddress) ?? "",
                     AddressLine2: member.GetValue<string>(HallMemberAliases.AddressLine2).NullIfEmpty(),
-                    BillingPostalCode: member.GetValue<string>(HallMemberAliases.BillingPostalCode) ?? "",
+                    BillingPostalCode: PostalCode.FromPersistence(member.GetValue<string>(HallMemberAliases.BillingPostalCode)),
                     BillingCity: member.GetValue<string>(HallMemberAliases.BillingCity) ?? "",
                     BillingCountry: member.GetValue<string>(HallMemberAliases.BillingCountry) ?? "Schweiz",
                     Phone: member.GetValue<string>(HallMemberAliases.Phone).NullIfEmpty(),
                     Notes: member.GetValue<string>(HallMemberAliases.Notes).NullIfEmpty(),
+                    Color: GetColorValue(member, HallMemberAliases.Color),
                     HasKey: member.GetValue<bool>(HallMemberAliases.HasKey)));
             }
         }
@@ -149,20 +156,48 @@ public sealed class UmbracoHallMembers(
 
     private static HallMember Map(MemberIdentityUser user, IMember member) => new(
         Id: int.Parse(user.Id),
-        Email: user.Email ?? "",
+        Email: new RenterEmail(user.Email ?? ""),
         RenterType: new RenterType(GetDropdownValue(member, HallMemberAliases.RenterType, "Privatperson")),
         Name: member.GetValue<string>(HallMemberAliases.OrgName).NullIfEmpty(),
         ContactFirstName: member.GetValue<string>(HallMemberAliases.ContactFirstName) ?? "",
         ContactLastName: member.GetValue<string>(HallMemberAliases.ContactLastName) ?? "",
         BillingAddress: member.GetValue<string>(HallMemberAliases.BillingAddress) ?? "",
         AddressLine2: member.GetValue<string>(HallMemberAliases.AddressLine2).NullIfEmpty(),
-        BillingPostalCode: member.GetValue<string>(HallMemberAliases.BillingPostalCode) ?? "",
+        BillingPostalCode: PostalCode.FromPersistence(member.GetValue<string>(HallMemberAliases.BillingPostalCode)),
         BillingCity: member.GetValue<string>(HallMemberAliases.BillingCity) ?? "",
         BillingCountry: member.GetValue<string>(HallMemberAliases.BillingCountry) ?? "Schweiz",
         Phone: member.GetValue<string>(HallMemberAliases.Phone).NullIfEmpty(),
         Notes: member.GetValue<string>(HallMemberAliases.Notes).NullIfEmpty(),
+        Color: GetColorValue(member, HallMemberAliases.Color),
         HasKey: member.GetValue<bool>(HallMemberAliases.HasKey)
     );
+
+    // The Umbraco.ColorPicker stores its value as JSON ({"value":"#C62828","label":"..."}),
+    // or as a bare colour string for older entries. Either way, normalise to "#RRGGBB".
+    private static string? GetColorValue(IMember member, string alias)
+    {
+        var raw = member.GetValue<string>(alias);
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        var color = raw.TrimStart().StartsWith('{') ? ParseColorJson(raw) : raw;
+        if (string.IsNullOrWhiteSpace(color)) return null;
+
+        color = color.Trim();
+        return color.StartsWith('#') ? color : "#" + color;
+    }
+
+    private static string? ParseColorJson(string raw)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(raw);
+            return doc.RootElement.TryGetProperty("value", out var v) ? v.GetString() : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
 }
 
 file static class StringExtensions

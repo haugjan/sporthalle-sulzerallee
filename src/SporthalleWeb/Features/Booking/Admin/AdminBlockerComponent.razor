@@ -1,5 +1,6 @@
+@using SporthalleWeb.Domain.Booking.SlotAggregate
 @namespace SporthalleWeb.Features.Booking.Admin
-@inject SporthalleWeb.Features.Booking.BookingAdminService AdminService
+@inject BookingAdminService AdminService
 
 @if (_message is not null)
 {
@@ -119,7 +120,7 @@ else
 
     private string _viewMode = "Monat";
     private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
-    private IReadOnlyList<SporthalleWeb.Domain.Booking.BookingSlot> _slots = [];
+    private IReadOnlyList<BookingSlot> _slots = [];
     private bool _loading;
     private string? _message;
     private string? _error;
@@ -197,7 +198,7 @@ else
             _message = $"Blocker #{slotId} wurde gelöscht.";
             await LoadAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
     }
 
     private string FormatSlot(DateTime startUtc, DateTime endUtc)

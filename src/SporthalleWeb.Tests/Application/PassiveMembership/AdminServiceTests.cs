@@ -18,7 +18,7 @@ public sealed class AdminServiceTests
         _sut = new PassiveMemberAdmin(_repo.Object, _excel.Object, _abaninja.Object);
     }
 
-    private static PassiveMember MakeMember(int id = 1, string status = MemberStatus.Pending) =>
+    private static PassiveMember MakeMember(int id = 1, string status = "Pending") =>
         PassiveMember.Reconstitute(
             id, 1, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
             null, "max@muster.ch", "Bronze", false, null,

@@ -1,5 +1,5 @@
 ﻿@namespace SporthalleWeb.Features.Booking.Calendar
-@inject SporthalleWeb.Features.Booking.GetWeekSlots WeekSlotsQuery
+@inject GetWeekSlots WeekSlotsQuery
 
 <div class="wochenkalender">
     <div class="kalender-nav">
@@ -36,7 +36,7 @@
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
     private DateOnly _monday = GetMonday(DateOnly.FromDateTime(DateTime.Today));
-    private IReadOnlyList<SporthalleWeb.Features.Booking.WeekSlotDto> _slots = [];
+    private IReadOnlyList<WeekSlotDto> _slots = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();

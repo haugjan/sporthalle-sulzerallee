@@ -1,4 +1,5 @@
-﻿using SporthalleWeb.Domain.Booking.SlotAggregate;
+﻿using System.Net.Mail;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
 
 namespace SporthalleWeb.Domain.Booking.HallMemberAggregate;
 
@@ -8,8 +9,15 @@ public record RenterEmail
 
     public RenterEmail(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || !value.Contains('@'))
+        var trimmed = value?.Trim() ?? "";
+        // MailAddress.TryCreate verifies basic structure (local@domain) without being so strict
+        // that it rejects addresses already stored from the previous '@'-only check.
+        if (string.IsNullOrWhiteSpace(trimmed)
+            || !MailAddress.TryCreate(trimmed, out var parsed)
+            || parsed.Address != trimmed)
             throw new DomainException("Ungültige E-Mail-Adresse.");
-        Value = value.Trim().ToLowerInvariant();
+        Value = trimmed.ToLowerInvariant();
     }
+
+    public override string ToString() => Value;
 }

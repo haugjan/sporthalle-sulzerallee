@@ -1,10 +1,10 @@
 ﻿@namespace SporthalleWeb.Features.Booking.Recurring
-@inject SporthalleWeb.Features.Booking.GetRecurringSlots RecurringQuery
-@inject SporthalleWeb.Features.Booking.CreateRecurringSlot CreateRecurring
-@inject SporthalleWeb.Features.Booking.UpdateRecurringSlot UpdateRecurring
-@inject SporthalleWeb.Features.Booking.DeleteRecurringSlot DeleteRecurring
-@inject SporthalleWeb.Features.Booking.BookingAdminService AdminService
-@inject SporthalleWeb.Features.Booking.IHallConfiguration HallConfig
+@inject GetRecurringSlots RecurringQuery
+@inject CreateRecurringSlot CreateRecurring
+@inject UpdateRecurringSlot UpdateRecurring
+@inject DeleteRecurringSlot DeleteRecurring
+@inject BookingAdminService AdminService
+@inject IHallConfiguration HallConfig
 
 <div>
 
@@ -79,13 +79,13 @@
                         <label class="form-label fw-semibold">Von (Zeit) *</label>
                         <TimePickerComponent Value="@_fStartTime.ToString("HH:mm")"
                                              ValueChanged="SetStartTime"
-                                             Step="15" />
+                                             Step="5" />
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Bis (Zeit) *</label>
                         <TimePickerComponent Value="@_fEndTime.ToString("HH:mm")"
                                              ValueChanged="SetEndTime"
-                                             Step="15" />
+                                             Step="5" />
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label fw-semibold d-block">Serie von *</label>
@@ -298,7 +298,7 @@ else
     ];
 
     private int _year = DateTime.Today.Year;
-    private IReadOnlyList<SporthalleWeb.Features.Booking.RecurringSlotWithYearCount> _recurringSlots = [];
+    private IReadOnlyList<RecurringSlotWithYearCount> _recurringSlots = [];
     private bool _loading = true;
 
     private string? _successMsg;
@@ -322,11 +322,11 @@ else
     private int? _fMemberId;
     private string? _fMemberName;
     private string _fMemberSearch = "";
-    private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
+    private IReadOnlyList<HallMember> _memberResults = [];
 
     // Conflict state
     private List<string> _conflictDates = [];
-    private SporthalleWeb.Features.Booking.RecurringSlotCommand? _pendingCommand;
+    private RecurringSlotCommand? _pendingCommand;
 
     // Delete state
     private int? _deleteId;
@@ -372,7 +372,7 @@ else
         _showForm = true;
     }
 
-    private void StartEdit(SporthalleWeb.Domain.Booking.RecurringSlot s)
+    private void StartEdit(RecurringSlot s)
     {
         _editingId = s.Id;
         _fTitle = s.Title;
@@ -436,7 +436,7 @@ else
         _memberResults = await AdminService.SearchMembersAsync(_fMemberSearch);
     }
 
-    private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
+    private void SelectMember(HallMember m)
     {
         _fMemberId = m.Id;
         _fMemberName = !string.IsNullOrEmpty(m.Name)
@@ -466,7 +466,7 @@ else
 
         try
         {
-            SporthalleWeb.Features.Booking.RecurringSlotCheckResult checkResult;
+            RecurringSlotCheckResult checkResult;
             if (_editingId.HasValue)
                 checkResult = await UpdateRecurring.CheckConflictsAsync(_editingId.Value, cmd);
             else
@@ -481,18 +481,18 @@ else
 
             await ExecuteAsync(skipConflicts: false, cmd: cmd);
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
         finally { _saving = false; }
     }
 
-    private async Task ExecuteAsync(bool skipConflicts, SporthalleWeb.Features.Booking.RecurringSlotCommand? cmd = null)
+    private async Task ExecuteAsync(bool skipConflicts, RecurringSlotCommand? cmd = null)
     {
         cmd ??= _pendingCommand ?? BuildCommand();
         _saving = true;
         _error = null;
         try
         {
-            SporthalleWeb.Features.Booking.RecurringSlotCreateResult result;
+            RecurringSlotCreateResult result;
             if (_editingId.HasValue)
                 result = await UpdateRecurring.ExecuteAsync(_editingId.Value, cmd, AdminUser, skipConflicts);
             else
@@ -503,7 +503,7 @@ else
             CancelForm();
             await LoadAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
         finally { _saving = false; }
     }
 
@@ -526,11 +526,11 @@ else
             _deleteId = null;
             await LoadAsync();
         }
-        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
+        catch (DomainException ex) { _error = ex.Message; }
         finally { _saving = false; }
     }
 
-    private SporthalleWeb.Features.Booking.RecurringSlotCommand BuildCommand() => new(
+    private RecurringSlotCommand BuildCommand() => new(
         _fTitle.Trim(),
         (DayOfWeek)_fWeekday,
         _fStartTime,

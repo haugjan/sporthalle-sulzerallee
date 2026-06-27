@@ -22,14 +22,14 @@ public class UmbracoPassiveMembers(
         var fieldStr = field.Value.ToString();
         var taken = memberService.GetMembersByMemberType(MemberTypeAlias)
             .Any(m => m.GetValue<string>("fieldNumber") == fieldStr
-                   && UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted);
+                   && UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted.Key);
         return Task.FromResult(taken);
     }
 
     public Task<IReadOnlyList<PassiveMember>> GetPendingAsync()
     {
         var result = memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => (UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null)) == MemberStatus.Pending)
+            .Where(m => (UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null)) == MemberStatus.Pending.Key)
             .OrderBy(m => m.CreateDate)
             .Select(Reconstitute)
             .ToList();
@@ -39,7 +39,7 @@ public class UmbracoPassiveMembers(
     public Task<IReadOnlyList<PassiveMember>> GetConfirmedAsync()
     {
         var result = memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) == MemberStatus.Confirmed)
+            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) == MemberStatus.Confirmed.Key)
             .OrderBy(m => int.TryParse(m.GetValue<string>("fieldNumber"), out var fn) ? fn : 0)
             .Select(Reconstitute)
             .ToList();
@@ -57,13 +57,13 @@ public class UmbracoPassiveMembers(
     public Task<IReadOnlyList<(FieldNumber Field, string? DisplayName)>> GetOccupiedFieldsAsync()
     {
         var result = memberService.GetMembersByMemberType(MemberTypeAlias)
-            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted)
+            .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) != MemberStatus.Deleted.Key)
             .Select(m =>
             {
                 _ = int.TryParse(m.GetValue<string>("fieldNumber"), out var fn);
                 var status = UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null);
                 var show = m.GetValue<bool>("showNameOnFloor");
-                var displayName = show && status == MemberStatus.Confirmed
+                var displayName = show && status == MemberStatus.Confirmed.Key
                     ? m.GetValue<string>("floorDisplayName").NullIfEmpty()
                     : null;
                 return (new FieldNumber(fn), displayName);
@@ -157,13 +157,13 @@ public class UmbracoPassiveMembers(
         m.SetValue(PassivMemberAliases.MembershipLevel,        pm.Level.Key);
         m.SetValue(PassivMemberAliases.BillingAddress,         pm.AddressLine);
         m.SetValue(PassivMemberAliases.AddressLine2,           pm.AddressLine2 ?? "");
-        m.SetValue(PassivMemberAliases.BillingPostalCode,      pm.PostalCode);
+        m.SetValue(PassivMemberAliases.BillingPostalCode,      pm.PostalCode.Value);
         m.SetValue(PassivMemberAliases.BillingCity,            pm.City);
         m.SetValue(PassivMemberAliases.BillingCountry,         pm.Country);
         m.SetValue(PassivMemberAliases.Phone,                  pm.Phone ?? "");
         m.SetValue(PassivMemberAliases.ShowNameOnFloor,        pm.ShowNameOnFloor);
         m.SetValue(PassivMemberAliases.FloorDisplayName,       pm.DisplayName ?? "");
-        m.SetValue(PassivMemberAliases.Status,                 pm.Status);
+        m.SetValue(PassivMemberAliases.Status,                 pm.Status.Key);
         m.SetValue(PassivMemberAliases.PaidAt,                 pm.PaidAt);
         m.SetValue(PassivMemberAliases.PaidBy,                 pm.PaidBy ?? "");
         m.SetValue(PassivMemberAliases.ConfirmedAt,            pm.ConfirmedAt);
@@ -192,7 +192,7 @@ public class UmbracoPassiveMembers(
             showNameOnFloor:        m.GetValue<bool>(PassivMemberAliases.ShowNameOnFloor),
             displayName:            m.GetValue<string>(PassivMemberAliases.FloorDisplayName).NullIfEmpty(),
             createdAt:              m.CreateDate,
-            status:                 UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.Status), null) ?? MemberStatus.Pending,
+            status:                 UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.Status), null) ?? MemberStatus.Pending.Key,
             confirmedAt:            m.GetValue<DateTime?>(PassivMemberAliases.ConfirmedAt),
             confirmedBy:            m.GetValue<string>(PassivMemberAliases.ConfirmedBy).NullIfEmpty(),
             paidAt:                 m.GetValue<DateTime?>(PassivMemberAliases.PaidAt),

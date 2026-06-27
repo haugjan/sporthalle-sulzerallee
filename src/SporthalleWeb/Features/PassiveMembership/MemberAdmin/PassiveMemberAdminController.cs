@@ -25,7 +25,7 @@ public class PassiveMemberAdminController(PassiveMemberAdmin adminService) : Con
             m.LastName,
             Email = m.Email.Value,
             m.AddressLine,
-            m.PostalCode,
+            m.PostalCode.Value,
             m.City,
             CreatedAt = m.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
         }));
@@ -46,7 +46,7 @@ public class PassiveMemberAdminController(PassiveMemberAdmin adminService) : Con
             m.LastName,
             Email = m.Email.Value,
             m.AddressLine,
-            m.PostalCode,
+            m.PostalCode.Value,
             m.City,
             CreatedAt = m.CreatedAt.ToString("dd.MM.yyyy"),
             PaidAt = m.PaidAt?.ToString("dd.MM.yyyy"),
