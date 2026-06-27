@@ -44,11 +44,6 @@ public class RecurringSlotRecord
     [Length(10)]
     public string SeriesEnd { get; set; } = "";
 
-    [Column("Color")]
-    [NullSetting(NullSetting = NullSettings.Null)]
-    [Length(7)]
-    public string? Color { get; set; }
-
     [Column("Notes")]
     [NullSetting(NullSetting = NullSettings.Null)]
     [SpecialDbType(SpecialDbTypes.NVARCHARMAX)]

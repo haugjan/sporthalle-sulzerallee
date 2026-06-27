@@ -15,20 +15,21 @@ namespace SporthalleWeb.Tests.Application.Booking;
 public sealed class GetWeekSlotsQueryTests
 {
     private readonly Mock<IBookingSlots> _repo = new();
+    private readonly Mock<IHallMembers> _members = new();
     private readonly GetWeekSlots _sut;
 
     private static readonly DateTime BaseUtc = new(2025, 6, 2, 8, 0, 0, DateTimeKind.Utc);
 
     public GetWeekSlotsQueryTests()
     {
-        _sut = new GetWeekSlots(_repo.Object);
+        _sut = new GetWeekSlots(_repo.Object, _members.Object);
     }
 
     private static BookingSlot MakeSlot(SlotType type, string title, bool showTitlePublic) =>
         BookingSlot.FromPersistence(
             id: 1, memberId: null, type: type.ToString(),
             startUtc: BaseUtc, endUtc: BaseUtc.AddHours(2),
-            title: title, color: null, notes: null,
+            title: title, notes: null,
             createdAt: BaseUtc, updatedAt: BaseUtc, createdBy: "admin",
             recurringSlotId: null, showTitlePublic: showTitlePublic);
 

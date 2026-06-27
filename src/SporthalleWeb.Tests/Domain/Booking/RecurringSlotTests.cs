@@ -17,7 +17,7 @@ public sealed class RecurringSlotTests
         var slot = RecurringSlot.Create(
             "Training", DayOfWeek.Monday,
             new TimeOnly(9, 0), new TimeOnly(11, 0),
-            start, end, "#c00", "notes", "admin");
+            start, end, "notes", "admin");
 
         Assert.Equal("Training", slot.Title);
         Assert.Equal(DayOfWeek.Monday, slot.Weekday);
@@ -25,7 +25,6 @@ public sealed class RecurringSlotTests
         Assert.Equal(new TimeOnly(11, 0), slot.EndTime);
         Assert.Equal(start, slot.SeriesStart);
         Assert.Equal(end, slot.SeriesEnd);
-        Assert.Equal("#c00", slot.Color);
         Assert.Equal("notes", slot.Notes);
         Assert.Equal("admin", slot.CreatedBy);
     }
@@ -38,7 +37,7 @@ public sealed class RecurringSlotTests
             "T", DayOfWeek.Monday,
             new TimeOnly(9, 0), new TimeOnly(11, 0),
             new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31),
-            null, null, "admin");
+            null, "admin");
 
         var occurrences = slot.GenerateOccurrences();
         Assert.Equal(4, occurrences.Count);
@@ -52,7 +51,7 @@ public sealed class RecurringSlotTests
         var slot = RecurringSlot.Create(
             "T", DayOfWeek.Monday,
             new TimeOnly(10, 0), new TimeOnly(12, 0),
-            monday, monday, null, null, "admin");
+            monday, monday, null, "admin");
 
         var occurrences = slot.GenerateOccurrences();
         Assert.Single(occurrences);
@@ -67,7 +66,7 @@ public sealed class RecurringSlotTests
             "T", DayOfWeek.Monday,
             new TimeOnly(10, 0), new TimeOnly(12, 0),
             new DateOnly(2026, 1, 6), new DateOnly(2026, 1, 7),
-            null, null, "admin");
+            null, "admin");
 
         Assert.Empty(slot.GenerateOccurrences());
     }
@@ -79,7 +78,7 @@ public sealed class RecurringSlotTests
             "T", DayOfWeek.Monday,
             new TimeOnly(9, 0), new TimeOnly(11, 0),
             new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5),
-            null, null, "admin");
+            null, "admin");
 
         var (_, timeSlot) = slot.GenerateOccurrences()[0];
         Assert.Equal(DateTimeKind.Utc, timeSlot.StartUtc.Kind);
@@ -91,10 +90,10 @@ public sealed class RecurringSlotTests
     {
         var slot = RecurringSlot.Create(
             "Old", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
-            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, null, "admin");
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, "admin");
 
         slot.Update("New", DayOfWeek.Friday, new TimeOnly(14, 0), new TimeOnly(16, 0),
-            new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), "#fff", "updated",
+            new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), "updated",
             isBlocker: false, memberId: null, showTitlePublic: false);
 
         Assert.Equal("New", slot.Title);
@@ -107,7 +106,7 @@ public sealed class RecurringSlotTests
     {
         var slot = RecurringSlot.Create(
             "T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
-            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5), null, null, "admin");
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5), null, "admin");
         Assert.False(slot.ShowTitlePublic);
     }
 
@@ -116,7 +115,7 @@ public sealed class RecurringSlotTests
     {
         var slot = RecurringSlot.Create(
             "T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
-            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5), null, null, "admin",
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 5), null, "admin",
             showTitlePublic: true);
         Assert.True(slot.ShowTitlePublic);
     }
@@ -126,10 +125,10 @@ public sealed class RecurringSlotTests
     {
         var slot = RecurringSlot.Create(
             "T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
-            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, null, "admin");
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, "admin");
 
         slot.Update("T", DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0),
-            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null, null,
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26), null,
             isBlocker: false, memberId: null, showTitlePublic: true);
 
         Assert.True(slot.ShowTitlePublic);
@@ -141,7 +140,7 @@ public sealed class RecurringSlotTests
         var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var slot = RecurringSlot.FromPersistence(
             1, "T", 1, "09:00", "11:00", "2026-01-05", "2026-01-26",
-            null, null, "admin", now, now, showTitlePublic: true);
+            null, "admin", now, now, showTitlePublic: true);
         Assert.True(slot.ShowTitlePublic);
     }
 
@@ -151,7 +150,7 @@ public sealed class RecurringSlotTests
         var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var slot = RecurringSlot.FromPersistence(
             1, "T", 1, "09:00", "11:00", "2026-01-05", "2026-01-26",
-            null, null, "admin", now, now);
+            null, "admin", now, now);
         Assert.False(slot.ShowTitlePublic);
     }
 }

@@ -27,7 +27,8 @@ public class BookingMigrationPlan : MigrationPlan
             .To<AddSoftDeleteToBookingSlotsV8>("v1.7.0")
             .To<AddSoftDeleteToRecurringSlotsV9>("v1.8.0")
             .To<AddShowTitlePublicV10>("v1.9.0")
-            .To<DropMagicLinkTokensV11>("v1.10.0");
+            .To<DropMagicLinkTokensV11>("v1.10.0")
+            .To<DropSlotColorColumnsV12>("v1.11.0");
     }
 }
 
@@ -159,6 +160,21 @@ public class DropMagicLinkTokensV11(IMigrationContext context) : AsyncMigrationB
     {
         if (TableExists("MagicLinkTokens"))
             Delete.Table("MagicLinkTokens").Do();
+        return Task.CompletedTask;
+    }
+}
+
+// v1.11.0 — Slot/Serie colour is no longer stored per slot; the display colour now
+// derives from the renting hall member. Drop the unused Color columns.
+// ALTER TABLE ... DROP COLUMN is supported by both SQLite (3.35+) and SQL Server.
+public class DropSlotColorColumnsV12(IMigrationContext context) : AsyncMigrationBase(context)
+{
+    protected override Task MigrateAsync()
+    {
+        if (ColumnExists("BookingSlots", "Color"))
+            Delete.Column("Color").FromTable("BookingSlots").Do();
+        if (ColumnExists("RecurringSlots", "Color"))
+            Delete.Column("Color").FromTable("RecurringSlots").Do();
         return Task.CompletedTask;
     }
 }

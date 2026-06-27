@@ -12,7 +12,6 @@ public sealed record RecurringSlotCommand(
     TimeOnly EndTime,
     DateOnly SeriesStart,
     DateOnly SeriesEnd,
-    string? Color,
     string? Notes,
     bool IsBlocker = false,
     int? MemberId = null,
@@ -31,7 +30,7 @@ public sealed class CreateRecurringSlot(
     public async Task<RecurringSlotCheckResult> CheckConflictsAsync(RecurringSlotCommand cmd)
     {
         var temp = RecurringSlot.Create(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
-            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, "");
+            cmd.SeriesStart, cmd.SeriesEnd, cmd.Notes, "");
         var occurrences = temp.GenerateOccurrences();
         var conflicts = new List<RecurringSlotConflictDate>();
         foreach (var (date, slot) in occurrences)
@@ -46,7 +45,7 @@ public sealed class CreateRecurringSlot(
     public async Task<RecurringSlotCreateResult> ExecuteAsync(RecurringSlotCommand cmd, string createdBy, bool skipConflicts)
     {
         var serie = RecurringSlot.Create(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
-            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, createdBy, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
+            cmd.SeriesStart, cmd.SeriesEnd, cmd.Notes, createdBy, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
         var serieId = await serieRepo.SaveAsync(serie);
 
         var occurrences = serie.GenerateOccurrences();
@@ -61,7 +60,7 @@ public sealed class CreateRecurringSlot(
                 if (overlaps.Count > 0) { skipped++; continue; }
             }
             var slotType = cmd.IsBlocker ? SlotType.Blocker : SlotType.Recurring;
-            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, createdBy, serieId, slotType, cmd.MemberId, cmd.ShowTitlePublic);
+            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Notes, createdBy, serieId, slotType, cmd.MemberId, cmd.ShowTitlePublic);
             await slotRepo.SaveAsync(booking);
             created++;
         }

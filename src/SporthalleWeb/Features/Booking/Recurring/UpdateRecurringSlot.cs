@@ -14,7 +14,7 @@ public sealed class UpdateRecurringSlot(
     public async Task<RecurringSlotCheckResult> CheckConflictsAsync(int serieId, RecurringSlotCommand cmd)
     {
         var temp = RecurringSlot.Create(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
-            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, "");
+            cmd.SeriesStart, cmd.SeriesEnd, cmd.Notes, "");
         var occurrences = temp.GenerateOccurrences();
         var conflicts = new List<RecurringSlotConflictDate>();
         foreach (var (date, slot) in occurrences)
@@ -32,7 +32,7 @@ public sealed class UpdateRecurringSlot(
             ?? throw new DomainException("Serientermin nicht gefunden.");
 
         serie.Update(cmd.Title, cmd.Weekday, cmd.StartTime, cmd.EndTime,
-            cmd.SeriesStart, cmd.SeriesEnd, cmd.Color, cmd.Notes, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
+            cmd.SeriesStart, cmd.SeriesEnd, cmd.Notes, cmd.IsBlocker, cmd.MemberId, cmd.ShowTitlePublic);
 
         await serieRepo.UpdateAsync(serie);
         await slotRepo.DeleteByRecurringSlotIdAsync(serieId);
@@ -49,7 +49,7 @@ public sealed class UpdateRecurringSlot(
                 if (overlaps.Count > 0) { skipped++; continue; }
             }
             var slotType = cmd.IsBlocker ? SlotType.Blocker : SlotType.Recurring;
-            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Color, cmd.Notes, updatedBy, serieId, slotType, cmd.MemberId, serie.ShowTitlePublic);
+            var booking = BookingSlot.CreateSerie(timeSlot, cmd.Title, cmd.Notes, updatedBy, serieId, slotType, cmd.MemberId, serie.ShowTitlePublic);
             await slotRepo.SaveAsync(booking);
             created++;
         }

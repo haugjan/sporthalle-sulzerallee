@@ -1,9 +1,0 @@
-﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<ContentModels.GridPage>
-@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
-@{
-    Layout = "~/Views/Shared/_SiteLayout.cshtml";
-    ViewBag.PageTitle = Model.Name + " – Sporthalle Sulzerallee";
-}
-<main style="padding-top:68px">
-    @await Html.GetBlockGridHtmlAsync(Model, "inhalt")
-</main>

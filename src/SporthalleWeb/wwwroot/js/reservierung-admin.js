@@ -484,8 +484,6 @@ window.SporthalleAdmin = (function () {
 
   var _modalType = 'blocker'; // 'blocker' | 'booking'
   var _modalSched = 'single'; // 'single' | 'recurring'
-  var _selectedColor = '#F1C40F';
-  var _selectedRecurringColor = '#C62828';
   var _recurringPayload = null;
   var _memberSearchTimer = null;
 
@@ -522,27 +520,12 @@ window.SporthalleAdmin = (function () {
     document.body.style.overflow = '';
   }
 
-  function selectColor(color) {
-    _selectedColor = color;
-    var picker = document.getElementById('admin-bm-color-picker');
-    if (!picker) return;
-    var swatches = picker.querySelectorAll('.bm-color-swatch');
-    for (var i = 0; i < swatches.length; i++) {
-      if (swatches[i].dataset.color === color) {
-        swatches[i].classList.add('bm-color-swatch--active');
-      } else {
-        swatches[i].classList.remove('bm-color-swatch--active');
-      }
-    }
-  }
-
   function resetAdminModal() {
     setEl('admin-bm-blocker-title', '');
     setEl('admin-bm-notes-blocker', '');
     setEl('admin-bm-event', '');
     setEl('admin-bm-notes', '');
     clearSelectedMember();
-    selectColor('#F1C40F');
     hideError('admin-bm-error-blocker');
     hideError('admin-bm-error');
     hideError('admin-bm-error-recurring');
@@ -584,7 +567,6 @@ window.SporthalleAdmin = (function () {
     var bodyBlockerSingle = document.getElementById('admin-bm-body-blocker-single');
     var bodyBookingSingle = document.getElementById('admin-bm-body-booking-single');
     var bodyRecurring         = document.getElementById('admin-bm-body-recurring');
-    var recurringColorRow     = document.getElementById('admin-bm-recurring-color-row');
 
     if (btnBlocker) btnBlocker.className = (_modalType === 'blocker') ? 'bm-btn-primary' : 'bm-btn-secondary';
     if (btnBooking) btnBooking.className = (_modalType === 'booking') ? 'bm-btn-primary' : 'bm-btn-secondary';
@@ -594,7 +576,6 @@ window.SporthalleAdmin = (function () {
     if (bodyBlockerSingle) bodyBlockerSingle.hidden = !(_modalType === 'blocker' && _modalSched === 'single');
     if (bodyBookingSingle) bodyBookingSingle.hidden = !(_modalType === 'booking' && _modalSched === 'single');
     if (bodyRecurring)         bodyRecurring.hidden         = (_modalSched !== 'recurring');
-    if (recurringColorRow)     recurringColorRow.hidden     = (_modalType === 'blocker');
   }
 
   function prefillRecurringForm() {
@@ -607,21 +588,6 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-recurring-start-time', startTime);
     setEl('admin-bm-recurring-end-time', endTime);
     if (_dotNet) _dotNet.invokeMethodAsync('SetRecurringTimes', startTime, endTime);
-    selectRecurringColor('#F1C40F');
-  }
-
-  function selectRecurringColor(color) {
-    _selectedRecurringColor = color;
-    var picker = document.getElementById('admin-bm-recurring-color-picker');
-    if (!picker) return;
-    var swatches = picker.querySelectorAll('.bm-color-swatch');
-    for (var i = 0; i < swatches.length; i++) {
-      if (swatches[i].dataset.color === color) {
-        swatches[i].classList.add('bm-color-swatch--active');
-      } else {
-        swatches[i].classList.remove('bm-color-swatch--active');
-      }
-    }
   }
 
   function clearSelectedMember() {
@@ -738,7 +704,6 @@ window.SporthalleAdmin = (function () {
         startUtc: bkt.startUtc,
         endUtc: bkt.endUtc,
         eventTitle: eventTitle,
-        color: _selectedColor,
         memberId: parseInt(memberId, 10),
         notes: getVal('admin-bm-notes') || null
       };
@@ -812,7 +777,6 @@ window.SporthalleAdmin = (function () {
       endTime: endTime,
       seriesStart: seriesStart,
       seriesEnd: seriesEnd,
-      color: _modalType === 'blocker' ? null : (_selectedRecurringColor || null),
       notes: getVal('admin-bm-recurring-notes') || null,
       isBlocker: _modalType === 'blocker'
     };
@@ -1119,26 +1083,6 @@ window.SporthalleAdmin = (function () {
       addHandler(document.getElementById('admin-sched-single'), 'click', function () { setModalSched('single'); });
       addHandler(document.getElementById('admin-sched-recurring'), 'click', function () { setModalSched('recurring'); });
       initMemberSearch();
-
-      var colorPicker = document.getElementById('admin-bm-color-picker');
-      if (colorPicker) {
-        var swatches = colorPicker.querySelectorAll('.bm-color-swatch');
-        for (var ci = 0; ci < swatches.length; ci++) {
-          (function (swatch) {
-            addHandler(swatch, 'click', function () { selectColor(swatch.dataset.color); });
-          })(swatches[ci]);
-        }
-      }
-
-      var recurringColorPicker = document.getElementById('admin-bm-recurring-color-picker');
-      if (recurringColorPicker) {
-        var recurringSwatches = recurringColorPicker.querySelectorAll('.bm-color-swatch');
-        for (var si = 0; si < recurringSwatches.length; si++) {
-          (function (swatch) {
-            addHandler(swatch, 'click', function () { selectRecurringColor(swatch.dataset.color); });
-          })(recurringSwatches[si]);
-        }
-      }
 
       var modal = document.getElementById('admin-booking-modal');
       addHandler(modal, 'click', function (e) { if (e.target === modal) closeAdminModal(); });

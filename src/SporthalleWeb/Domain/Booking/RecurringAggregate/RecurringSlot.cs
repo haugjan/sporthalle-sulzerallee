@@ -15,7 +15,6 @@ public sealed class RecurringSlot
     public TimeOnly EndTime { get; private set; }
     public DateOnly SeriesStart { get; private set; }
     public DateOnly SeriesEnd { get; private set; }
-    public string? Color { get; private set; }
     public string? Notes { get; private set; }
     public bool IsBlocker { get; private set; }
     public int? MemberId { get; private set; }
@@ -28,7 +27,7 @@ public sealed class RecurringSlot
 
     public static RecurringSlot Create(
         string title, DayOfWeek weekday, TimeOnly startTime, TimeOnly endTime,
-        DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes, string createdBy,
+        DateOnly seriesStart, DateOnly seriesEnd, string? notes, string createdBy,
         bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
         new()
         {
@@ -38,7 +37,6 @@ public sealed class RecurringSlot
             EndTime = endTime,
             SeriesStart = seriesStart,
             SeriesEnd = seriesEnd,
-            Color = color,
             Notes = notes,
             CreatedBy = createdBy,
             IsBlocker = isBlocker,
@@ -50,7 +48,7 @@ public sealed class RecurringSlot
 
     public static RecurringSlot FromPersistence(
         int id, string title, int weekday, string startTime, string endTime,
-        string seriesStart, string seriesEnd, string? color, string? notes,
+        string seriesStart, string seriesEnd, string? notes,
         string createdBy, DateTime createdAt, DateTime updatedAt,
         bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
         new()
@@ -62,7 +60,6 @@ public sealed class RecurringSlot
             EndTime = TimeOnly.Parse(endTime, CultureInfo.InvariantCulture),
             SeriesStart = DateOnly.Parse(seriesStart, CultureInfo.InvariantCulture),
             SeriesEnd = DateOnly.Parse(seriesEnd, CultureInfo.InvariantCulture),
-            Color = color,
             Notes = notes,
             CreatedBy = createdBy,
             CreatedAt = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc),
@@ -74,7 +71,7 @@ public sealed class RecurringSlot
 
     public void Update(
         string title, DayOfWeek weekday, TimeOnly startTime, TimeOnly endTime,
-        DateOnly seriesStart, DateOnly seriesEnd, string? color, string? notes,
+        DateOnly seriesStart, DateOnly seriesEnd, string? notes,
         bool isBlocker, int? memberId, bool showTitlePublic)
     {
         Title = title;
@@ -83,7 +80,6 @@ public sealed class RecurringSlot
         EndTime = endTime;
         SeriesStart = seriesStart;
         SeriesEnd = seriesEnd;
-        Color = color;
         Notes = notes;
         IsBlocker = isBlocker;
         MemberId = memberId;

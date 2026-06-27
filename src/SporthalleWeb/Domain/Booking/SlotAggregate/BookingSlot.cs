@@ -7,7 +7,6 @@ public sealed class BookingSlot
     public SlotType Type { get; private set; }
     public TimeSlot Slot { get; private set; } = null!;
     public string Title { get; private set; } = "";
-    public string? Color { get; private set; }
     public string? Notes { get; private set; }
     public bool ShowTitlePublic { get; private set; }
     public DateTime CreatedAt { get; private set; }
@@ -18,14 +17,13 @@ public sealed class BookingSlot
     private BookingSlot() { }
 
     public static BookingSlot CreateBlocker(
-        TimeSlot slot, string title, string? color, string? notes, string createdBy,
+        TimeSlot slot, string title, string? notes, string createdBy,
         bool showTitlePublic = false) =>
         new()
         {
             Type = SlotType.Blocker,
             Slot = slot,
             Title = title,
-            Color = color,
             Notes = notes,
             ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
@@ -34,7 +32,7 @@ public sealed class BookingSlot
         };
 
     public static BookingSlot CreateReserved(
-        int memberId, TimeSlot slot, string title, string? color, string? notes, string createdBy,
+        int memberId, TimeSlot slot, string title, string? notes, string createdBy,
         bool showTitlePublic = false) =>
         new()
         {
@@ -42,7 +40,6 @@ public sealed class BookingSlot
             Type = SlotType.Reserved,
             Slot = slot,
             Title = title,
-            Color = color,
             Notes = notes,
             ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
@@ -51,7 +48,7 @@ public sealed class BookingSlot
         };
 
     public static BookingSlot CreateBooked(
-        int memberId, TimeSlot slot, string title, string? color, string? notes, string createdBy,
+        int memberId, TimeSlot slot, string title, string? notes, string createdBy,
         bool showTitlePublic = false) =>
         new()
         {
@@ -59,7 +56,6 @@ public sealed class BookingSlot
             Type = SlotType.Booked,
             Slot = slot,
             Title = title,
-            Color = color,
             Notes = notes,
             ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
@@ -68,7 +64,7 @@ public sealed class BookingSlot
         };
 
     public static BookingSlot CreateSerie(
-        TimeSlot slot, string title, string? color, string? notes, string createdBy, int recurringSlotId,
+        TimeSlot slot, string title, string? notes, string createdBy, int recurringSlotId,
         SlotType type = SlotType.Recurring, int? memberId = null, bool showTitlePublic = false) =>
         new()
         {
@@ -76,7 +72,6 @@ public sealed class BookingSlot
             MemberId = memberId,
             Slot = slot,
             Title = title,
-            Color = color,
             Notes = notes,
             ShowTitlePublic = showTitlePublic,
             CreatedAt = DateTime.UtcNow,
@@ -88,7 +83,7 @@ public sealed class BookingSlot
     public static BookingSlot FromPersistence(
         int id, int? memberId, string type,
         DateTime startUtc, DateTime endUtc,
-        string title, string? color, string? notes,
+        string title, string? notes,
         DateTime createdAt, DateTime updatedAt, string createdBy,
         int? recurringSlotId = null, bool showTitlePublic = false) =>
         new()
@@ -98,7 +93,6 @@ public sealed class BookingSlot
             Type = Enum.Parse<SlotType>(type),
             Slot = new TimeSlot(startUtc, endUtc),
             Title = title,
-            Color = color,
             Notes = notes,
             ShowTitlePublic = showTitlePublic,
             CreatedAt = createdAt,
@@ -131,10 +125,9 @@ public sealed class BookingSlot
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string title, string? color, string? notes, bool showTitlePublic)
+    public void Update(string title, string? notes, bool showTitlePublic)
     {
         Title = title;
-        Color = color;
         Notes = notes;
         ShowTitlePublic = showTitlePublic;
         UpdatedAt = DateTime.UtcNow;

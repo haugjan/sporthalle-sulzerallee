@@ -1,6 +1,7 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @using System.Linq
 @using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
 @{
     var root = Umbraco.ContentAtRoot()?.FirstOrDefault();
     var navChildren = root?.Children()?.ToList() ?? new List<IPublishedContent>();

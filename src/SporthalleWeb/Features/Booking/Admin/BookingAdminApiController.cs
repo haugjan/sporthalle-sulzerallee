@@ -92,7 +92,7 @@ public sealed class BookingAdminApiController(
         {
             var slot = await adminService.CreateSlotAsync(
                 slotType, req.StartUtc, req.EndUtc,
-                req.Title, req.Color, req.Notes,
+                req.Title, req.Notes,
                 req.MemberId, User.Identity?.Name ?? "admin");
             return Ok(MapToDto(slot, null));
         }
@@ -183,7 +183,7 @@ public sealed class BookingAdminApiController(
         startUtc = slot.Slot.StartUtc,
         endUtc   = slot.Slot.EndUtc,
         title    = slot.Title,
-        color    = slot.Color,
+        color    = SlotDisplayColor.For(slot.Type, member?.Color),
         notes    = slot.Notes,
         member   = member is null ? null : new
         {
@@ -219,7 +219,6 @@ public sealed class BookingAdminApiController(
             TimeOnly.Parse(req.To),
             DateOnly.Parse(req.SeriesStart),
             DateOnly.Parse(req.SeriesEnd),
-            req.Color,
             req.Notes,
             IsBlocker: req.IsBlocker,
             MemberId: req.MemberId,
@@ -257,7 +256,7 @@ public sealed class BookingAdminApiController(
 public sealed record AdminRejectRequest(string Reason);
 public sealed record AdminCreateSlotRequest(
     string Type, DateTime StartUtc, DateTime EndUtc,
-    string Title, string? Color, string? Notes, int? MemberId);
+    string Title, string? Notes, int? MemberId);
 public sealed record RecurringSlotSeedRequest(
     string Title,
     int Weekday,
@@ -265,7 +264,6 @@ public sealed record RecurringSlotSeedRequest(
     string To,
     string SeriesStart,
     string SeriesEnd,
-    string? Color,
     string? Notes,
     bool IsBlocker = false,
     int? MemberId = null,

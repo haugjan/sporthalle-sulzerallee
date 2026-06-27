@@ -56,22 +56,6 @@
                             </div>
                         }
 
-                        @if (_editSlotType != SlotType.Blocker)
-                        {
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Farbe</label>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @foreach (var c in new[] { "#C62828","#FFD54F","#1A1A1A","#2B6CB0","#2F855A","#702459","#D97706","#0E7490" })
-                                    {
-                                        <button type="button"
-                                                style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_editColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
-                                                @onclick="() => _editColor = c"
-                                                title="@c"></button>
-                                    }
-                                </div>
-                            </div>
-                        }
-
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Bemerkungen</label>
                             <textarea class="form-control" @bind="_editNotes" rows="3"></textarea>
@@ -197,7 +181,6 @@
     private int? _editSlotId;
     private SlotType _editSlotType;
     private string _editTitle = "";
-    private string? _editColor;
     private string _editNotes = "";
     private bool _editHasMember;
     private int? _editMemberId;
@@ -244,7 +227,6 @@
         if (slot is null) { _editSlotId = null; _editLoading = false; return; }
         _editSlotType     = slot.Type;
         _editTitle        = slot.Title ?? "";
-        _editColor        = slot.Color ?? "#C0392B";
         _editNotes           = slot.Notes ?? "";
         _editShowTitlePublic = slot.ShowTitlePublic;
         _editHasMember    = member is not null;
@@ -299,7 +281,7 @@
                     startMin = startLocal.Hour * 60 + startLocal.Minute,
                     endMin   = endLocal.Hour * 60 + endLocal.Minute,
                     title    = s.Title ?? "",
-                    color    = s.Color ?? "#546E7A"
+                    color    = SlotDisplayColor.For(s.Type, null)
                 };
             })
             .ToArray();
@@ -329,11 +311,8 @@
         _editError = null;
         try
         {
-            var color = _editSlotType == SlotType.Blocker
-                ? "#78909C"
-                : (string.IsNullOrWhiteSpace(_editColor) ? null : _editColor.Trim());
             await AdminService.UpdateSlotAsync(_editSlotId.Value,
-                _editTitle.Trim(), color, string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
+                _editTitle.Trim(), string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
                 AdminUser, _editShowTitlePublic);
 
             if (_editMemberId != _originalMemberId)

@@ -98,18 +98,6 @@
                     @if (!_fIsBlocker)
                     {
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Farbe</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach (var c in Colors)
-                                {
-                                    <button type="button"
-                                            style="width:26px;height:26px;background:@c;border-radius:4px;border: @(_fColor == c ? "3px solid #333" : "2px solid transparent");cursor:pointer"
-                                            @onclick="() => _fColor = c"
-                                            title="@c"></button>
-                                }
-                            </div>
-                        </div>
-                        <div class="col-12">
                             <label class="form-label fw-semibold">Mieter</label>
                             @if (_fMemberId.HasValue)
                             {
@@ -236,10 +224,6 @@ else
                             }
                         </td>
                         <td>
-                            @if (!string.IsNullOrEmpty(s.Color))
-                            {
-                                <span style="display:block;width:28px;height:5px;background:@s.Color;border-radius:2px;margin-bottom:3px"></span>
-                            }
                             <strong>@s.Title</strong>
                             @if (!string.IsNullOrEmpty(s.Notes))
                             {
@@ -293,10 +277,6 @@ else
     private static readonly System.Globalization.CultureInfo DeCh =
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
-    private static readonly string[] Colors = [
-        "#C62828","#FFD54F","#1A1A1A","#2B6CB0","#2F855A","#702459","#D97706","#0E7490"
-    ];
-
     private int _year = DateTime.Today.Year;
     private IReadOnlyList<RecurringSlotWithYearCount> _recurringSlots = [];
     private bool _loading = true;
@@ -315,7 +295,6 @@ else
     private DateOnly _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _fSeriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
     private DateOnly? _cutoffDate;
-    private string? _fColor = "#C62828";
     private string _fNotes = "";
     private bool _fIsBlocker;
     private bool _fShowTitlePublic;
@@ -358,7 +337,6 @@ else
         _fEndTime = new TimeOnly(10, 0);
         _fSeriesStart = DateOnly.FromDateTime(DateTime.Today);
         _fSeriesEnd = _cutoffDate ?? DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
-        _fColor = "#C62828";
         _fNotes = "";
         _fIsBlocker = false;
         _fShowTitlePublic = false;
@@ -381,7 +359,6 @@ else
         _fEndTime = s.EndTime;
         _fSeriesStart = s.SeriesStart;
         _fSeriesEnd = s.SeriesEnd;
-        _fColor = s.Color ?? "#C62828";
         _fNotes = s.Notes ?? "";
         _fIsBlocker = s.IsBlocker;
         _fShowTitlePublic = s.ShowTitlePublic;
@@ -407,7 +384,6 @@ else
     private void SetTypeRecurring()
     {
         _fIsBlocker = false;
-        _fColor ??= "#C62828";
     }
 
     private void SetTypeBlocker()
@@ -537,7 +513,6 @@ else
         _fEndTime,
         _fSeriesStart,
         _fSeriesEnd,
-        _fIsBlocker ? null : _fColor,
         string.IsNullOrWhiteSpace(_fNotes) ? null : _fNotes.Trim(),
         IsBlocker: _fIsBlocker,
         MemberId: _fIsBlocker ? null : _fMemberId,

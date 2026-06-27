@@ -23,7 +23,7 @@ public sealed class CreateBooking(
         var slot = new TimeSlot(cmd.StartUtc, cmd.EndUtc);
 
         var booking = BookingSlot.CreateReserved(
-            cmd.MemberId, slot, cmd.Title, cmd.Color ?? "#0078D4", cmd.Notes, member.Email.Value);
+            cmd.MemberId, slot, cmd.Title, cmd.Notes, member.Email.Value);
 
         booking = await slotRepo.CheckConflictAndSaveAsync(booking, slot);
 

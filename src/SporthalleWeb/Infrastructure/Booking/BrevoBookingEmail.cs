@@ -5,6 +5,7 @@ using SporthalleWeb.Domain.Booking;
 using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
 using SporthalleWeb.Features.Booking.Ports;
+using SporthalleWeb.Infrastructure.Shared;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 
@@ -81,54 +82,19 @@ public sealed class BrevoBookingEmail(
     private static string ContactName(HallMember member) =>
         $"{member.ContactFirstName} {member.ContactLastName}".Trim();
 
+    // Shared, homepage-aligned layout (see Infrastructure/Shared/EmailLayout.cs).
     private static string BuildEmail(
         string title, string greeting, string body,
         string? detail = null, string? note = null,
-        string? ctaUrl = null, string? ctaLabel = null) => $"""
-        <!DOCTYPE html>
-        <html lang="de">
-        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-        <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0;">
-            <tr><td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                <!-- Header -->
-                <tr>
-                  <td style="background:#1a1a1a;padding:28px 40px;">
-                    <span style="font-family:'Barlow Condensed',Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.04em;text-transform:uppercase;">Sporthalle Sulzerallee</span>
-                  </td>
-                </tr>
-                <!-- Title bar -->
-                <tr>
-                  <td style="background:#EB504B;padding:16px 40px;">
-                    <span style="font-family:'Barlow Condensed',Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">{title}</span>
-                  </td>
-                </tr>
-                <!-- Body -->
-                <tr>
-                  <td style="padding:32px 40px;">
-                    <p style="margin:0 0 16px;font-size:16px;color:#1a1a1a;">{greeting}</p>
-                    <p style="margin:0 0 20px;font-size:15px;color:#333;line-height:1.6;">{body}</p>
-                    {(detail != null ? $"<div style=\"background:#f8f8f8;border-left:3px solid #EB504B;padding:14px 18px;margin:0 0 20px;font-size:14px;color:#333;line-height:1.7;\">{detail}</div>" : "")}
-                    {(note != null ? $"<p style=\"margin:0 0 20px;font-size:14px;color:#666;line-height:1.6;\">{note}</p>" : "")}
-                    {(ctaUrl != null ? $"<p style=\"margin:24px 0 0;\"><a href=\"{ctaUrl}\" style=\"display:inline-block;background:#EB504B;color:#ffffff;font-family:'Barlow Condensed',Arial,sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;padding:12px 28px;border-radius:4px;\">{ctaLabel ?? ctaUrl}</a></p>" : "")}
-                  </td>
-                </tr>
-                <!-- Footer -->
-                <tr>
-                  <td style="background:#f8f8f8;border-top:1px solid #e8e8e8;padding:20px 40px;">
-                    <p style="margin:0;font-size:12px;color:#888;line-height:1.6;">
-                      Sporthalle Sulzerallee · Sulzerallee · 8404 Winterthur<br>
-                      <a href="mailto:reservation@sporthalle-sulzerallee.ch" style="color:#EB504B;text-decoration:none;">reservation@sporthalle-sulzerallee.ch</a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td></tr>
-          </table>
-        </body>
-        </html>
-        """;
+        string? ctaUrl = null, string? ctaLabel = null) =>
+        EmailLayout.Render(
+            title: title,
+            body: body,
+            greeting: greeting,
+            details: detail,
+            note: note,
+            ctaUrl: ctaUrl,
+            ctaLabel: ctaLabel);
 
     private string FormatSlot(BookingSlot slot)
     {

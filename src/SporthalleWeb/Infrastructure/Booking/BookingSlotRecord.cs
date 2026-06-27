@@ -37,11 +37,6 @@ public class BookingSlotRecord
     [Length(200)]
     public string Title { get; set; } = "";
 
-    [Column("Color")]
-    [NullSetting(NullSetting = NullSettings.Null)]
-    [Length(7)]
-    public string? Color { get; set; }
-
     [Column("Notes")]
     [NullSetting(NullSetting = NullSettings.Null)]
     [SpecialDbType(SpecialDbTypes.NVARCHARMAX)]

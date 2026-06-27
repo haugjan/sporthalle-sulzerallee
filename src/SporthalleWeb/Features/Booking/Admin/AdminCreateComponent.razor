@@ -113,14 +113,6 @@
             </label>
           </div>
           <div class="bm-field bm-field--2col">
-            <label>Farbe
-              <span style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem">
-                <span style="width:22px;height:22px;border-radius:4px;background:#78909C;display:inline-block;border:2px solid #333"></span>
-                <span style="font-size:0.85rem;color:#555;font-weight:400;text-transform:none;letter-spacing:0">Immer Grau</span>
-              </span>
-            </label>
-          </div>
-          <div class="bm-field bm-field--2col">
             <label>Bemerkungen (optional)
               <textarea id="admin-bm-notes-blocker" rows="2" placeholder="Interne Notiz"></textarea>
             </label>
@@ -176,21 +168,6 @@
               <button type="button" id="admin-bm-member-clear" class="bm-member-badge__clear" aria-label="Auswahl aufheben">&#x2715;</button>
             </div>
             <input type="hidden" id="admin-bm-member-id" value="" />
-          </div>
-
-          <div class="bm-field bm-field--2col">
-            <label>Farbe
-              <div id="admin-bm-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
-                <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#C62828" style="background:#C62828" title="#C62828"></button>
-                <button type="button" class="bm-color-swatch" data-color="#FFD54F" style="background:#FFD54F" title="#FFD54F"></button>
-                <button type="button" class="bm-color-swatch" data-color="#1A1A1A" style="background:#1A1A1A" title="#1A1A1A"></button>
-                <button type="button" class="bm-color-swatch" data-color="#2B6CB0" style="background:#2B6CB0" title="#2B6CB0"></button>
-                <button type="button" class="bm-color-swatch" data-color="#2F855A" style="background:#2F855A" title="#2F855A"></button>
-                <button type="button" class="bm-color-swatch" data-color="#702459" style="background:#702459" title="#702459"></button>
-                <button type="button" class="bm-color-swatch" data-color="#D97706" style="background:#D97706" title="#D97706"></button>
-                <button type="button" class="bm-color-swatch" data-color="#0E7490" style="background:#0E7490" title="#0E7490"></button>
-              </div>
-            </label>
           </div>
 
           <div class="bm-field bm-field--2col">
@@ -259,21 +236,6 @@
             <label class="d-block">Serie bis *</label>
             <DateInputComponent Value="_seriesEnd" ValueChanged="@(d => { if (d.HasValue) _seriesEnd = d.Value; })"
                                 HiddenInputId="admin-bm-recurring-end" />
-          </div>
-
-          <div class="bm-field bm-field--2col" id="admin-bm-recurring-color-row">
-            <label>Farbe
-              <div id="admin-bm-recurring-color-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:0.3rem">
-                <button type="button" class="bm-color-swatch bm-color-swatch--active" data-color="#C62828" style="background:#C62828" title="#C62828"></button>
-                <button type="button" class="bm-color-swatch" data-color="#FFD54F" style="background:#FFD54F" title="#FFD54F"></button>
-                <button type="button" class="bm-color-swatch" data-color="#1A1A1A" style="background:#1A1A1A" title="#1A1A1A"></button>
-                <button type="button" class="bm-color-swatch" data-color="#2B6CB0" style="background:#2B6CB0" title="#2B6CB0"></button>
-                <button type="button" class="bm-color-swatch" data-color="#2F855A" style="background:#2F855A" title="#2F855A"></button>
-                <button type="button" class="bm-color-swatch" data-color="#702459" style="background:#702459" title="#702459"></button>
-                <button type="button" class="bm-color-swatch" data-color="#D97706" style="background:#D97706" title="#D97706"></button>
-                <button type="button" class="bm-color-swatch" data-color="#0E7490" style="background:#0E7490" title="#0E7490"></button>
-              </div>
-            </label>
           </div>
 
           <div class="bm-field bm-field--2col">
@@ -354,7 +316,7 @@
             startUtc   = x.Slot.Slot.StartUtc.ToString("o"),
             endUtc     = x.Slot.Slot.EndUtc.ToString("o"),
             title      = x.Slot.Title,
-            color      = x.Slot.Color,
+            color      = SlotDisplayColor.For(x.Slot.Type, x.Member?.Color),
             renterName = x.Member is null ? null
                 : x.Member.Name ?? $"{x.Member.ContactFirstName} {x.Member.ContactLastName}".Trim()
         });
@@ -382,7 +344,7 @@
                 await AdminService.CreateSlotAsync(
                     SlotType.Blocker,
                     startUtc, endUtc,
-                    payload.Title.Trim(), "#78909C",
+                    payload.Title.Trim(),
                     string.IsNullOrWhiteSpace(payload.Notes) ? null : payload.Notes.Trim(),
                     null, AdminUser, false);
 
@@ -397,7 +359,6 @@
                 SlotType.Booked,
                 startUtc, endUtc,
                 payload.EventTitle?.Trim() ?? "Buchung",
-                string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim(),
                 string.IsNullOrWhiteSpace(payload.Notes) ? null : payload.Notes!.Trim(),
                 payload.MemberId.Value, AdminUser, _bookingShowTitlePublic);
 
@@ -486,7 +447,6 @@
         TimeOnly.Parse(p.EndTime!, CultureInfo.InvariantCulture),
         DateOnly.Parse(p.SeriesStart!, CultureInfo.InvariantCulture),
         DateOnly.Parse(p.SeriesEnd!, CultureInfo.InvariantCulture),
-        string.IsNullOrWhiteSpace(p.Color) ? null : p.Color.Trim(),
         string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes.Trim(),
         IsBlocker: p.IsBlocker);
 
@@ -513,7 +473,6 @@
         public string? EndTime { get; set; }
         public string? SeriesStart { get; set; }
         public string? SeriesEnd { get; set; }
-        public string? Color { get; set; }
         public string? Notes { get; set; }
         public bool IsBlocker { get; set; }
     }
@@ -525,7 +484,6 @@
         public string? EndUtc { get; set; }
         public string? Title { get; set; }
         public string? EventTitle { get; set; }
-        public string? Color { get; set; }
         public string? Notes { get; set; }
         public int? MemberId { get; set; }
     }

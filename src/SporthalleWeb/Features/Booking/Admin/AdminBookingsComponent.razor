@@ -82,10 +82,7 @@ else
                             <small class="text-muted">@((int)(s.Slot.EndUtc - s.Slot.StartUtc).TotalMinutes) min</small>
                         </td>
                         <td>
-                            @if (!string.IsNullOrEmpty(s.Color))
-                            {
-                                <span style="display:block;width:28px;height:5px;background:@s.Color;border-radius:2px;margin-bottom:3px"></span>
-                            }
+                            <span style="display:block;width:28px;height:5px;background:@SlotDisplayColor.For(s.Type, m?.Color);border-radius:2px;margin-bottom:3px"></span>
                             @(s.Title ?? "–")
                         </td>
                         <td><span class="badge @TypeBadge(s.Type.ToString())">@TypeLabel(s.Type)</span></td>
