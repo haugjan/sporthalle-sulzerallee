@@ -28,7 +28,8 @@ public class BookingMigrationPlan : MigrationPlan
             .To<AddSoftDeleteToRecurringSlotsV9>("v1.8.0")
             .To<AddShowTitlePublicV10>("v1.9.0")
             .To<DropMagicLinkTokensV11>("v1.10.0")
-            .To<DropSlotColorColumnsV12>("v1.11.0");
+            .To<DropSlotColorColumnsV12>("v1.11.0")
+            .To<AlignStateV13>("v1.12.0");
     }
 }
 
@@ -177,6 +178,13 @@ public class DropSlotColorColumnsV12(IMigrationContext context) : AsyncMigration
             Delete.Column("Color").FromTable("RecurringSlots").Do();
         return Task.CompletedTask;
     }
+}
+
+// v1.12.0 — No-op: aligns the plan's terminal state with databases that reached v1.12.0
+// via a worktree where DropSlotColorColumnsV12 was originally registered as that version.
+public class AlignStateV13(IMigrationContext context) : AsyncMigrationBase(context)
+{
+    protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
 public class BookingMigrationComponent(
