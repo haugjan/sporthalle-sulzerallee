@@ -363,7 +363,7 @@
                 var guestLastName  = guestSpaceIdx >= 0 ? guestFullName[(guestSpaceIdx + 1)..].Trim() : "";
                 var regCmd = new SporthalleWeb.Features.Booking.RegisterRenterCommand(
                     Email: _guestEmail.Trim(),
-                    RenterType: new SporthalleWeb.Features.Booking.RenterType(_guestRenterType),
+                    RenterType: new SporthalleWeb.Domain.Booking.RenterType(_guestRenterType),
                     Name: null,
                     ContactFirstName: guestFirstName,
                     ContactLastName: guestLastName,
@@ -390,11 +390,11 @@
             await CreateBooking.ExecuteAsync(bookCmd);
             _step = PickerStep.Confirmation;
         }
-        catch (SporthalleWeb.Features.Booking.SlotConflictException)
+        catch (SporthalleWeb.Domain.Booking.SlotConflictException)
         {
             _error = "Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle einen anderen Termin.";
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex)
+        catch (SporthalleWeb.Domain.Booking.DomainException ex)
         {
             _error = ex.Message;
         }
@@ -416,7 +416,7 @@
             _passwordMessage = "Passwort gespeichert.";
             _newPassword = null;
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex)
+        catch (SporthalleWeb.Domain.Booking.DomainException ex)
         {
             _passwordError = true;
             _passwordMessage = ex.Message;

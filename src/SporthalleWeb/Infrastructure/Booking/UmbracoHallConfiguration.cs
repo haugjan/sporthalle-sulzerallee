@@ -1,6 +1,9 @@
-﻿using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using Umbraco.Cms.Core.Services;
+
+
+using SporthalleWeb.Domain.Booking;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

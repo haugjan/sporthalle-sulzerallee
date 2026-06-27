@@ -1,5 +1,5 @@
 using SporthalleWeb.Features.PassiveMembership.Registration;
-using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 
 namespace SporthalleWeb.Features.PassiveMembership.MemberAdmin;
 

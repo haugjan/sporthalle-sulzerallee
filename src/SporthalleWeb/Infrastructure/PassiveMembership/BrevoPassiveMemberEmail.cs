@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using SporthalleWeb.Features.PassiveMembership.Registration;
-using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership;
 

@@ -119,7 +119,7 @@ else
 
     private string _viewMode = "Monat";
     private DateOnly _anchor = DateOnly.FromDateTime(DateTime.Today);
-    private IReadOnlyList<SporthalleWeb.Features.Booking.BookingSlot> _slots = [];
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.BookingSlot> _slots = [];
     private bool _loading;
     private string? _message;
     private string? _error;
@@ -197,7 +197,7 @@ else
             _message = $"Blocker #{slotId} wurde gelöscht.";
             await LoadAsync();
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _error = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
     }
 
     private string FormatSlot(DateTime startUtc, DateTime endUtc)

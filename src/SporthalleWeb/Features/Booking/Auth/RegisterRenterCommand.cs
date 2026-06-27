@@ -1,5 +1,8 @@
 using SporthalleWeb.Features.Booking;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Features.Booking;
 
 public sealed record RegisterRenterCommand(

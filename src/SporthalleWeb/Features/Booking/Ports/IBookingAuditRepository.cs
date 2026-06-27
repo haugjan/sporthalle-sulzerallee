@@ -1,4 +1,6 @@
-﻿namespace SporthalleWeb.Features.Booking;
+using SporthalleWeb.Domain.Booking;
+
+namespace SporthalleWeb.Features.Booking;
 
 public interface IBookingAudit
 {

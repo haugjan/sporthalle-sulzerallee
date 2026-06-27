@@ -7,6 +7,9 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Migrations;
 using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Infrastructure.Booking;
 
 public class BookingMigrationPlan : MigrationPlan

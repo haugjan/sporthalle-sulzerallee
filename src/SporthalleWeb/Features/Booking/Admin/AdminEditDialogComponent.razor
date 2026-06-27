@@ -11,10 +11,10 @@
          style="background:rgba(0,0,0,.5);z-index:1050">
         <div class="card" style="min-width:900px;max-width:1100px;width:90vw;max-height:90vh;display:flex;flex-direction:column">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <strong>@(_editSlotType == SporthalleWeb.Features.Booking.SlotType.Blocker ? "Blocker bearbeiten" : "Buchung bearbeiten")</strong>
+                <strong>@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Blocker bearbeiten" : "Buchung bearbeiten")</strong>
                 <span class="badge @TypeBadge(_editSlotType.ToString())">@TypeLabel(_editSlotType)</span>
             </div>
-            @if (_editSlotType == SporthalleWeb.Features.Booking.SlotType.Recurring)
+            @if (_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Recurring)
             {
                 <div class="alert alert-info mb-0 rounded-0 border-0 border-bottom"
                      style="border-color:#bee5eb!important;font-size:0.875rem;padding:.6rem 1rem">
@@ -40,11 +40,11 @@
                         </div>
 
                         <div class="mb-2">
-                            <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Features.Booking.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
+                            <label class="form-label fw-semibold">@(_editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker ? "Bezeichnung" : "Anlass") *</label>
                             <input class="form-control" @bind="_editTitle" />
                         </div>
 
-                        @if (_editSlotType != SporthalleWeb.Features.Booking.SlotType.Blocker)
+                        @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
                         {
                             <div class="mb-3 mt-0">
                                 <div class="form-check">
@@ -57,7 +57,7 @@
                             </div>
                         }
 
-                        @if (_editSlotType != SporthalleWeb.Features.Booking.SlotType.Blocker)
+                        @if (_editSlotType != SporthalleWeb.Domain.Booking.SlotType.Blocker)
                         {
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Farbe</label>
@@ -192,7 +192,7 @@
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
     private int? _editSlotId;
-    private SporthalleWeb.Features.Booking.SlotType _editSlotType;
+    private SporthalleWeb.Domain.Booking.SlotType _editSlotType;
     private string _editTitle = "";
     private string? _editColor;
     private string _editNotes = "";
@@ -212,7 +212,7 @@
     private int _editSelStart = -1;
     private int _editSelEnd   = -1;
     private bool _editConflict;
-    private IReadOnlyList<SporthalleWeb.Features.Booking.BookingSlot> _calendarSlotsForDay = [];
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.BookingSlot> _calendarSlotsForDay = [];
     private int _calStart = 7;
     private int _calEnd   = 23;
     private DotNetObjectReference<AdminEditDialogComponent>? _dotNetRef;
@@ -222,7 +222,7 @@
 
     private bool _showMemberSearch;
     private string _memberQuery = "";
-    private IReadOnlyList<SporthalleWeb.Features.Booking.HallMember> _memberResults = [];
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
     private bool _memberSearchDone;
 
     public void Dispose() => _dotNetRef?.Dispose();
@@ -326,7 +326,7 @@
         _editError = null;
         try
         {
-            var color = _editSlotType == SporthalleWeb.Features.Booking.SlotType.Blocker
+            var color = _editSlotType == SporthalleWeb.Domain.Booking.SlotType.Blocker
                 ? "#78909C"
                 : (string.IsNullOrWhiteSpace(_editColor) ? null : _editColor.Trim());
             await AdminService.UpdateSlotAsync(_editSlotId.Value,
@@ -347,7 +347,7 @@
             _editSlotId = null;
             await OnSaved.InvokeAsync();
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _editError = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _editError = ex.Message; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -457,7 +457,7 @@
         _memberSearchDone = true;
     }
 
-    private void SelectMember(SporthalleWeb.Features.Booking.HallMember m)
+    private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
     {
         _editMemberId     = m.Id;
         _editEmail        = m.Email;
@@ -490,13 +490,13 @@
         _          => "bg-secondary"
     };
 
-    private static string TypeLabel(SporthalleWeb.Features.Booking.SlotType type) => type switch
+    private static string TypeLabel(SporthalleWeb.Domain.Booking.SlotType type) => type switch
     {
-        SporthalleWeb.Features.Booking.SlotType.Booked     => "Bestätigt",
-        SporthalleWeb.Features.Booking.SlotType.Reserved   => "Angefragt",
-        SporthalleWeb.Features.Booking.SlotType.Blocker    => "Blocker",
-        SporthalleWeb.Features.Booking.SlotType.Rejected   => "Abgelehnt",
-        SporthalleWeb.Features.Booking.SlotType.Recurring  => "Serientermin",
+        SporthalleWeb.Domain.Booking.SlotType.Booked     => "Bestätigt",
+        SporthalleWeb.Domain.Booking.SlotType.Reserved   => "Angefragt",
+        SporthalleWeb.Domain.Booking.SlotType.Blocker    => "Blocker",
+        SporthalleWeb.Domain.Booking.SlotType.Rejected   => "Abgelehnt",
+        SporthalleWeb.Domain.Booking.SlotType.Recurring  => "Serientermin",
         _ => type.ToString()
     };
 }

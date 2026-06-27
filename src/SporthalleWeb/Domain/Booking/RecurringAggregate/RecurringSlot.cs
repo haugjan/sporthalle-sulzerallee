@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Domain.Booking;
 
 public sealed class RecurringSlot
 {

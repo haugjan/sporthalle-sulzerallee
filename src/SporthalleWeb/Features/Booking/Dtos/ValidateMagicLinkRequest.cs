@@ -1,3 +1,5 @@
-﻿namespace SporthalleWeb.Features.Booking;
+using SporthalleWeb.Domain.Booking;
+
+namespace SporthalleWeb.Features.Booking;
 
 public sealed record ValidateMagicLinkRequest(string Token);

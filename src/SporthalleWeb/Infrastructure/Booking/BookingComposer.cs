@@ -1,4 +1,4 @@
-﻿using Umbraco.Cms.Core.Composing;
+using Umbraco.Cms.Core.Composing;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
@@ -9,6 +9,9 @@ using SporthalleWeb.Infrastructure.Shared;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Infrastructure.Booking;
 using SporthalleWeb.Infrastructure.Shared;
+
+
+using SporthalleWeb.Domain.Booking;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

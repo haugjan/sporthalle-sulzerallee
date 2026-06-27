@@ -1,5 +1,8 @@
-﻿using NPoco;
+using NPoco;
 using Umbraco.Cms.Infrastructure.Persistence.DatabaseAnnotations;
+
+
+using SporthalleWeb.Domain.Booking;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

@@ -1,6 +1,9 @@
 using SporthalleWeb.Features.Booking;
 using Xunit;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Tests.Domain.Booking;
 
 public sealed class RenterTypeTests

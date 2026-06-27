@@ -218,7 +218,7 @@ else
     private static readonly System.Globalization.CultureInfo DeCh =
         System.Globalization.CultureInfo.GetCultureInfo("de-CH");
 
-    private IReadOnlyList<(SporthalleWeb.Features.Booking.BookingSlot Slot, SporthalleWeb.Features.Booking.HallMember? Member)> _pending = [];
+    private IReadOnlyList<(SporthalleWeb.Domain.Booking.BookingSlot Slot, SporthalleWeb.Domain.Booking.HallMember? Member)> _pending = [];
     private bool _loading = true;
     private string? _message;
     private string? _error;
@@ -291,7 +291,7 @@ else
             _message = $"Buchung #{id} wurde bestätigt.";
             await LoadPendingAsync();
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _error = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
     }
 
     private async Task OpenRejectDialog(int id)
@@ -328,7 +328,7 @@ else
             _rejectSlotId = null;
             await LoadPendingAsync();
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _error = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
     }
 
     private void CancelReject() { _rejectSlotId = null; _rejectReason = null; }

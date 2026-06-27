@@ -1,6 +1,9 @@
-﻿using NPoco;
+using NPoco;
 using Umbraco.Cms.Infrastructure.Scoping;
 using SporthalleWeb.Infrastructure.Booking;
+
+
+using SporthalleWeb.Domain.Booking;
 
 namespace SporthalleWeb.Features.Booking;
 

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 
 namespace SporthalleWeb.Features.PassiveMembership.Registration;
 

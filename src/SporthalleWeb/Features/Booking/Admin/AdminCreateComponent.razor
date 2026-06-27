@@ -361,7 +361,7 @@
                     return Err("Bezeichnung ist erforderlich.");
 
                 await AdminService.CreateSlotAsync(
-                    SporthalleWeb.Features.Booking.SlotType.Blocker,
+                    SporthalleWeb.Domain.Booking.SlotType.Blocker,
                     startUtc, endUtc,
                     payload.Title.Trim(), "#78909C",
                     string.IsNullOrWhiteSpace(payload.Notes) ? null : payload.Notes.Trim(),
@@ -375,7 +375,7 @@
                 return Err("Bitte wähle einen Mieter aus.");
 
             await AdminService.CreateSlotAsync(
-                SporthalleWeb.Features.Booking.SlotType.Booked,
+                SporthalleWeb.Domain.Booking.SlotType.Booked,
                 startUtc, endUtc,
                 payload.EventTitle?.Trim() ?? "Buchung",
                 string.IsNullOrWhiteSpace(payload.Color) ? null : payload.Color!.Trim(),
@@ -384,11 +384,11 @@
 
             return Ok(true);
         }
-        catch (SporthalleWeb.Features.Booking.SlotConflictException)
+        catch (SporthalleWeb.Domain.Booking.SlotConflictException)
         {
             return Err("Dieser Zeitslot ist nicht mehr verfügbar. Bitte einen anderen Termin wählen.");
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex)
+        catch (SporthalleWeb.Domain.Booking.DomainException ex)
         {
             return Err(ex.Message);
         }
@@ -456,7 +456,7 @@
 
             return JsonSerializer.Serialize(new { ok = true, created = result.Created, skipped = result.Skipped });
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { return Err(ex.Message); }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { return Err(ex.Message); }
         catch (Exception ex) { return Err("Fehler: " + ex.Message); }
     }
 

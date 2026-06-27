@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SporthalleWeb.Features.PassiveMembership.MemberAdmin;
-using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 using SporthalleWeb.Features.PassiveMembership.Registration;
 using Xunit;
 

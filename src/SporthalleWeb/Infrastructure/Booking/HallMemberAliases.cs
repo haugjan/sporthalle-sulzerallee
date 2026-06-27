@@ -1,3 +1,6 @@
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Infrastructure.Booking;
 
 /// <summary>

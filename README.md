@@ -73,16 +73,21 @@ The Cloudflare Turnstile test keys (always-pass) are already in `appsettings.Dev
 ## Repository Structure
 
 The code is organised by **feature (vertical slices)** rather than technical
-layers. Each feature owns its domain, application, presentation, and component
-code under `Features/{Feature}/`; only cross-cutting infrastructure lives outside.
+layers, with a shared top-level `Domain/` layer for the domain model. Each
+feature's application logic, controllers, and components live under
+`Features/{Feature}/`; adapters live under `Infrastructure/`.
 
 ```
 src/SporthalleWeb/
-  Features/                 Vertical slices (domain + application + UI per feature)
+  Domain/                   Domain model: aggregates, entities, value objects
     Booking/
       SlotAggregate/        BookingSlot, SlotType, TimeSlot, exceptions
       RecurringAggregate/   RecurringSlot
       HallMemberAggregate/  HallMember, RenterType, RenterEmail, MagicLinkToken
+    PassiveMembership/
+      PassiveMemberAggregate/  PassiveMember, FieldNumber, MemberEmail, MembershipLevel, MemberStatus, VipField
+  Features/                 Vertical slices (application + UI per feature)
+    Booking/
       Ports/                Interfaces (no Port/Repository suffix)
       Calendar/             Week view, availability queries, public controller, calendar components
       Requests/             Create/Confirm/Reject booking
@@ -92,7 +97,7 @@ src/SporthalleWeb/
       Configuration/        HallConfigService, config component
       Dtos/                 API request/response records
     PassiveMembership/
-      Registration/         Aggregate, ports, RegisterMember, GetFieldStatuses, floor plan
+      Registration/         Ports, RegisterMember, GetFieldStatuses, floor plan
       MemberAdmin/          PassiveMemberAdmin, admin API + view, admin components
   Infrastructure/           Adapters implementing feature ports (flat per feature)
     Booking/                Umbraco/Brevo/Turnstile/NPoco adapters, migration, composer
@@ -144,12 +149,14 @@ Code (namespaces, class names, method names, variable names, comments) is writte
 
 ## Architecture Notes
 
-The codebase is organised into **vertical slices**: each feature lives under
-`Features/{Feature}/` and contains its own domain aggregates, ports, application
-logic, controllers, and Blazor components together, instead of being spread
-across technical layers. Inside a slice, the ports-and-adapters (hexagonal) style
-still applies: the feature defines interfaces (ports), and `Infrastructure/{Feature}/`
-provides the adapters.
+The codebase is organised into **vertical slices** over a shared **`Domain/`**
+layer. The domain model (aggregates, entities, value objects) lives in
+`Domain/{Feature}/`; each feature's ports, application logic, controllers, and
+Blazor components live together under `Features/{Feature}/`, instead of being
+spread across technical layers. Inside a slice, the ports-and-adapters (hexagonal)
+style still applies: the feature defines interfaces (ports), and
+`Infrastructure/{Feature}/` provides the adapters. Features depend on `Domain`;
+`Domain` depends on nothing.
 
 Naming conventions inside a slice:
 
@@ -158,7 +165,8 @@ Naming conventions inside a slice:
 - **Adapters** carry a technology prefix (`UmbracoHallMembers`, `BrevoBookingEmail`, `TurnstileBookingCaptcha`, `ClosedXmlPassiveMemberExport`).
 
 ```
-Features/{Feature}/        Aggregates, ports, application, controllers, components
+Domain/{Feature}/          Aggregates, entities, value objects (no dependencies)
+Features/{Feature}/        Ports, application, controllers, components
 Infrastructure/{Feature}/  Adapters implementing the feature's ports (flat)
 Infrastructure/Shared/     Cross-feature helpers
 ```

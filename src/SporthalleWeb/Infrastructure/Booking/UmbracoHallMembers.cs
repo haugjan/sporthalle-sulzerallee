@@ -7,6 +7,9 @@ using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Infrastructure.Booking;
 
 public sealed class UmbracoHallMembers(

@@ -1,6 +1,6 @@
 using System.Text;
 using SporthalleWeb.Features.PassiveMembership.MemberAdmin;
-using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership;
 

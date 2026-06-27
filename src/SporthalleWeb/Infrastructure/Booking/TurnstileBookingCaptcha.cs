@@ -1,6 +1,9 @@
 using System.Text.Json;
 using SporthalleWeb.Features.Booking;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Infrastructure.Booking;
 
 public sealed class TurnstileBookingCaptcha(IHttpClientFactory httpClientFactory, IConfiguration config) : ICaptcha

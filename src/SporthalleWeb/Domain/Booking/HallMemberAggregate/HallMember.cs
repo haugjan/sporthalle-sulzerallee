@@ -1,4 +1,4 @@
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Domain.Booking;
 
 public sealed record HallMember(
     int Id,

@@ -1,4 +1,4 @@
-namespace SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+namespace SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 
 public record MembershipLevel
 {

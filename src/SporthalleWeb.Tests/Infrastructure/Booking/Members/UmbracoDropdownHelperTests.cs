@@ -2,6 +2,9 @@ using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Infrastructure.Shared;
 using Xunit;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Tests.Infrastructure.Booking.Members;
 
 public sealed class UmbracoDropdownHelperTests

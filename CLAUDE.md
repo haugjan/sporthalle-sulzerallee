@@ -29,20 +29,26 @@ The Passivmitgliedschaft feature pre-dates this convention and still has German 
 
 ## Repository Layout
 
-The project is organised by **feature (vertical slices)**, not by technical
-layer. Each feature owns its domain, application, controllers, and components
-together under `Features/{Feature}/`. Only adapters and cross-cutting helpers
-live outside, under `Infrastructure/`. (See "Architecture: Vertical Slicing".)
+The project is organised by **feature (vertical slices)**, with a shared
+top-level **`Domain/`** layer holding the domain model (aggregates, entities,
+value objects). Each feature's application code, controllers, and components live
+under `Features/{Feature}/`; adapters and cross-cutting helpers live under
+`Infrastructure/`. (See "Architecture: Vertical Slicing".)
 
 ```
 Sporthalle-Sulzerallee/
   src/
     SporthalleWeb/          # Main Umbraco project
-      Features/             # Vertical slices — one folder per feature
-        Booking/            # namespace SporthalleWeb.Features.Booking (single, flat)
+      Domain/               # Domain model: aggregates, entities, value objects
+        Booking/            # namespace SporthalleWeb.Domain.Booking
           SlotAggregate/        # BookingSlot, SlotType, TimeSlot, DomainException, SlotConflictException
           RecurringAggregate/   # RecurringSlot
           HallMemberAggregate/  # HallMember, RenterType, RenterEmail, MagicLinkToken
+        PassiveMembership/
+          PassiveMemberAggregate/  # PassiveMember, FieldNumber, MemberEmail, MembershipLevel, MemberStatus, VipField, DomainException
+                                   # namespace SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate
+      Features/             # Vertical slices — application/controllers/components per feature
+        Booking/            # namespace SporthalleWeb.Features.Booking (single, flat)
           Ports/                # Interfaces (no Port/Repository suffix)
           Calendar/             # GetWeekSlots, GetAvailableDays/TimeSlots, BookingController, calendar components
           Requests/             # CreateBooking (+Command), ConfirmBooking, RejectBooking
@@ -51,8 +57,8 @@ Sporthalle-Sulzerallee/
           Recurring/            # Create/Update/Delete recurring, GetRecurringSlots, AdminRecurringComponent
           Configuration/        # HallConfigService, AdminConfigurationComponent
           Dtos/                 # API request/response records
-        PassiveMembership/  # sub-namespaces per slice (Registration, MemberAdmin, ...Aggregate)
-          Registration/         # PassiveMemberAggregate/, ports, RegisterMember, GetFieldStatuses, FloorPlan controller+component+view
+        PassiveMembership/  # sub-namespaces per slice (Registration, MemberAdmin)
+          Registration/         # ports, RegisterMember, GetFieldStatuses, FloorPlan controller+component+view
           MemberAdmin/          # PassiveMemberAdmin, admin API + view controllers, Pm* components, views
       Infrastructure/       # Adapters implementing feature ports (flat per feature)
         Booking/            # Umbraco/Brevo/Turnstile/NPoco adapters, repositories, migration, composer, aliases
@@ -77,11 +83,13 @@ Sporthalle-Sulzerallee/
 
 ## Architecture: Vertical Slicing
 
-Code is grouped by feature, not by technical layer. There is no top-level
-`Domain/`, `Application/`, `Presentation/`, or `Components/` folder; that code
-lives inside each feature under `Features/{Feature}/`. Inside a slice the
-ports-and-adapters style still holds: the feature declares interfaces (ports),
-and `Infrastructure/{Feature}/` supplies the adapters.
+Code is grouped by feature, not by technical layer. The domain model (aggregates,
+entities, value objects) lives in a shared top-level `Domain/{Feature}/` layer;
+the feature's application logic, controllers, ports, and components live under
+`Features/{Feature}/`. There is no top-level `Application/`, `Presentation/`, or
+`Components/` folder. Inside a slice the ports-and-adapters style still holds:
+the feature declares interfaces (ports), and `Infrastructure/{Feature}/` supplies
+the adapters. Features depend on `Domain`; `Domain` depends on nothing.
 
 Naming rules inside a slice:
 
@@ -89,7 +97,11 @@ Naming rules inside a slice:
 - **Application classes**: no `UseCase`/`Query`/`Service`/`Manager` suffix — `CreateBooking`, `GetWeekSlots`, `RegisterRenter`, `RegisterMember`, `GetFieldStatuses`. `Command` records are kept (`CreateBookingCommand`). Exceptions kept for historical reasons: `BookingAdminService`, `HallConfigService`, `PassiveMemberAdmin`.
 - **Adapters**: technology prefix, no `Adapter` suffix — `UmbracoHallMembers`, `UmbracoHallConfiguration`, `BrevoBookingEmail`, `BookingCsvExport`, `TurnstileBookingCaptcha`, `UmbracoPassiveMembers`, `BrevoPassiveMemberEmail`, `TurnstilePassiveCaptcha`, `ClosedXmlPassiveMemberExport`, `AbaninjaPassiveMemberExport`.
 
-Namespaces: **Booking** uses a single flat namespace `SporthalleWeb.Features.Booking` for the whole slice (components set it with `@namespace`). **PassiveMembership** uses per-slice sub-namespaces (`SporthalleWeb.Features.PassiveMembership.Registration`, `.Registration.PassiveMemberAggregate`, `.MemberAdmin`). Infrastructure adapters stay under `SporthalleWeb.Infrastructure.{Feature}` (flat) and `SporthalleWeb.Infrastructure.Shared`.
+Namespaces:
+- **Domain**: `SporthalleWeb.Domain.Booking` (flat) and `SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate`.
+- **Booking feature**: single flat namespace `SporthalleWeb.Features.Booking` for the whole slice (components set it with `@namespace`; `Features/Booking/_Imports.razor` adds `@using SporthalleWeb.Domain.Booking`).
+- **PassiveMembership feature**: per-slice sub-namespaces (`SporthalleWeb.Features.PassiveMembership.Registration`, `.MemberAdmin`).
+- **Infrastructure**: `SporthalleWeb.Infrastructure.{Feature}` (flat) and `SporthalleWeb.Infrastructure.Shared`.
 
 HTTP routes, view contents, Umbraco aliases, and runtime behaviour are unchanged by the slicing; only code organisation and type names changed. Umbraco templates (e.g. `Views/Reservierung.cshtml`, `Views/PassivMitgliedschaft.cshtml`) stay in `Views/` because Umbraco resolves templates from there.
 
@@ -246,16 +258,17 @@ Note: code (namespace `SporthalleWeb.Features.PassiveMembership.*`, type names) 
 ### Architecture
 
 ```
+Domain/PassiveMembership/PassiveMemberAggregate/   ns SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate
+  PassiveMember.cs               Aggregate Root
+  FieldNumber.cs                 Value Object (1–300)
+  MemberEmail.cs                 Value Object (normalised lowercase)
+  MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
+  MemberStatus.cs                Pending / Confirmed / Deleted
+  VipField.cs                    Named areas (Torraum, Anspielkreis, Anspielpunkt)
+  DomainException.cs             + FieldAlreadyTakenException + MemberNotFoundException
+
 Features/PassiveMembership/
   Registration/                                   ns ...Features.PassiveMembership.Registration
-    PassiveMemberAggregate/                        ns ...Registration.PassiveMemberAggregate
-      PassiveMember.cs               Aggregate Root
-      FieldNumber.cs                 Value Object (1–300)
-      MemberEmail.cs                 Value Object (normalised lowercase)
-      MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
-      MemberStatus.cs                Pending / Confirmed / Deleted
-      VipField.cs                    Named areas (Torraum, Anspielkreis, Anspielpunkt)
-      DomainException.cs             + FieldAlreadyTakenException + MemberNotFoundException
     IPassiveMembers.cs               (was IPassiveMemberRepository)
     IPassiveMemberEmail.cs           (was IEmailPort)
     ICaptcha.cs                      (was ICaptchaPort)
@@ -389,15 +402,20 @@ All Booking feature code shares one flat namespace `SporthalleWeb.Features.Booki
 
 ### Architecture
 
-All files below share namespace `SporthalleWeb.Features.Booking` (folders are for
-organisation only). Ports lose the `Port`/`Repository` suffix; application classes
-lose `UseCase`/`Query`; adapters get a technology prefix.
+The domain model lives in `Domain/Booking/` (namespace `SporthalleWeb.Domain.Booking`).
+All `Features/Booking/` files share namespace `SporthalleWeb.Features.Booking` (folders
+are organisation only) and reference the domain via `using SporthalleWeb.Domain.Booking`
+(added in `Features/Booking/_Imports.razor` for components). Ports lose the
+`Port`/`Repository` suffix; application classes lose `UseCase`/`Query`; adapters get a
+technology prefix.
 
 ```
-Features/Booking/
+Domain/Booking/         namespace SporthalleWeb.Domain.Booking
   SlotAggregate/        BookingSlot (Aggregate Root), SlotType, TimeSlot, DomainException, SlotConflictException
   RecurringAggregate/   RecurringSlot
   HallMemberAggregate/  HallMember, MagicLinkToken, RenterEmail, RenterType (Privatperson/Verein/Firma/Schule)
+
+Features/Booking/
   Ports/                IBookingSlots, IRecurringSlots, IMagicLinkTokens, IBookingAudit,
                         IBookingEmail, IBookingCsv, IHallConfiguration, IHallMembers, ICaptcha
   Calendar/             GetWeekSlots, GetAvailableDays, GetAvailableTimeSlots, SlotOption, WeekSlotDto,

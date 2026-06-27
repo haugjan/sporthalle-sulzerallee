@@ -4,6 +4,9 @@ using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using Xunit;
 
+
+using SporthalleWeb.Domain.Booking;
+
 namespace SporthalleWeb.Tests.Application.Booking;
 
 public sealed class ValidateMagicLinkUseCaseTests

@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using Umbraco.Cms.Core;
+
+
+using SporthalleWeb.Domain.Booking;
 
 namespace SporthalleWeb.Features.Booking;
 

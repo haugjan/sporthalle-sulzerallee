@@ -1,4 +1,4 @@
-using SporthalleWeb.Features.PassiveMembership.Registration.PassiveMemberAggregate;
+using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 using SporthalleWeb.Infrastructure.Booking;
 using SporthalleWeb.Infrastructure.PassiveMembership;
 using Umbraco.Cms.Core.Composing;
@@ -95,11 +95,17 @@ public sealed class MemberTypeSeeder(
 
         // Repair existing data types whose config may have been written in an older,
         // invalid format ("... is not a valid value list configuration").
+        // Only write when the stored config actually differs — otherwise every startup
+        // re-saves the data type and triggers a ModelsBuilder regeneration (InMemoryAuto),
+        // which causes cross-AssemblyLoadContext cast errors on already-cached content.
         var existing = all.FirstOrDefault(d => d.Name == name);
         if (existing is not null)
         {
-            existing.ConfigurationData = config;
-            dataTypeService.Save(existing);
+            if (!DropdownConfigMatches(existing.ConfigurationData, values))
+            {
+                existing.ConfigurationData = config;
+                dataTypeService.Save(existing);
+            }
             return existing;
         }
 
@@ -114,6 +120,22 @@ public sealed class MemberTypeSeeder(
         return dt;
     }
 
+    // True when the stored config already represents a single-select dropdown with exactly
+    // these items (in order), so the seeder can skip a redundant save.
+    private static bool DropdownConfigMatches(IDictionary<string, object>? config, string[] values)
+    {
+        if (config is null) return false;
+        if (config.TryGetValue("multiple", out var multipleObj)
+            && bool.TryParse(multipleObj?.ToString(), out var multiple) && multiple)
+            return false;
+        if (!config.TryGetValue("items", out var itemsObj)
+            || itemsObj is string
+            || itemsObj is not System.Collections.IEnumerable items)
+            return false;
+        var stored = items.Cast<object?>().Select(o => o?.ToString()).ToList();
+        return stored.Count == values.Length && stored.SequenceEqual(values);
+    }
+
     // ── Hall Renter (hallMember) ──────────────────────────────────────────────
 
     private void EnsureHallMemberType(IDataType textBox, IDataType textArea, IDataType trueFalse, IDataType renterTypeDropdown)
@@ -121,6 +143,7 @@ public sealed class MemberTypeSeeder(
         const string alias = "hallMember";
 
         var memberType = memberTypeService.Get(alias);
+        var isNew = memberType is null;
         if (memberType is null)
         {
             memberType = new MemberType(shortStringHelper, -1)
@@ -134,6 +157,7 @@ public sealed class MemberTypeSeeder(
 
         const string g  = "renterInfo";
         const string gn = "Renter Info";
+        var before = _propertyChanges;
 
         EnsureProperty(memberType, renterTypeDropdown, HallMemberAliases.RenterType,        "Renter Type",         mandatory: true,  sort: 0,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.OrgName,           "Organisation / Name", mandatory: false, sort: 1,  g, gn);
@@ -148,7 +172,8 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, trueFalse,          HallMemberAliases.HasKey,            "Has Key",             mandatory: false, sort: 10, g, gn);
         EnsureProperty(memberType, textArea,           HallMemberAliases.Notes,             "Notes",               mandatory: false, sort: 11, g, gn);
 
-        memberTypeService.Save(memberType);
+        if (isNew || _propertyChanges != before)
+            memberTypeService.Save(memberType);
     }
 
     // ── Passive Member (passivMember) ─────────────────────────────────────────
@@ -161,6 +186,7 @@ public sealed class MemberTypeSeeder(
         const string alias = "passivMember";
 
         var memberType = memberTypeService.Get(alias);
+        var isNew = memberType is null;
         if (memberType is null)
         {
             memberType = new MemberType(shortStringHelper, -1)
@@ -176,6 +202,7 @@ public sealed class MemberTypeSeeder(
         const string infoGn = "Passive Member Info";
         const string adminG  = "passivAdmin";
         const string adminGn = "Admin";
+        var before = _propertyChanges;
 
         // Contact & membership
         EnsureProperty(memberType, emailType,               PassivMemberAliases.Email,           "E-Mail",             mandatory: true,  sort: 0,  infoG, infoGn);
@@ -204,7 +231,8 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, textBox,        PassivMemberAliases.ExportedToAccountingBy, "Exported to Accounting By", mandatory: false, sort: 6, adminG, adminGn);
         EnsureProperty(memberType, textArea,       PassivMemberAliases.Notes,                  "Notes",                     mandatory: false, sort: 7, adminG, adminGn);
 
-        memberTypeService.Save(memberType);
+        if (isNew || _propertyChanges != before)
+            memberTypeService.Save(memberType);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -212,6 +240,10 @@ public sealed class MemberTypeSeeder(
     // Adds the property if missing; if it already exists with a different data type,
     // removes it and re-adds it (existing member values for that property are lost).
     // Always updates the display name.
+    // Counts member-type schema changes so callers can save only when something actually
+    // changed. A redundant member-type save triggers a ModelsBuilder regeneration.
+    private int _propertyChanges;
+
     private void EnsureProperty(IMemberType memberType, IDataType dataType, string alias, string name,
         bool mandatory, int sort, string groupAlias, string groupName)
     {
@@ -220,7 +252,7 @@ public sealed class MemberTypeSeeder(
             var existing = memberType.PropertyTypes.FirstOrDefault(p => p.Alias == alias);
             if (existing is null) return;
 
-            existing.Name = name;
+            if (existing.Name != name) { existing.Name = name; _propertyChanges++; }
 
             if (existing.DataTypeKey == dataType.Key) return;
 
@@ -229,6 +261,7 @@ public sealed class MemberTypeSeeder(
         }
 
         memberType.AddPropertyType(Prop(dataType, alias, name, mandatory, sort), groupAlias, groupName);
+        _propertyChanges++;
     }
 
     private PropertyType Prop(IDataType dataType, string alias, string name, bool mandatory, int sortOrder)

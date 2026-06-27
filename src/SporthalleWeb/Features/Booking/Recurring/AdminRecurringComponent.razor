@@ -322,7 +322,7 @@ else
     private int? _fMemberId;
     private string? _fMemberName;
     private string _fMemberSearch = "";
-    private IReadOnlyList<SporthalleWeb.Features.Booking.HallMember> _memberResults = [];
+    private IReadOnlyList<SporthalleWeb.Domain.Booking.HallMember> _memberResults = [];
 
     // Conflict state
     private List<string> _conflictDates = [];
@@ -372,7 +372,7 @@ else
         _showForm = true;
     }
 
-    private void StartEdit(SporthalleWeb.Features.Booking.RecurringSlot s)
+    private void StartEdit(SporthalleWeb.Domain.Booking.RecurringSlot s)
     {
         _editingId = s.Id;
         _fTitle = s.Title;
@@ -436,7 +436,7 @@ else
         _memberResults = await AdminService.SearchMembersAsync(_fMemberSearch);
     }
 
-    private void SelectMember(SporthalleWeb.Features.Booking.HallMember m)
+    private void SelectMember(SporthalleWeb.Domain.Booking.HallMember m)
     {
         _fMemberId = m.Id;
         _fMemberName = !string.IsNullOrEmpty(m.Name)
@@ -481,7 +481,7 @@ else
 
             await ExecuteAsync(skipConflicts: false, cmd: cmd);
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _error = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
         finally { _saving = false; }
     }
 
@@ -503,7 +503,7 @@ else
             CancelForm();
             await LoadAsync();
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _error = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
         finally { _saving = false; }
     }
 
@@ -526,7 +526,7 @@ else
             _deleteId = null;
             await LoadAsync();
         }
-        catch (SporthalleWeb.Features.Booking.DomainException ex) { _error = ex.Message; }
+        catch (SporthalleWeb.Domain.Booking.DomainException ex) { _error = ex.Message; }
         finally { _saving = false; }
     }
 
