@@ -281,6 +281,7 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, trueFalse,          HallMemberAliases.HasKey,            "Has Key",             mandatory: false, sort: 10, g, gn);
         EnsureProperty(memberType, textArea,           HallMemberAliases.Notes,             "Notes",               mandatory: false, sort: 11, g, gn);
         EnsureProperty(memberType, colorPicker,        HallMemberAliases.Color,             "Color",               mandatory: false, sort: 12, g, gn);
+        EnsureProperty(memberType, textArea, "umbracoMemberComments", "Comments", mandatory: false, sort: 0, "membership", "Membership");
 
         if (isNew || _propertyChanges != before)
             memberTypeService.Save(memberType);
@@ -340,6 +341,7 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, dateType,       PassivMemberAliases.ExportedToAccountingAt, "Exported to Accounting At", mandatory: false, sort: 5, adminG, adminGn);
         EnsureProperty(memberType, textBox,        PassivMemberAliases.ExportedToAccountingBy, "Exported to Accounting By", mandatory: false, sort: 6, adminG, adminGn);
         EnsureProperty(memberType, textArea,       PassivMemberAliases.Notes,                  "Notes",                     mandatory: false, sort: 7, adminG, adminGn);
+        EnsureProperty(memberType, textArea, "umbracoMemberComments", "Comments", mandatory: false, sort: 0, "membership", "Membership");
 
         if (isNew || _propertyChanges != before)
             memberTypeService.Save(memberType);
