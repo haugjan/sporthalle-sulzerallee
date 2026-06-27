@@ -1,24 +1,12 @@
-﻿using Umbraco.Cms.Core.Composing;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Infrastructure.Booking;
-using SporthalleWeb.Infrastructure.Booking;
-using SporthalleWeb.Infrastructure.Booking;
-using SporthalleWeb.Infrastructure.Shared;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Infrastructure.Booking;
-using SporthalleWeb.Infrastructure.Shared;
-
-
-using SporthalleWeb.Domain.Booking;
+using Umbraco.Cms.Core.Composing;
 using SporthalleWeb.Features.Booking.Admin;
-using SporthalleWeb.Features.Booking.Auth;
 using SporthalleWeb.Features.Booking.Calendar;
 using SporthalleWeb.Features.Booking.Configuration;
 using SporthalleWeb.Features.Booking.Ports;
 using SporthalleWeb.Features.Booking.Recurring;
 using SporthalleWeb.Features.Booking.Requests;
+using SporthalleWeb.Infrastructure.Booking;
+using SporthalleWeb.Infrastructure.Shared;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 
@@ -36,7 +24,6 @@ public class BookingComposer : IComposer
         // Repositories
         builder.Services.AddScoped<IBookingSlots, BookingSlotRepository>();
         builder.Services.AddScoped<IRecurringSlots, RecurringSlotRepository>();
-        builder.Services.AddScoped<IMagicLinkTokens, MagicLinkTokenRepository>();
         builder.Services.AddScoped<IBookingAudit, BookingAuditRepository>();
 
         // Infrastructure adapters
@@ -55,13 +42,6 @@ public class BookingComposer : IComposer
         builder.Services.AddScoped<HallConfigService>();
 
         // Application use cases
-        builder.Services.AddScoped<SendMagicLink>();
-        builder.Services.AddScoped<ValidateMagicLink>();
-        builder.Services.AddScoped<RegisterRenter>();
-        builder.Services.AddScoped<LoginWithPassword>();
-        builder.Services.AddScoped<SetPassword>();
-        builder.Services.AddScoped<RequestPasswordReset>();
-        builder.Services.AddScoped<ResetPassword>();
         builder.Services.AddScoped<CreateBooking>();
         builder.Services.AddScoped<ConfirmBooking>();
         builder.Services.AddScoped<RejectBooking>();

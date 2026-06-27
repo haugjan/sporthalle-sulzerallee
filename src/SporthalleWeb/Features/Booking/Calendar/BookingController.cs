@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
 using SporthalleWeb.Features.Booking.Admin;
-using SporthalleWeb.Features.Booking.Auth;
 using SporthalleWeb.Features.Booking.Dtos;
 using SporthalleWeb.Features.Booking.Ports;
 using SporthalleWeb.Features.Booking.Requests;
@@ -16,18 +15,10 @@ public sealed class BookingController(
     GetWeekSlots weekSlotsQuery,
     GetAvailableDays availableDaysQuery,
     GetAvailableTimeSlots availableTimeSlotsQuery,
-    SendMagicLink sendMagicLink,
-    ValidateMagicLink validateMagicLink,
-    RegisterRenter registerRenter,
-    LoginWithPassword loginWithPassword,
-    SetPassword setPassword,
-    RequestPasswordReset requestPasswordReset,
-    ResetPassword resetPassword,
     CreateBooking createBooking,
     ConfirmBooking confirmBooking,
     RejectBooking rejectBooking,
     BookingAdminService adminService,
-    IBookingSlots slotRepo,
     IBookingCsv csvExport,
     IHallMembers memberManager,
     IHallConfiguration hallConfig,
@@ -55,7 +46,7 @@ public sealed class BookingController(
         });
     }
 
-    // ── Gast-Buchung (ohne Login) ─────────────────────────────────────────────
+    // ── Gast-Buchung ─────────────────────────────────────────────────────────
 
     [HttpPost("gast-buchung")]
     public async Task<IActionResult> GuestBooking([FromBody] GuestBookingRequest req)
@@ -114,13 +105,10 @@ public sealed class BookingController(
                     BillingCity: req.BillingCity.Trim(),
                     BillingCountry: "Schweiz",
                     Phone: string.IsNullOrWhiteSpace(req.GuestPhone) ? null : req.GuestPhone.Trim(),
-                    HasKey: false,
-                    Password: null);
-                var member = await memberManager.CreateAsync(cmd, null);
+                    HasKey: false);
+                var member = await memberManager.CreateAsync(cmd);
                 memberId = member.Id;
             }
-
-            await memberManager.SignInAsync(memberId);
 
             var booking = await createBooking.ExecuteAsync(new CreateBookingCommand(
                 memberId, req.StartUtc, req.EndUtc, req.Title, req.Notes));
@@ -160,159 +148,6 @@ public sealed class BookingController(
     public async Task<IActionResult> GetAvailableTimeSlots(
         [FromQuery] string date, [FromQuery] int duration = 60)
         => Ok(await availableTimeSlotsQuery.GetAsync(date, duration));
-
-    // ── Auth ─────────────────────────────────────────────────────────────────
-
-    [HttpPost("auth/magic-link")]
-    public async Task<IActionResult> SendMagicLink([FromBody] SendMagicLinkRequest req)
-    {
-        try
-        {
-            await sendMagicLink.ExecuteAsync(req.Email, HttpContext.Connection.RemoteIpAddress?.ToString());
-            return Ok(new { message = "Falls die E-Mail-Adresse bekannt ist, erhalten Sie einen Anmelde-Link." });
-        }
-        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
-    }
-
-    [HttpPost("auth/validate")]
-    public async Task<IActionResult> ValidateMagicLink([FromBody] ValidateMagicLinkRequest req)
-    {
-        try
-        {
-            var member = await validateMagicLink.ExecuteAsync(req.Token);
-            return Ok(HallMemberDto.From(member));
-        }
-        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
-    }
-
-    [HttpPost("auth/register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRenterRequest req)
-    {
-        try
-        {
-            var cmd = new RegisterRenterCommand(
-                Email: req.Email,
-                RenterType: new RenterType(req.RenterType),
-                Name: req.Name,
-                ContactFirstName: req.ContactFirstName,
-                ContactLastName: req.ContactLastName,
-                BillingAddress: req.BillingAddress,
-                AddressLine2: req.AddressLine2,
-                BillingPostalCode: req.BillingPostalCode,
-                BillingCity: req.BillingCity,
-                BillingCountry: req.BillingCountry,
-                Phone: req.Phone,
-                HasKey: req.HasKey,
-                Password: req.Password);
-
-            await registerRenter.ExecuteAsync(
-                cmd, req.CaptchaToken, HttpContext.Connection.RemoteIpAddress?.ToString());
-
-            return Ok(new { message = "Registrierung erfolgreich. Sie erhalten eine Bestätigungs-E-Mail mit Anmelde-Link." });
-        }
-        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
-    }
-
-    [HttpPost("auth/login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest req)
-    {
-        try
-        {
-            var member = await loginWithPassword.ExecuteAsync(req.Email, req.Password);
-            return Ok(HallMemberDto.From(member));
-        }
-        catch (DomainException ex) { return Unauthorized(new { error = ex.Message }); }
-    }
-
-    [HttpPost("auth/logout")]
-    [Authorize]
-    public IActionResult Logout() => Ok();
-
-    [HttpPost("auth/password")]
-    [Authorize]
-    public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequest req)
-    {
-        var memberId = GetMemberId();
-        if (memberId is null) return Unauthorized();
-        try
-        {
-            await setPassword.ExecuteAsync(memberId.Value, req.NewPassword);
-            return Ok();
-        }
-        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
-    }
-
-    [HttpPost("auth/request-password-reset")]
-    public async Task<IActionResult> RequestPasswordReset([FromBody] SendMagicLinkRequest req)
-    {
-        await requestPasswordReset.ExecuteAsync(req.Email);
-        return Ok(new { message = "Falls die E-Mail-Adresse bekannt ist, erhalten Sie einen Reset-Link." });
-    }
-
-    [HttpPost("auth/reset-password")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
-    {
-        try
-        {
-            await resetPassword.ExecuteAsync(req.MemberId, req.Token, req.NewPassword);
-            return Ok();
-        }
-        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
-    }
-
-    // ── Current member ────────────────────────────────────────────────────────
-
-    [HttpGet("me")]
-    [Authorize]
-    public async Task<IActionResult> GetCurrentMember()
-    {
-        var memberId = GetMemberId();
-        if (memberId is null) return Unauthorized();
-        var member = await memberManager.FindByIdAsync(memberId.Value);
-        if (member is null) return Unauthorized();
-        return Ok(HallMemberDto.From(member));
-    }
-
-    // ── Bookings (member) ─────────────────────────────────────────────────────
-
-    [HttpGet("meine-buchungen")]
-    [Authorize]
-    public async Task<IActionResult> GetMyBookings()
-    {
-        var memberId = GetMemberId();
-        if (memberId is null) return Unauthorized();
-        var slots = await slotRepo.GetForMemberAsync(memberId.Value);
-        return Ok(slots.Select(BookingSlotDto.From));
-    }
-
-    [HttpPost("buchungen")]
-    [Authorize]
-    public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest req)
-    {
-        var memberId = GetMemberId();
-        if (memberId is null) return Unauthorized();
-
-        var zurichAuth = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
-        var startLocalAuth = TimeZoneInfo.ConvertTimeFromUtc(req.StartUtc, zurichAuth);
-        var cutoffDateAuth = await hallConfig.GetBookingCutoffDateAsync();
-        if (cutoffDateAuth.HasValue && DateOnly.FromDateTime(startLocalAuth) > cutoffDateAuth.Value)
-            return BadRequest(new { error = $"Online-Buchungen sind nur bis {cutoffDateAuth.Value:dd.MM.yyyy} möglich." });
-
-        try
-        {
-            var slot = await createBooking.ExecuteAsync(new CreateBookingCommand(
-                memberId.Value, req.StartUtc, req.EndUtc, req.Title, req.Notes));
-            return Ok(BookingSlotDto.From(slot));
-        }
-        catch (SlotConflictException ex)
-        {
-            return Conflict(new { error = ex.Message });
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
 
     // ── Admin endpoints ───────────────────────────────────────────────────────
 
@@ -377,14 +212,6 @@ public sealed class BookingController(
         var csv = await csvExport.ExportAsync(fromUtc, toUtc);
 
         return File(csv, "text/csv; charset=utf-8", $"buchungen_{from}_{to}.csv");
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private int? GetMemberId()
-    {
-        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        return int.TryParse(claim, out var id) ? id : null;
     }
 }
 

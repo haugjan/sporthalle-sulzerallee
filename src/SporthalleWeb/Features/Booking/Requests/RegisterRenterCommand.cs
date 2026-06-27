@@ -1,9 +1,10 @@
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 
-namespace SporthalleWeb.Features.Booking.Dtos;
+namespace SporthalleWeb.Features.Booking.Requests;
 
-public sealed record RegisterRenterRequest(
+public sealed record RegisterRenterCommand(
     string Email,
-    string RenterType,
+    RenterType RenterType,
     string? Name,
     string ContactFirstName,
     string ContactLastName,
@@ -13,6 +14,5 @@ public sealed record RegisterRenterRequest(
     string BillingCity,
     string BillingCountry,
     string? Phone,
-    bool HasKey,
-    string? Password,
-    string? CaptchaToken);
+    bool HasKey
+);

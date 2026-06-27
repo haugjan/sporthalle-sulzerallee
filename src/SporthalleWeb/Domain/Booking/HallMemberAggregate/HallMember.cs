@@ -14,6 +14,5 @@ public sealed record HallMember(
     string BillingCountry,
     string? Phone,
     string? Notes,
-    bool HasKey,
-    bool HasPassword
+    bool HasKey
 );

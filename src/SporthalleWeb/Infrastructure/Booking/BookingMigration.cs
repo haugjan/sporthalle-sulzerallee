@@ -26,7 +26,8 @@ public class BookingMigrationPlan : MigrationPlan
             .To<AddIsBlockerAndMemberIdToRecurringSlotsV7>("v1.6.0")
             .To<AddSoftDeleteToBookingSlotsV8>("v1.7.0")
             .To<AddSoftDeleteToRecurringSlotsV9>("v1.8.0")
-            .To<AddShowTitlePublicV10>("v1.9.0");
+            .To<AddShowTitlePublicV10>("v1.9.0")
+            .To<DropMagicLinkTokensV11>("v1.10.0");
     }
 }
 
@@ -44,12 +45,6 @@ public class AddAllBookingTablesV2(IMigrationContext context) : AsyncMigrationBa
 {
     protected override Task MigrateAsync()
     {
-        // Drop/recreate for old RenterId schema omitted: v1 always creates BookingSlots
-        // with the current schema, so the RenterId column never exists when v2 runs.
-
-        if (!TableExists("MagicLinkTokens"))
-            Create.Table<MagicLinkTokenRecord>().Do();
-
         if (!TableExists("BookingAuditLog"))
             Create.Table<BookingAuditLogRecord>().Do();
 
@@ -154,6 +149,16 @@ public class AddShowTitlePublicV10(IMigrationContext context) : AsyncMigrationBa
     {
         Execute.Sql("ALTER TABLE \"BookingSlots\" ADD \"ShowTitlePublic\" INTEGER NOT NULL DEFAULT 0").Do();
         Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"ShowTitlePublic\" INTEGER NOT NULL DEFAULT 0").Do();
+        return Task.CompletedTask;
+    }
+}
+
+public class DropMagicLinkTokensV11(IMigrationContext context) : AsyncMigrationBase(context)
+{
+    protected override Task MigrateAsync()
+    {
+        if (TableExists("MagicLinkTokens"))
+            Delete.Table("MagicLinkTokens").Do();
         return Task.CompletedTask;
     }
 }

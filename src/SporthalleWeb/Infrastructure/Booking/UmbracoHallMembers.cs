@@ -1,24 +1,18 @@
 using SporthalleWeb.Infrastructure.Shared;
-using Microsoft.AspNetCore.Identity;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-
 
 using SporthalleWeb.Domain.Booking;
 using SporthalleWeb.Domain.Booking.HallMemberAggregate;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
-using SporthalleWeb.Features.Booking.Auth;
 using SporthalleWeb.Features.Booking.Ports;
+using SporthalleWeb.Features.Booking.Requests;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 
 public sealed class UmbracoHallMembers(
     IMemberManager memberManager,
-    SignInManager<MemberIdentityUser> signInManager,
     IMemberService memberService) : IHallMembers
 {
     private const string MemberTypeAlias = "hallMember";
@@ -41,7 +35,7 @@ public sealed class UmbracoHallMembers(
         return Map(user, member);
     }
 
-    public async Task<HallMember> CreateAsync(RegisterRenterCommand cmd, string? password)
+    public async Task<HallMember> CreateAsync(RegisterRenterCommand cmd)
     {
         var displayName = $"{cmd.ContactFirstName} {cmd.ContactLastName}".Trim();
 
@@ -54,10 +48,7 @@ public sealed class UmbracoHallMembers(
             IsApproved = true
         };
 
-        IdentityResult result = password is not null
-            ? await memberManager.CreateAsync(user, password)
-            : await memberManager.CreateAsync(user);
-
+        var result = await memberManager.CreateAsync(user);
         if (!result.Succeeded)
             throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
 
@@ -130,63 +121,11 @@ public sealed class UmbracoHallMembers(
                     BillingCountry: member.GetValue<string>(HallMemberAliases.BillingCountry) ?? "Schweiz",
                     Phone: member.GetValue<string>(HallMemberAliases.Phone).NullIfEmpty(),
                     Notes: member.GetValue<string>(HallMemberAliases.Notes).NullIfEmpty(),
-                    HasKey: member.GetValue<bool>(HallMemberAliases.HasKey),
-                    HasPassword: false));
+                    HasKey: member.GetValue<bool>(HallMemberAliases.HasKey)));
             }
         }
 
         return Task.FromResult<IReadOnlyList<HallMember>>(results.Take(10).ToList());
-    }
-
-    public async Task<bool> CheckPasswordAsync(string email, string password)
-    {
-        var user = await memberManager.FindByEmailAsync(email);
-        if (user is null) return false;
-        return await memberManager.CheckPasswordAsync(user, password);
-    }
-
-    public async Task SignInAsync(int memberId)
-    {
-        var user = await memberManager.FindByIdAsync(memberId.ToString())
-            ?? throw new DomainException($"Member {memberId} nicht gefunden.");
-        await signInManager.SignInAsync(user, isPersistent: true);
-    }
-
-    public Task SignOutAsync() => signInManager.SignOutAsync();
-
-    public async Task AddOrChangePasswordAsync(int memberId, string newPassword)
-    {
-        var user = await memberManager.FindByIdAsync(memberId.ToString())
-            ?? throw new DomainException($"Member {memberId} nicht gefunden.");
-        var hasPassword = user.PasswordHash is not null;
-        IdentityResult result;
-        if (hasPassword)
-        {
-            var token = await memberManager.GeneratePasswordResetTokenAsync(user);
-            result = await memberManager.ResetPasswordAsync(user, token, newPassword);
-        }
-        else
-        {
-            result = await memberManager.AddPasswordAsync(user, newPassword);
-        }
-        if (!result.Succeeded)
-            throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
-    }
-
-    public async Task<string> GeneratePasswordResetTokenAsync(int memberId)
-    {
-        var user = await memberManager.FindByIdAsync(memberId.ToString())
-            ?? throw new DomainException($"Member {memberId} nicht gefunden.");
-        return await memberManager.GeneratePasswordResetTokenAsync(user);
-    }
-
-    public async Task ResetPasswordAsync(int memberId, string token, string newPassword)
-    {
-        var user = await memberManager.FindByIdAsync(memberId.ToString())
-            ?? throw new DomainException($"Member {memberId} nicht gefunden.");
-        var result = await memberManager.ResetPasswordAsync(user, token, newPassword);
-        if (!result.Succeeded)
-            throw new DomainException(string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 
     // internal for MemberTypeConsistencyTests
@@ -222,8 +161,7 @@ public sealed class UmbracoHallMembers(
         BillingCountry: member.GetValue<string>(HallMemberAliases.BillingCountry) ?? "Schweiz",
         Phone: member.GetValue<string>(HallMemberAliases.Phone).NullIfEmpty(),
         Notes: member.GetValue<string>(HallMemberAliases.Notes).NullIfEmpty(),
-        HasKey: member.GetValue<bool>(HallMemberAliases.HasKey),
-        HasPassword: user.PasswordHash is not null
+        HasKey: member.GetValue<bool>(HallMemberAliases.HasKey)
     );
 }
 

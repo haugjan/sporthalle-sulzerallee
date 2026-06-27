@@ -15,12 +15,11 @@ public sealed record HallMemberDto(
     string BillingCity,
     string BillingCountry,
     string? Phone,
-    bool HasKey,
-    bool HasPassword)
+    bool HasKey)
 {
     public static HallMemberDto From(HallMember m) => new(
         m.Id, m.Email, m.RenterType.Value.ToString(),
         m.Name, m.ContactFirstName, m.ContactLastName,
         m.BillingAddress, m.AddressLine2, m.BillingPostalCode, m.BillingCity, m.BillingCountry,
-        m.Phone, m.HasKey, m.HasPassword);
+        m.Phone, m.HasKey);
 }

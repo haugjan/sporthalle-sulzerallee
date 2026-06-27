@@ -24,35 +24,6 @@ public sealed class BrevoBookingEmail(
     private string SenderEmail => config["Brevo:SenderEmail"] ?? "noreply@sporthalle-sulzerallee.ch";
     private string SenderName => "Sporthalle Sulzerallee";
 
-    public Task SendMagicLinkAsync(HallMember member, string magicLink) =>
-        SendAsync(member.Email, ContactName(member),
-            "Ihr Anmelde-Link – Sporthalle Sulzerallee",
-            $"""
-            <p>Guten Tag {ContactName(member)}</p>
-            <p>Klicken Sie auf den folgenden Link, um sich anzumelden (gültig 20 Minuten):</p>
-            <p><a href="{magicLink}">{magicLink}</a></p>
-            <p>Falls Sie diesen Link nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
-            """);
-
-    public Task SendRegistrationConfirmationWithMagicLinkAsync(HallMember member, string magicLink) =>
-        SendAsync(member.Email, ContactName(member),
-            "Registrierung bestätigt – Sporthalle Sulzerallee",
-            $"""
-            <p>Guten Tag {ContactName(member)}</p>
-            <p>Ihre Registrierung war erfolgreich. Klicken Sie auf den folgenden Link, um sich anzumelden:</p>
-            <p><a href="{magicLink}">{magicLink}</a></p>
-            """);
-
-    public Task SendPasswordResetAsync(HallMember member, string resetUrl) =>
-        SendAsync(member.Email, ContactName(member),
-            "Passwort zurücksetzen – Sporthalle Sulzerallee",
-            $"""
-            <p>Guten Tag {ContactName(member)}</p>
-            <p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig 24 Stunden):</p>
-            <p><a href="{resetUrl}">{resetUrl}</a></p>
-            <p>Falls Sie kein neues Passwort angefordert haben, ignorieren Sie diese E-Mail.</p>
-            """);
-
     public Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
     {
         var contactName = ContactName(member);
