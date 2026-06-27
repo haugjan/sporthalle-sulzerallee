@@ -1,4 +1,4 @@
-using Umbraco.Cms.Core.Composing;
+﻿using Umbraco.Cms.Core.Composing;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
@@ -12,6 +12,13 @@ using SporthalleWeb.Infrastructure.Shared;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Features.Booking.Admin;
+using SporthalleWeb.Features.Booking.Auth;
+using SporthalleWeb.Features.Booking.Calendar;
+using SporthalleWeb.Features.Booking.Configuration;
+using SporthalleWeb.Features.Booking.Ports;
+using SporthalleWeb.Features.Booking.Recurring;
+using SporthalleWeb.Features.Booking.Requests;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

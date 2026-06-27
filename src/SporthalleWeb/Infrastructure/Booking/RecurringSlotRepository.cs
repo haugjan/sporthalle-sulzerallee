@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using NPoco;
 using Umbraco.Cms.Infrastructure.Scoping;
 using SporthalleWeb.Features.Booking;
@@ -7,6 +7,8 @@ using SporthalleWeb.Infrastructure.Booking;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.RecurringAggregate;
+using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

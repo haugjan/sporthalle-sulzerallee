@@ -1,11 +1,8 @@
 using NPoco;
-using Umbraco.Cms.Infrastructure.Scoping;
 using SporthalleWeb.Infrastructure.Booking;
+using Umbraco.Cms.Infrastructure.Scoping;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Configuration;
 
 public sealed class HallConfigService(IScopeProvider scopeProvider)
 {

@@ -1,4 +1,4 @@
-namespace SporthalleWeb.Domain.Booking;
+﻿namespace SporthalleWeb.Domain.Booking.SlotAggregate;
 
 public class SlotConflictException(TimeSlot requested, IReadOnlyList<BookingSlot> conflicts)
     : DomainException("Dieser Zeitslot ist bereits belegt.")

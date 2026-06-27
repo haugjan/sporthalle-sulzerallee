@@ -1,5 +1,4 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
-@using Umbraco.Cms.Core.Models
 @{
     var titel  = Model.Content.Value<string>("titel") ?? "";
     var bildObj = Model.Content.GetProperty("bild")?.GetValue() as IPublishedContent;

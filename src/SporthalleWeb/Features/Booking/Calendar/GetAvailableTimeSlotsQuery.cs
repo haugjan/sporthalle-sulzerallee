@@ -1,9 +1,6 @@
-using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Features.Booking.Ports;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Calendar;
 
 public sealed class GetAvailableTimeSlots(
     IBookingSlots slotRepo,

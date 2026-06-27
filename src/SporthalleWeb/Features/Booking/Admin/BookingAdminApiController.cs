@@ -1,14 +1,13 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Ports;
+using SporthalleWeb.Features.Booking.Recurring;
+using SporthalleWeb.Features.Booking.Requests;
 using Umbraco.Cms.Core;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Admin;
 
 [ApiController]
 [Route("api/admin/reservierungen")]

@@ -1,4 +1,4 @@
-namespace SporthalleWeb.Domain.Booking;
+﻿namespace SporthalleWeb.Domain.Booking.SlotAggregate;
 
 public enum SlotType
 {

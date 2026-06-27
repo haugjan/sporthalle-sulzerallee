@@ -1,4 +1,4 @@
-namespace SporthalleWeb.Domain.Booking;
+﻿namespace SporthalleWeb.Domain.Booking.HallMemberAggregate;
 
 public sealed class MagicLinkToken
 {

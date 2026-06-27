@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using SporthalleWeb.Features.Booking;
@@ -6,6 +6,9 @@ using SporthalleWeb.Features.Booking;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

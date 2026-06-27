@@ -1,11 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
+﻿using Microsoft.AspNetCore.Mvc;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Auth;
 
 [Route("reservierung")]
 public sealed class BookingAuthController(

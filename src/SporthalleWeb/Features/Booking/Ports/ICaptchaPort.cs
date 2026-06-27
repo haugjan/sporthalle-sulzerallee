@@ -1,7 +1,5 @@
 
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Ports;
 
 public interface ICaptcha
 {

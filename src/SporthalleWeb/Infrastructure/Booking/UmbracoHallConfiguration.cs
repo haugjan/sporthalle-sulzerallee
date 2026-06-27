@@ -4,6 +4,8 @@ using Umbraco.Cms.Core.Services;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Features.Booking.Configuration;
+using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

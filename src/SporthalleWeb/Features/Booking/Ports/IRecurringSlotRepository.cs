@@ -1,6 +1,6 @@
-using SporthalleWeb.Domain.Booking;
+﻿using SporthalleWeb.Domain.Booking.RecurringAggregate;
 
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Ports;
 
 public interface IRecurringSlots
 {

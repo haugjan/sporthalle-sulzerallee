@@ -1,10 +1,7 @@
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
+﻿using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Ports;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Recurring;
 
 public sealed class DeleteRecurringSlot(
     IRecurringSlots serieRepo,

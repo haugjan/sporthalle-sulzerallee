@@ -1,6 +1,7 @@
 using System.Globalization;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
 
-namespace SporthalleWeb.Domain.Booking;
+namespace SporthalleWeb.Domain.Booking.RecurringAggregate;
 
 public sealed class RecurringSlot
 {

@@ -1,6 +1,4 @@
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+﻿namespace SporthalleWeb.Features.Booking.Requests;
 
 public sealed record CreateBookingCommand(
     int MemberId,

@@ -6,6 +6,9 @@ using Xunit;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Calendar;
+using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Tests.Application.Booking;
 

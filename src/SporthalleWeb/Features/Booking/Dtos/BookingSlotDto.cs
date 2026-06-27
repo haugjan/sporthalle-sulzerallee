@@ -1,9 +1,6 @@
-using SporthalleWeb.Features.Booking;
+﻿using SporthalleWeb.Domain.Booking.SlotAggregate;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Dtos;
 
 public sealed record BookingSlotDto(
     int Id,

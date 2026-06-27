@@ -1,9 +1,12 @@
-using System.Text;
+﻿using System.Text;
 using SporthalleWeb.Features.Booking;
 using SporthalleWeb.Features.Booking;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 

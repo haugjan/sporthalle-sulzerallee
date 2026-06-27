@@ -3,6 +3,8 @@ using Xunit;
 
 
 using SporthalleWeb.Domain.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
 
 namespace SporthalleWeb.Tests.Domain.Booking;
 

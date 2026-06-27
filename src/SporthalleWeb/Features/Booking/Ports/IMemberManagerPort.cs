@@ -1,9 +1,7 @@
-using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Features.Booking.Auth;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Ports;
 
 public interface IHallMembers
 {

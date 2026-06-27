@@ -1,4 +1,6 @@
-namespace SporthalleWeb.Domain.Booking;
+﻿using SporthalleWeb.Domain.Booking.SlotAggregate;
+
+namespace SporthalleWeb.Domain.Booking.HallMemberAggregate;
 
 public record RenterEmail
 {

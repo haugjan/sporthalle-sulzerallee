@@ -1,12 +1,9 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Features.Booking.Ports;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Auth;
 
 public sealed class SendMagicLink(
     IHallMembers members,

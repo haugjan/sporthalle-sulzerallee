@@ -1,15 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
-using SporthalleWeb.Features.Booking;
+using SporthalleWeb.Domain.Booking.HallMemberAggregate;
+using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Admin;
+using SporthalleWeb.Features.Booking.Auth;
+using SporthalleWeb.Features.Booking.Dtos;
+using SporthalleWeb.Features.Booking.Ports;
+using SporthalleWeb.Features.Booking.Requests;
 
-
-using SporthalleWeb.Domain.Booking;
-
-namespace SporthalleWeb.Features.Booking;
+namespace SporthalleWeb.Features.Booking.Calendar;
 
 [ApiController]
 [Route("api/reservierung")]
