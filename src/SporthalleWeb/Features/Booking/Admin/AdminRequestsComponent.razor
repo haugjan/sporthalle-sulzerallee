@@ -254,23 +254,16 @@ else
             var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
             var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
             var configuredText = await Config.GetAsync("mail_bestaetigung_text");
-            if (!string.IsNullOrWhiteSpace(configuredText))
-            {
-                _confirmEmailText = configuredText
-                    .Replace("{Name}", $"{member.ContactFirstName} {member.ContactLastName}".Trim())
-                    .Replace("{Anlass}", slot.Title ?? "")
-                    .Replace("{Datum}", start.ToString("dddd, d. MMMM yyyy", DeCh))
-                    .Replace("{Von}", start.ToString("HH:mm"))
-                    .Replace("{Bis}", end.ToString("HH:mm"));
-            }
-            else
-            {
-                var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
-                _confirmEmailText =
-                    $"Ihre Buchung für {slotStr} wurde bestätigt.\n\n" +
-                    $"Anlass: {slot.Title}\n\n" +
-                    "Bei Fragen wenden Sie sich bitte an reservation@sporthalle-sulzerallee.ch.";
-            }
+            if (string.IsNullOrWhiteSpace(configuredText))
+                configuredText = BookingMailTemplates.ConfirmationDefault;
+            _confirmEmailText = BookingMailTemplates.Apply(
+                configuredText,
+                member.ContactFirstName,
+                $"{member.ContactFirstName} {member.ContactLastName}".Trim(),
+                slot.Title ?? "",
+                start.ToString("dddd, d. MMMM yyyy", DeCh),
+                start.ToString("HH:mm"),
+                end.ToString("HH:mm"));
         }
         _confirmEmailLoading = false;
     }
@@ -306,11 +299,14 @@ else
         {
             var start = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.StartUtc, Zurich);
             var end   = TimeZoneInfo.ConvertTimeFromUtc(slot.Slot.EndUtc,   Zurich);
-            var slotStr = $"{start.ToString("dddd, d. MMMM yyyy", DeCh)}, {start:HH:mm} – {end:HH:mm} Uhr";
-            _rejectEmailText =
-                $"Leider können wir Ihre Buchungsanfrage für {slotStr} nicht bestätigen.\n\n" +
-                "Bitte kontaktieren Sie uns unter reservation@sporthalle-sulzerallee.ch " +
-                "für weitere Informationen oder einen alternativen Termin.";
+            _rejectEmailText = BookingMailTemplates.Apply(
+                BookingMailTemplates.RejectionDefault,
+                member.ContactFirstName,
+                $"{member.ContactFirstName} {member.ContactLastName}".Trim(),
+                slot.Title ?? "",
+                start.ToString("dddd, d. MMMM yyyy", DeCh),
+                start.ToString("HH:mm"),
+                end.ToString("HH:mm"));
         }
         _rejectEmailLoading = false;
     }

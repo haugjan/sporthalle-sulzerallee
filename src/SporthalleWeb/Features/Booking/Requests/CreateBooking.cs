@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
+using SporthalleWeb.Features.Booking.Configuration;
 using SporthalleWeb.Features.Booking.Ports;
 
 namespace SporthalleWeb.Features.Booking.Requests;
@@ -32,18 +33,19 @@ public sealed class CreateBooking(
             new { Type = booking.Type.ToString(), slot.StartUtc, slot.EndUtc });
 
         var reservationText = await hallConfig.GetAsync("mail_reservation_text");
-        string? customBody = null;
-        if (!string.IsNullOrWhiteSpace(reservationText))
-        {
-            var startLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.StartUtc, Zurich);
-            var endLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.EndUtc, Zurich);
-            customBody = reservationText
-                .Replace("{Name}", $"{member.ContactFirstName} {member.ContactLastName}".Trim())
-                .Replace("{Anlass}", booking.Title)
-                .Replace("{Datum}", startLocal.ToString("dddd, d. MMMM yyyy", DeCh))
-                .Replace("{Von}", startLocal.ToString("HH:mm"))
-                .Replace("{Bis}", endLocal.ToString("HH:mm"));
-        }
+        if (string.IsNullOrWhiteSpace(reservationText))
+            reservationText = BookingMailTemplates.ReservationDefault;
+
+        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.StartUtc, Zurich);
+        var endLocal = TimeZoneInfo.ConvertTimeFromUtc(booking.Slot.EndUtc, Zurich);
+        var customBody = BookingMailTemplates.Apply(
+            reservationText,
+            member.ContactFirstName,
+            $"{member.ContactFirstName} {member.ContactLastName}".Trim(),
+            booking.Title,
+            startLocal.ToString("dddd, d. MMMM yyyy", DeCh),
+            startLocal.ToString("HH:mm"),
+            endLocal.ToString("HH:mm"));
 
         await email.SendProvisionConfirmationToRenterAsync(booking, member, customBody);
         await email.SendAdminNewBookingNotificationAsync(booking, member);

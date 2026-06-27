@@ -50,13 +50,14 @@ BCC ist **kein** Template-Thema. Es wird pro Versand im API-Payload mitgegeben
 {
   "sender": { "name": "Sporthalle Sulzerallee", "email": "noreply@sporthalle-sulzerallee.ch" },
   "to":     [{ "email": "empfaenger@example.ch", "name": "Max Muster" }],
-  "bcc":    [{ "email": "jan.haug@sporthalle-sulzerallee.ch" }],
+  "bcc":    [{ "email": "reservation@sporthalle-sulzerallee.ch" }],
   "subject": "Buchung bestätigt",
   "htmlContent": "<!DOCTYPE html> … (aus EmailLayout.Render) …"
 }
 ```
 
-Die Passivmitglied-Mail setzt die Admin-BCC-Adressen in `BrevoPassiveMemberEmail`.
+Alle System-Mails (Buchung wie Passivmitglied) gehen **immer** als BCC an
+`reservation@sporthalle-sulzerallee.ch`, sonst keine BCC-Adressen.
 
 ## Brevo-Template ID 1
 

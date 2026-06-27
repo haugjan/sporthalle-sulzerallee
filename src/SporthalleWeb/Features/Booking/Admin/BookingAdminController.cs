@@ -10,7 +10,7 @@ public sealed class BookingAdminController : Controller
     [HttpGet("")]
     public IActionResult Index()
     {
-        ViewBag.Title = "Reservierungsverwaltung – Sporthalle Sulzerallee";
+        ViewBag.Title = "Reservationsverwaltung – Sporthalle Sulzerallee";
         ViewBag.BodyClass = "admin-page";
         return View();
     }

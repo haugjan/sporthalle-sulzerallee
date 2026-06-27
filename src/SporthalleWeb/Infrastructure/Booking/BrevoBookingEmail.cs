@@ -21,6 +21,9 @@ public sealed class BrevoBookingEmail(
     private string SenderEmail => config["Brevo:SenderEmail"] ?? "noreply@sporthalle-sulzerallee.ch";
     private string SenderName => "Sporthalle Sulzerallee";
 
+    // Alle Buchungs-Mails immer als BCC an die Reservationsadresse.
+    private const string ReservationBcc = "reservation@sporthalle-sulzerallee.ch";
+
     public Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
     {
         var contactName = ContactName(member);
@@ -31,7 +34,7 @@ public sealed class BrevoBookingEmail(
             "Buchungsanfrage erhalten – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage erhalten",
-                greeting: $"Hallo {contactName}",
+                greeting: customEmailBody is null ? $"Hallo {contactName}" : null,
                 body: body,
                 detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
                 note: customEmailBody is null ? "Du erhältst eine separate Bestätigung, sobald die Buchung genehmigt wurde." : null));
@@ -58,7 +61,7 @@ public sealed class BrevoBookingEmail(
             "Buchung bestätigt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchung bestätigt",
-                greeting: $"Hallo {contactName}",
+                greeting: customEmailBody is null ? $"Hallo {contactName}" : null,
                 body: body,
                 detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
                 note: customEmailBody is null ? "Bei Fragen wende dich bitte an reservation@sporthalle-sulzerallee.ch." : null));
@@ -74,9 +77,9 @@ public sealed class BrevoBookingEmail(
             "Buchungsanfrage abgelehnt – Sporthalle Sulzerallee",
             BuildEmail(
                 title: "Buchungsanfrage abgelehnt",
-                greeting: $"Hallo {contactName}",
+                greeting: customEmailBody is null ? $"Hallo {contactName}" : null,
                 body: body,
-                note: customEmailBody is null ? "Bitte kontaktieren Sie uns unter reservation@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin." : null));
+                note: customEmailBody is null ? "Bitte kontaktiere uns unter reservation@sporthalle-sulzerallee.ch für weitere Informationen oder einen alternativen Termin." : null));
     }
 
     private static string ContactName(HallMember member) =>
@@ -116,6 +119,7 @@ public sealed class BrevoBookingEmail(
         {
             sender = new { name = SenderName, email = SenderEmail },
             to = new[] { new { name = toName, email = toEmail } },
+            bcc = new[] { new { email = ReservationBcc } },
             subject,
             htmlContent
         };

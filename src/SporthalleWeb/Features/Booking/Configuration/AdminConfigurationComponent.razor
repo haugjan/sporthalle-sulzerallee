@@ -65,9 +65,9 @@ else
                 </div>
                 <div class="mt-3">
                     <label class="form-label fw-semibold">Mailtext an den Mieter</label>
-                    <textarea class="form-control font-monospace" @bind="_mailReservationText" rows="6"
-                              placeholder="Guten Tag {Name}, wir haben Ihre Anfrage erhalten…"></textarea>
-                    <div class="form-text">Verfügbare Platzhalter: {Name}, {Anlass}, {Datum}, {Von}, {Bis}</div>
+                    <textarea class="form-control font-monospace" @bind="_mailReservationText" rows="8"
+                              placeholder="Hallo {Vorname}, wir haben deine Anfrage erhalten…"></textarea>
+                    <div class="form-text">Verfügbare Platzhalter: {Vorname}, {Name}, {Anlass}, {Datum}, {Von}, {Bis}</div>
                 </div>
             </div>
 
@@ -85,9 +85,9 @@ else
                 </div>
                 <div class="mt-3">
                     <label class="form-label fw-semibold">Mailtext an den Mieter</label>
-                    <textarea class="form-control font-monospace" @bind="_mailBestaetigungText" rows="6"
-                              placeholder="Guten Tag {Name}, Ihre Buchung wurde bestätigt…"></textarea>
-                    <div class="form-text">Verfügbare Platzhalter: {Name}, {Anlass}, {Datum}, {Von}, {Bis}</div>
+                    <textarea class="form-control font-monospace" @bind="_mailBestaetigungText" rows="8"
+                              placeholder="Hallo {Vorname}, deine Buchung wurde bestätigt…"></textarea>
+                    <div class="form-text">Verfügbare Platzhalter: {Vorname}, {Name}, {Anlass}, {Datum}, {Von}, {Bis}</div>
                 </div>
             </div>
 
@@ -130,9 +130,11 @@ else
         _noticeDays         = Parse(cfg, "vorlaufzeit_tage", 3);
         _bookingCutoffDate    = DateOnly.TryParse(cfg.GetValueOrDefault("buchungs_cutoff_datum"), out var cd) ? cd : (DateOnly?)null;
         _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
-        _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") ?? "";
+        _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") is { Length: > 0 } rt
+            ? rt : BookingMailTemplates.ReservationDefault;
         _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
-        _mailBestaetigungText    = cfg.GetValueOrDefault("mail_bestaetigung_text") ?? "";
+        _mailBestaetigungText    = cfg.GetValueOrDefault("mail_bestaetigung_text") is { Length: > 0 } bt
+            ? bt : BookingMailTemplates.ConfirmationDefault;
         _loading = false;
     }
 

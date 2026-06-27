@@ -13,9 +13,7 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
 
     private static readonly string[] AdminBcc =
     [
-        "bettina.zahnd@sporthalle-sulzerallee.ch",
-        "matthias.lehner@sporthalle-sulzerallee.ch",
-        "jan.haug@sporthalle-sulzerallee.ch"
+        "reservation@sporthalle-sulzerallee.ch"
     ];
 
     public async Task SendRegistrationConfirmationAsync(PassiveMember member)
