@@ -39,8 +39,11 @@ public sealed class MemberTypeSeeder(
         var trueFalse = all.FirstOrDefault(d => d.EditorAlias == "Umbraco.TrueFalse")
             ?? throw new InvalidOperationException("Umbraco.TrueFalse data type not found.");
 
+        // Umbraco ships the Umbraco.EmailAddress property editor but no data type instance for it,
+        // and there is no uSync config seeding one. Create it on demand; fall back to TextBox.
         var emailType = all.FirstOrDefault(d => d.EditorAlias == "Umbraco.EmailAddress")
-            ?? throw new InvalidOperationException("Umbraco.EmailAddress data type not found.");
+            ?? TryCreateDataType(all, "Email Address", "Umbraco.EmailAddress", ValueStorageType.Nvarchar)
+            ?? textBox;
 
         var dateType = all.FirstOrDefault(d => d.EditorAlias == "Umbraco.DateTime")
             ?? throw new InvalidOperationException("Umbraco.DateTime data type not found.");
@@ -58,6 +61,23 @@ public sealed class MemberTypeSeeder(
         EnsurePassivMemberType(textBox, textArea, trueFalse, emailType, dateType, statusDropdown, membershipLevelDropdown);
 
         return Task.CompletedTask;
+    }
+
+    // Creates a data type from a property editor that needs no special configuration.
+    // Returns null if the editor is not registered (caller falls back to another type).
+    private IDataType? TryCreateDataType(List<IDataType> all, string name, string editorAlias, ValueStorageType storageType)
+    {
+        if (!propertyEditors.TryGet(editorAlias, out var editor))
+            return null;
+
+        var dt = new DataType(editor, serializer)
+        {
+            Name         = name,
+            DatabaseType = storageType
+        };
+        dataTypeService.Save(dt);
+        all.Add(dt);
+        return dt;
     }
 
     private IDataType GetOrCreateDropdown(List<IDataType> all, string name, string[] values)
