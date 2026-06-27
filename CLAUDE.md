@@ -43,7 +43,7 @@ Sporthalle-Sulzerallee/
         Booking/            # namespace SporthalleWeb.Domain.Booking
           SlotAggregate/        # BookingSlot, SlotType, TimeSlot, DomainException, SlotConflictException
           RecurringAggregate/   # RecurringSlot
-          HallMemberAggregate/  # HallMember, RenterType, RenterEmail, MagicLinkToken
+          HallMemberAggregate/  # HallMember, RenterType, RenterEmail
         PassiveMembership/
           PassiveMemberAggregate/  # PassiveMember, FieldNumber, MemberEmail, MembershipLevel, MemberStatus, VipField, DomainException
                                    # namespace SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate
@@ -51,8 +51,7 @@ Sporthalle-Sulzerallee/
         Booking/            # namespace SporthalleWeb.Features.Booking (single, flat)
           Ports/                # Interfaces (no Port/Repository suffix)
           Calendar/             # GetWeekSlots, GetAvailableDays/TimeSlots, BookingController, calendar components
-          Requests/             # CreateBooking (+Command), ConfirmBooking, RejectBooking
-          Auth/                 # SendMagicLink, ValidateMagicLink, RegisterRenter (+Command), Login/Set/Reset password, BookingAuthController
+          Requests/             # CreateBooking (+Command), ConfirmBooking, RejectBooking, RegisterRenterCommand
           Admin/                # BookingAdminService, API/view/backoffice controllers, admin components, BookingManifestComposer
           Recurring/            # Create/Update/Delete recurring, GetRecurringSlots, AdminRecurringComponent
           Configuration/        # AdminConfigurationComponent (raw config via IHallConfigStore port)
@@ -398,7 +397,7 @@ Brevo API key: `Brevo:ApiKey` config — `dotnet user-secrets` locally, Azure Ap
 
 ## Feature: Booking (Reservierung)
 
-Allows hall renters to book time slots via an interactive weekly calendar. Supports guest booking and account-based booking with Magic Link or password auth.
+Allows hall renters to book time slots via an interactive weekly calendar. Booking is guest-based: there is no renter login. A booking captures the renter's contact and billing details and creates or updates an Umbraco Member record inline. (Member authentication, Magic Link, and password login were removed; see commit "Remove member authentication from booking feature".)
 
 All Booking feature code shares one flat namespace `SporthalleWeb.Features.Booking` (components set it via `@namespace`). The public-facing URL path and Umbraco content type alias remain `reservierung`.
 
@@ -415,18 +414,17 @@ technology prefix.
 Domain/Booking/         namespace SporthalleWeb.Domain.Booking
   SlotAggregate/        BookingSlot (Aggregate Root), SlotType, TimeSlot, DomainException, SlotConflictException
   RecurringAggregate/   RecurringSlot
-  HallMemberAggregate/  HallMember, MagicLinkToken, RenterEmail, RenterType (Privatperson/Verein/Firma/Schule)
+  HallMemberAggregate/  HallMember, RenterEmail, RenterType (Privatperson/Verein/Firma/Schule)
 
 Features/Booking/
-  Ports/                IBookingSlots, IRecurringSlots, IMagicLinkTokens, IBookingAudit,
+  Ports/                IBookingSlots, IRecurringSlots, IBookingAudit,
                         IBookingEmail, IBookingCsv, IHallConfiguration, IHallConfigStore, IHallMembers, ICaptcha
                         (port files are named exactly after the interface they declare, e.g. IHallMembers.cs)
   Calendar/             GetWeekSlots, GetAvailableDays, GetAvailableTimeSlots, SlotOption, WeekSlotDto,
                         BookingController (public REST), WeeklyCalendarComponent, BookingPickerComponent,
                         DateInputComponent, TimePickerComponent
-  Requests/             CreateBooking (+CreateBookingCommand), ConfirmBooking, RejectBooking
-  Auth/                 SendMagicLink (SHA-256, 20 min TTL), ValidateMagicLink, RegisterRenter (+Command),
-                        LoginWithPassword, SetPassword, RequestPasswordReset, ResetPassword, BookingAuthController
+  Requests/             CreateBooking (+CreateBookingCommand), ConfirmBooking, RejectBooking,
+                        RegisterRenterCommand (member detail carrier used when a booking creates/updates a member)
   Admin/                BookingAdminService, BookingAdminApiController, BookingAdminController,
                         BookingBackofficeAdminController, BookingManifestComposer (section alias Sporthalle.Booking),
                         BookingAdminComponent (shell), AdminRequestsComponent (Anfragen), AdminBookingsComponent (Buchungen),
@@ -434,31 +432,26 @@ Features/Booking/
   Recurring/            CreateRecurringSlot (+RecurringSlotCommand), UpdateRecurringSlot, DeleteRecurringSlot,
                         GetRecurringSlots, AdminRecurringComponent (Serientermine)
   Configuration/        AdminConfigurationComponent (Konfiguration); raw key-value config is the IHallConfigStore port (adapter UmbracoHallConfigStore)
-  Dtos/                 BookingSlotDto, AdminBookingResponse, HallMemberDto, CreateBookingRequest,
-                        LoginRequest, RegisterRenterRequest, ResetPasswordRequest, SendMagicLinkRequest,
-                        SetPasswordRequest, ValidateMagicLinkRequest
+  Dtos/                 BookingSlotDto, AdminBookingResponse, HallMemberDto, CreateBookingRequest
 
 Infrastructure/Booking/    (flat, ns SporthalleWeb.Infrastructure.Booking)
   BookingComposer.cs                  IComposer, DI registration
   UmbracoHallConfiguration.cs         IHallConfiguration (typed, domain-shaped config reader)
   UmbracoHallConfigStore.cs           IHallConfigStore (raw key-value access to the HallConfig table; owns all HallConfig SQL)
-  UmbracoHallMembers.cs               IHallMembers via IMemberManager + SignInManager
+  UmbracoHallMembers.cs               IHallMembers via IMemberManager + IMemberService
   BrevoBookingEmail.cs                IBookingEmail (Brevo REST API)
   BookingCsvExport.cs                 IBookingCsv
   TurnstileBookingCaptcha.cs          ICaptcha (Cloudflare Turnstile)
-  BookingSlotRepository.cs, MagicLinkTokenRepository.cs, BookingAuditRepository.cs, RecurringSlotRepository.cs
-  *Record.cs                          NPoco POCOs (BookingSlot, MagicLinkToken, BookingAuditLog, HallConfig, RecurringSlot)
+  BookingSlotRepository.cs, BookingAuditRepository.cs, RecurringSlotRepository.cs
+  *Record.cs                          NPoco POCOs (BookingSlot, BookingAuditLog, HallConfig, RecurringSlot)
   HallMemberAliases.cs                Member property aliases
-  BookingMigration.cs                 BookingMigrationPlan v1.0.0 → v1.3.0
+  BookingMigration.cs                 BookingMigrationPlan v1.0.0 → v1.10.0
 
 Infrastructure/Shared/
   UmbracoDropdownHelper.cs            shared by Booking + PassiveMembership
 
 Views/Reservierung.cshtml                     Umbraco template (alias Reservierung — stays in Views/)
 Views/BookingAdmin/Index.cshtml               Admin dashboard shell
-Views/BookingAuth/Index.cshtml                Auth redirect page
-Views/BookingAuth/Anmelden.cshtml             Login page
-Views/BookingAuth/Registrieren.cshtml         Registration page
 Views/BookingBackofficeAdmin/Index.cshtml     Backoffice admin view
 Views/Partials/_BookingCalendar.cshtml        Booking calendar partial
 Views/Shared/_BackofficeLayout.cshtml         Admin backoffice layout
@@ -497,17 +490,7 @@ The `Type` column in `BookingSlots` stores the enum name as a string (e.g. `"Rec
 | CreatedAt, UpdatedAt | DATETIME2 | |
 | CreatedBy | NVARCHAR(200) | |
 
-**MagicLinkTokens**
-
-| Column | Type | Notes |
-|---|---|---|
-| Id | INT IDENTITY | PK |
-| MemberId | INT | Umbraco IMember.Id |
-| TokenHash | NVARCHAR(128) UNIQUE | SHA-256 of plaintext token |
-| ExpiresAt | DATETIME2 | 20 min from creation |
-| UsedAt | DATETIME2 NULL | |
-| CreatedAt | DATETIME2 | |
-| RemoteIp | NVARCHAR(45) NULL | |
+(The `MagicLinkTokens` table was dropped with the auth removal; migration `DropMagicLinkTokensV11`, v1.10.0.)
 
 **BookingAuditLog**: append-only log of all state changes.
 
@@ -515,77 +498,52 @@ The `Type` column in `BookingSlots` stores the enum name as a string (e.g. `"Rec
 
 Note: the HallConfig keys `buchbareDauern`, `anlaesse`, `preisText` are stored DB strings (not code identifiers); they pre-date the English convention and are not changed to avoid a data migration. The C# methods accessing them are English: `GetBookableDurationsAsync`, `GetEventTypesAsync`, `GetPreisTextAsync`.
 
-Migration plan: `BookingMigrationPlan` versions v1.0.0–v1.3.0. Runs via `BookingMigrationComponent`.
+Migration plan: `BookingMigrationPlan` versions v1.0.0–v1.10.0. Runs via `BookingMigrationComponent`.
 
 ### Renter Accounts (Hall Members)
 
 Stored as **Umbraco Members** with member type alias `hallMember`.
 
-Custom member properties: `renterType`, `billingName`, `billingAddress`, `billingPostalCode`, `billingCity`, `billingCountry`, `phone`, `hasKey`, `magicLinkSentAt`, `passwordResetSentAt`
+Custom member properties: `renterType`, `orgName`, `contactFirstName`, `contactLastName`, `billingAddress`, `addressLine2`, `billingPostalCode`, `billingCity`, `billingCountry`, `phone`, `hasKey`, `notes`, `color`. The single source of truth is `Infrastructure/Booking/HallMemberAliases.cs` (referenced by both `MemberTypeSeeder` and `UmbracoHallMembers`). `color` is the renter's preferred calendar colour (Umbraco ColorPicker, hex value).
 
-`UmbracoMemberAdapter` wraps `IMemberManager` + `SignInManager<MemberIdentityUser>`.
+`UmbracoHallMembers` wraps `IMemberManager` + `IMemberService`.
 Admin view of renters: Umbraco Backoffice → Members.
 
-### Authentication
+### Booking flow (guest only)
 
-**Magic Link (primary method):**
-1. `POST /api/reservierung/auth/magic-link` with `{ email }`
-2. `SendMagicLinkUseCase`: generates 64 random bytes (Base64Url), stores SHA-256 hash in `MagicLinkTokens`, emails plaintext link
-3. User clicks link: `GET /reservierung/auth/validate?token=...`
-4. `ValidateMagicLinkUseCase`: hashes token, finds record, checks expiry/used, marks used, calls `SignInAsync`
-5. Redirect to `/reservierung?session=confirmed`
+There is no renter login. A booking is always a guest booking:
 
-Rate limit: 1 magic link per 10 min per email.
-
-**Password (optional):** Set after first magic link login. BCrypt via ASP.NET Core Identity.
-Password reset uses Identity TOTP tokens (no custom token table).
-
-**Guest booking:** `POST /api/reservierung/gast-buchung` — no session required; creates/updates member inline. The route string is German (user-visible URL); the C# method is `GuestBooking`.
+`POST /api/reservierung/gast-buchung` — no session required. It validates the CAPTCHA, then creates or updates the `hallMember` member record inline from the submitted contact and billing details and stores the slot as `Reserved` pending admin confirmation. The route string is German (user-visible URL); the C# action method is `GuestBooking`.
 
 ### REST API
 
 ```
+All routes live on BookingController, prefix `api/reservierung`.
+
 Public:
 GET  /api/reservierung/konfiguration
 GET  /api/reservierung/wochen-slots?von=YYYY-MM-DD
 GET  /api/reservierung/verfuegbare-tage?monat=YYYY-MM&dauern=60
 GET  /api/reservierung/verfuegbare-slots?datum=YYYY-MM-DD&dauern=60
 POST /api/reservierung/gast-buchung
-POST /api/reservierung/auth/magic-link
-POST /api/reservierung/auth/validate
-POST /api/reservierung/auth/register
-POST /api/reservierung/auth/login
-POST /api/reservierung/auth/request-password-reset
-POST /api/reservierung/auth/reset-password
-
-Authenticated renter:
-POST /api/reservierung/auth/logout
-POST /api/reservierung/auth/password
-GET  /api/reservierung/me
-GET  /api/reservierung/meine-buchungen
-POST /api/reservierung/buchungen
 
 Admin (Umbraco admin role):
-GET  /api/admin/reservierungen/pending
-POST /api/admin/reservierungen/{id}/confirm
-POST /api/admin/reservierungen/{id}/reject
-DELETE /api/admin/reservierungen/{id}
-GET  /api/admin/reservierungen/export?von=YYYY-MM-DD&bis=YYYY-MM-DD
+GET    /api/reservierung/admin/pending
+POST   /api/reservierung/admin/buchungen/{id}/confirm
+POST   /api/reservierung/admin/buchungen/{id}/reject
+DELETE /api/reservierung/admin/buchungen/{id}
+GET    /api/reservierung/admin/export?von=YYYY-MM-DD&bis=YYYY-MM-DD
 ```
 
 Note: HTTP routes are German (user-visible URLs). Controller class names and action method names are English.
 
-### Auth Pages (MVC views)
+### MVC Pages
 
 ```
-GET  /reservierung                         Public calendar
-GET  /reservierung/auth/validate?token=    Magic link validation + redirect
-GET  /reservierung/anmelden                Login page
-POST /reservierung/anmelden/password
-POST /reservierung/anmelden/magic-link
-GET  /reservierung/registrieren            Registration page
-POST /reservierung/registrieren
+GET  /reservierung   Public calendar (Umbraco template Reservierung.cshtml)
 ```
+
+The login, registration, and magic-link validation pages were removed with member authentication.
 
 ### Admin Backoffice
 
@@ -609,7 +567,7 @@ The shared edit dialog for Buchungen and Blocker tabs is `AdminEditDialogCompone
 
 Brevo REST API, Template ID 1. Admin BCC: `jan.haug@sporthalle-sulzerallee.ch`
 
-Mail types: provisional confirmation, admin notification, booking confirmed, booking rejected with reason, magic link, registration confirmation with first link, password reset.
+Mail types: provisional confirmation, admin notification, booking confirmed, booking rejected with reason.
 
 Emails are styled with Sporthalle header, color bar, and footer.
 

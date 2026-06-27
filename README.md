@@ -27,9 +27,9 @@ All code (types, namespaces, methods, identifiers) is written in English. Public
 
 ### Hall Booking (Reservierung)
 
-Interactive calendar for booking time slots in the hall. Renters can register and book with Magic Link (passwordless) or password. The admin approves or rejects bookings, manages blockers and recurring appointments, and exports CSV reports.
+Interactive calendar for booking time slots in the hall. Booking is guest-based (no renter login): the booking form captures contact and billing details and creates or updates an Umbraco Member record inline. The admin approves or rejects bookings, manages blockers and recurring appointments, and exports CSV reports.
 
-**Public:** `/reservierung` — weekly calendar with available and booked time slots. Clicking a free slot opens a booking form (guest or logged-in).
+**Public:** `/reservierung` — weekly calendar with available and booked time slots. Clicking a free slot opens a guest booking form protected by Cloudflare Turnstile.
 
 **Admin:** Umbraco backoffice → "Booking" section. Tabs for pending requests (Anfragen), all bookings (Buchungen), blockers, recurring appointments (Serientermine), manual booking entry (Erfassen), and hall configuration (Konfiguration).
 
@@ -83,18 +83,17 @@ src/SporthalleWeb/
     Booking/
       SlotAggregate/        BookingSlot, SlotType, TimeSlot, exceptions
       RecurringAggregate/   RecurringSlot
-      HallMemberAggregate/  HallMember, RenterType, RenterEmail, MagicLinkToken
+      HallMemberAggregate/  HallMember, RenterType, RenterEmail
     PassiveMembership/
       PassiveMemberAggregate/  PassiveMember, FieldNumber, MemberEmail, MembershipLevel, MemberStatus, VipField
   Features/                 Vertical slices (application + UI per feature)
     Booking/
       Ports/                Interfaces (no Port/Repository suffix)
       Calendar/             Week view, availability queries, public controller, calendar components
-      Requests/             Create/Confirm/Reject booking
-      Auth/                 Magic link, register, login, password reset, auth controller
+      Requests/             Create/Confirm/Reject booking, RegisterRenterCommand
       Admin/                Admin service, API + view controllers, admin components, manifest
       Recurring/            Create/Update/Delete recurring + admin component
-      Configuration/        HallConfigService, config component
+      Configuration/        Admin config component (raw config via IHallConfigStore port)
       Dtos/                 API request/response records
     PassiveMembership/
       Registration/         Ports, RegisterMember, GetFieldStatuses, floor plan
@@ -173,4 +172,6 @@ Infrastructure/Shared/     Cross-feature helpers
 
 Database access uses **NPoco** (Umbraco's built-in ORM) via `IScopeProvider` from `Umbraco.Cms.Infrastructure.Scoping`. Schema migrations run automatically on startup.
 
-Hall renters are stored as **Umbraco Members** (member type `hallMember`) and authenticated via ASP.NET Core Identity with optional Magic Link (SHA-256 hashed, single-use, 20-minute TTL).
+Hall renters are stored as **Umbraco Members** (member type `hallMember`), created or updated inline from the guest booking form. There is no renter login; member authentication was removed from the booking feature.
+
+The layering is enforced by `SporthalleWeb.Tests/Architecture/LayerDependencyTests.cs`: a dependency-free source scan that fails if `Domain/` references an outer layer or framework, or if `Features/` references `Infrastructure` directly instead of going through a port.
