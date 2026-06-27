@@ -34,26 +34,11 @@ public sealed class BookingAdminApiController(
     // GET /api/admin/reservierungen?from=2026-01-01&to=2026-12-31&type=Booked
     [HttpGet("")]
     public async Task<IActionResult> GetAll(
-        [FromQuery] string? from,
-        [FromQuery] string? to,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
         [FromQuery] string? type)
     {
-        DateOnly? fromDate = null;
-        DateOnly? toDate = null;
         SlotType? slotType = null;
-
-        if (from is not null)
-        {
-            if (!DateOnly.TryParse(from, out var parsedFrom))
-                return BadRequest(new { error = "'from' muss im Format YYYY-MM-DD angegeben werden." });
-            fromDate = parsedFrom;
-        }
-        if (to is not null)
-        {
-            if (!DateOnly.TryParse(to, out var parsedTo))
-                return BadRequest(new { error = "'to' muss im Format YYYY-MM-DD angegeben werden." });
-            toDate = parsedTo;
-        }
         if (type is not null)
         {
             if (!Enum.TryParse<SlotType>(type, ignoreCase: true, out var parsed))
@@ -61,7 +46,7 @@ public sealed class BookingAdminApiController(
             slotType = parsed;
         }
 
-        var slots = await slotRepo.GetAllAsync(fromDate, toDate, slotType);
+        var slots = await slotRepo.GetAllAsync(from, to, slotType);
         return Ok(slots.Select(s => MapToDto(s, null)));
     }
 
@@ -162,16 +147,13 @@ public sealed class BookingAdminApiController(
 
     [HttpGet("export")]
     public async Task<IActionResult> Export(
-        [FromQuery] string from,
-        [FromQuery] string to)
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to)
     {
-        if (!DateOnly.TryParse(from, out var fromDate) || !DateOnly.TryParse(to, out var toDate))
-            return BadRequest(new { error = "'from' und 'to' müssen im Format YYYY-MM-DD angegeben werden." });
-
         var csv = await csvExport.ExportAsync(
-            fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc));
-        return File(csv, "text/csv", $"reservierungen-{from}-{to}.csv");
+            from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc));
+        return File(csv, "text/csv", $"reservierungen-{from:yyyy-MM-dd}-{to:yyyy-MM-dd}.csv");
     }
 
     // ── Mapping ───────────────────────────────────────────────────────────────
@@ -215,10 +197,10 @@ public sealed class BookingAdminApiController(
         var cmd = new RecurringSlotCommand(
             req.Title,
             (DayOfWeek)req.Weekday,
-            TimeOnly.Parse(req.From),
-            TimeOnly.Parse(req.To),
-            DateOnly.Parse(req.SeriesStart),
-            DateOnly.Parse(req.SeriesEnd),
+            req.From,
+            req.To,
+            req.SeriesStart,
+            req.SeriesEnd,
             req.Notes,
             IsBlocker: req.IsBlocker,
             MemberId: req.MemberId,
@@ -260,10 +242,10 @@ public sealed record AdminCreateSlotRequest(
 public sealed record RecurringSlotSeedRequest(
     string Title,
     int Weekday,
-    string From,
-    string To,
-    string SeriesStart,
-    string SeriesEnd,
+    TimeOnly From,
+    TimeOnly To,
+    DateOnly SeriesStart,
+    DateOnly SeriesEnd,
     string? Notes,
     bool IsBlocker = false,
     int? MemberId = null,

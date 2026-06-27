@@ -1,4 +1,3 @@
-using System.Globalization;
 using SporthalleWeb.Domain.Booking.SlotAggregate;
 
 namespace SporthalleWeb.Domain.Booking.RecurringAggregate;
@@ -47,8 +46,8 @@ public sealed class RecurringSlot
         };
 
     public static RecurringSlot FromPersistence(
-        int id, string title, int weekday, string startTime, string endTime,
-        string seriesStart, string seriesEnd, string? notes,
+        int id, string title, int weekday, TimeOnly startTime, TimeOnly endTime,
+        DateOnly seriesStart, DateOnly seriesEnd, string? notes,
         string createdBy, DateTime createdAt, DateTime updatedAt,
         bool isBlocker = false, int? memberId = null, bool showTitlePublic = false) =>
         new()
@@ -56,10 +55,10 @@ public sealed class RecurringSlot
             Id = id,
             Title = title,
             Weekday = (DayOfWeek)weekday,
-            StartTime = TimeOnly.Parse(startTime, CultureInfo.InvariantCulture),
-            EndTime = TimeOnly.Parse(endTime, CultureInfo.InvariantCulture),
-            SeriesStart = DateOnly.Parse(seriesStart, CultureInfo.InvariantCulture),
-            SeriesEnd = DateOnly.Parse(seriesEnd, CultureInfo.InvariantCulture),
+            StartTime = startTime,
+            EndTime = endTime,
+            SeriesStart = seriesStart,
+            SeriesEnd = seriesEnd,
             Notes = notes,
             CreatedBy = createdBy,
             CreatedAt = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc),

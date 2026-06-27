@@ -139,7 +139,8 @@ public sealed class RecurringSlotTests
     {
         var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var slot = RecurringSlot.FromPersistence(
-            1, "T", 1, "09:00", "11:00", "2026-01-05", "2026-01-26",
+            1, "T", 1, new TimeOnly(9, 0), new TimeOnly(11, 0),
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26),
             null, "admin", now, now, showTitlePublic: true);
         Assert.True(slot.ShowTitlePublic);
     }
@@ -149,7 +150,8 @@ public sealed class RecurringSlotTests
     {
         var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var slot = RecurringSlot.FromPersistence(
-            1, "T", 1, "09:00", "11:00", "2026-01-05", "2026-01-26",
+            1, "T", 1, new TimeOnly(9, 0), new TimeOnly(11, 0),
+            new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 26),
             null, "admin", now, now);
         Assert.False(slot.ShowTitlePublic);
     }

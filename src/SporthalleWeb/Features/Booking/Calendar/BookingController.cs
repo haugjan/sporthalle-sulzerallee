@@ -128,14 +128,10 @@ public sealed class BookingController(
     // ── Calendar / week view ──────────────────────────────────────────────────
 
     [HttpGet("wochen-slots")]
-    public async Task<IActionResult> GetWeekSlots([FromQuery] string from)
+    public async Task<IActionResult> GetWeekSlots([FromQuery] DateOnly from)
     {
-        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", null,
-                System.Globalization.DateTimeStyles.None, out var date))
-            return BadRequest("Parameter 'from' muss im Format YYYY-MM-DD angegeben werden.");
-
-        var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
-        var monday = date.AddDays(-daysFromMonday);
+        var daysFromMonday = ((int)from.DayOfWeek + 6) % 7;
+        var monday = from.AddDays(-daysFromMonday);
         return Ok(await weekSlotsQuery.ExecuteAsync(monday));
     }
 
@@ -146,7 +142,7 @@ public sealed class BookingController(
 
     [HttpGet("verfuegbare-slots")]
     public async Task<IActionResult> GetAvailableTimeSlots(
-        [FromQuery] string date, [FromQuery] int duration = 60)
+        [FromQuery] DateOnly date, [FromQuery] int duration = 60)
         => Ok(await availableTimeSlotsQuery.GetAsync(date, duration));
 
     // ── Admin endpoints ───────────────────────────────────────────────────────
@@ -199,19 +195,13 @@ public sealed class BookingController(
 
     [HttpGet("admin/export")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> ExportCsv([FromQuery] string from, [FromQuery] string to)
+    public async Task<IActionResult> ExportCsv([FromQuery] DateOnly from, [FromQuery] DateOnly to)
     {
-        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", null,
-                System.Globalization.DateTimeStyles.None, out var fromDate) ||
-            !DateOnly.TryParseExact(to, "yyyy-MM-dd", null,
-                System.Globalization.DateTimeStyles.None, out var toDate))
-            return BadRequest(new { error = "Von und Bis müssen im Format YYYY-MM-DD angegeben werden." });
-
-        var fromUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        var toUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local).ToUniversalTime();
+        var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        var toUtc = to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Local).ToUniversalTime();
         var csv = await csvExport.ExportAsync(fromUtc, toUtc);
 
-        return File(csv, "text/csv; charset=utf-8", $"buchungen_{from}_{to}.csv");
+        return File(csv, "text/csv; charset=utf-8", $"buchungen_{from:yyyy-MM-dd}_{to:yyyy-MM-dd}.csv");
     }
 }
 

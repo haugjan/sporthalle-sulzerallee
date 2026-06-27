@@ -9,12 +9,8 @@ public sealed class GetAvailableTimeSlots(
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    public async Task<IReadOnlyList<SlotOption>> GetAsync(string date, int durationMinutes)
+    public async Task<IReadOnlyList<SlotOption>> GetAsync(DateOnly parsedDate, int durationMinutes)
     {
-        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", null,
-                System.Globalization.DateTimeStyles.None, out var parsedDate))
-            return [];
-
         var openStart = await config.GetOpeningHourStartAsync();
         var openEnd = await config.GetOpeningHourEndAsync();
         var blockMin = await config.GetBlockDurationMinutesAsync();

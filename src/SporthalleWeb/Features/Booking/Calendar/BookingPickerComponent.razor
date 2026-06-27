@@ -42,10 +42,9 @@
                 <div class="datumauswahl d-flex flex-wrap gap-2 mt-2">
                     @foreach (var day in _availableDays)
                     {
-                        var dayDate = DateOnly.Parse(day);
                         <button class="btn btn-sm @(_selectedDate == day ? "btn-primary" : "btn-outline-secondary")"
                                 @onclick="() => SelectDateAsync(day)">
-                            @dayDate.ToString("ddd d. MMM", CultureInfo.GetCultureInfo("de-CH"))
+                            @day.ToString("ddd d. MMM", CultureInfo.GetCultureInfo("de-CH"))
                         </button>
                     }
                 </div>
@@ -170,9 +169,9 @@
     private IReadOnlyList<string> _eventTypes = [];
     private int _selectedDuration;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
-    private IReadOnlyList<string> _availableDays = [];
+    private IReadOnlyList<DateOnly> _availableDays = [];
     private bool _loadingDays;
-    private string? _selectedDate;
+    private DateOnly? _selectedDate;
     private IReadOnlyList<SlotOption> _slots = [];
     private bool _loadingSlots;
     private SlotOption? _selectedSlot;
@@ -214,7 +213,7 @@
         await LoadDaysAsync();
     }
 
-    private async Task SelectDateAsync(string date)
+    private async Task SelectDateAsync(DateOnly date)
     {
         _selectedDate = date;
         _step = PickerStep.Time;

@@ -10,7 +10,7 @@ public sealed class GetAvailableDays(
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    public async Task<IReadOnlyList<string>> GetAsync(string month, int durationMinutes)
+    public async Task<IReadOnlyList<DateOnly>> GetAsync(string month, int durationMinutes)
     {
         if (!int.TryParse(month.Split('-')[0], out var year) ||
             !int.TryParse(month.Split('-').ElementAtOrDefault(1) ?? "", out var monthNum))
@@ -29,12 +29,12 @@ public sealed class GetAvailableDays(
 
         var existingSlots = await slotRepo.GetForWeekAsync(fromUtc, toUtc);
 
-        var result = new List<string>();
+        var result = new List<DateOnly>();
         for (var d = firstDay; d <= lastDay; d = d.AddDays(1))
         {
             if (d.ToDateTime(TimeOnly.MinValue) < DateTime.Today) continue;
             if (HasFreeBlock(d, existingSlots, openStart, blockMin, totalBlocks, blocksNeeded))
-                result.Add(d.ToString("yyyy-MM-dd"));
+                result.Add(d);
         }
         return result;
     }

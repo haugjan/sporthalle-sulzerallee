@@ -24,6 +24,9 @@ public class RecurringSlotRecord
     [NullSetting(NullSetting = NullSettings.NotNull)]
     public int Weekday { get; set; }
 
+    // Stored as TEXT ("HH:mm" / "yyyy-MM-dd"). NPoco + Microsoft.Data.Sqlite cannot map a
+    // TEXT column to TimeOnly/DateOnly (InvalidCastException), so the storage format stays
+    // string; RecurringSlotRepository converts to/from the domain's TimeOnly/DateOnly.
     [Column("StartTime")]
     [NullSetting(NullSetting = NullSettings.NotNull)]
     [Length(5)]
