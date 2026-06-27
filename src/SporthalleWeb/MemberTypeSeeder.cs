@@ -82,30 +82,35 @@ public sealed class MemberTypeSeeder(
 
     private IDataType GetOrCreateDropdown(List<IDataType> all, string name, string[] values)
     {
-        var existing = all.FirstOrDefault(d => d.Name == name);
-        if (existing is not null) return existing;
-
         if (!propertyEditors.TryGet("Umbraco.DropDown.Flexible", out var editor))
             throw new InvalidOperationException("Umbraco.DropDown.Flexible property editor not found.");
 
-        // Umbraco.DropDown.Flexible expects items as objects with 'id' and 'value'.
-        var items = values.Select((v, i) => new Dictionary<string, object>
+        // Umbraco.DropDown.Flexible expects 'items' as a plain string list,
+        // e.g. { "multiple": false, "items": ["A", "B"] }.
+        var config = new Dictionary<string, object>
         {
-            ["id"]    = i + 1,
-            ["value"] = v
-        }).ToList<object>();
+            ["multiple"] = false,
+            ["items"]    = values.ToList()
+        };
+
+        // Repair existing data types whose config may have been written in an older,
+        // invalid format ("... is not a valid value list configuration").
+        var existing = all.FirstOrDefault(d => d.Name == name);
+        if (existing is not null)
+        {
+            existing.ConfigurationData = config;
+            dataTypeService.Save(existing);
+            return existing;
+        }
 
         var dt = new DataType(editor, serializer)
         {
             Name         = name,
             DatabaseType = ValueStorageType.Nvarchar,
-            ConfigurationData = new Dictionary<string, object>
-            {
-                ["multiple"] = false,
-                ["items"]    = items
-            }
+            ConfigurationData = config
         };
         dataTypeService.Save(dt);
+        all.Add(dt);
         return dt;
     }
 
