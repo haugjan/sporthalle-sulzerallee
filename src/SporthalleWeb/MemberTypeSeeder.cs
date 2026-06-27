@@ -95,17 +95,22 @@ public sealed class MemberTypeSeeder(
             ["items"]    = values.ToList()
         };
 
-        // Repair existing data types whose config may have been written in an older,
-        // invalid format ("... is not a valid value list configuration").
-        // Only write when the stored config actually differs — otherwise every startup
-        // re-saves the data type and triggers a ModelsBuilder regeneration (InMemoryAuto),
-        // which causes cross-AssemblyLoadContext cast errors on already-cached content.
+        // Umbraco 17 backoffice resolves the UI from EditorUiAlias, not EditorAlias.
+        // Without it the backoffice shows "The configured property editor UI could not be found."
+        const string uiAlias = "Umb.PropertyEditorUi.Dropdown";
+
+        // Repair existing data types whose config or EditorUiAlias may be wrong.
+        // Only write when the stored value actually differs — otherwise every startup
+        // re-saves the data type and triggers a ModelsBuilder regeneration (InMemoryAuto).
         var existing = all.FirstOrDefault(d => d.Name == name);
         if (existing is not null)
         {
-            if (!DropdownConfigMatches(existing.ConfigurationData, values))
+            var needsSave = !DropdownConfigMatches(existing.ConfigurationData, values)
+                         || existing.EditorUiAlias != uiAlias;
+            if (needsSave)
             {
                 existing.ConfigurationData = config;
+                existing.EditorUiAlias     = uiAlias;
                 dataTypeService.Save(existing);
             }
             return existing;
@@ -113,8 +118,9 @@ public sealed class MemberTypeSeeder(
 
         var dt = new DataType(editor, serializer)
         {
-            Name         = name,
-            DatabaseType = ValueStorageType.Nvarchar,
+            Name              = name,
+            EditorUiAlias     = uiAlias,
+            DatabaseType      = ValueStorageType.Nvarchar,
             ConfigurationData = config
         };
         dataTypeService.Save(dt);
