@@ -230,7 +230,7 @@ Note: content type aliases and template names are German (user-visible URLs). Th
 
 ### Content Type Properties
 
-**contentPage**: `pageHeading` (TextBox), `bodyContent` (TextArea), `pageImage` (TextBox)
+**contentPage**: `pageHeading` (TextBox), `bodyContent` (RichText), `pageImage` (TextBox)
 
 **reservierung**: `pageHeading` (TextBox), `pageImage` (TextBox), `introText` (TextArea), `textAfter` (TextArea)
 

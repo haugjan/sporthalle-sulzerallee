@@ -39,6 +39,7 @@ public sealed class ContentSeeder(
 
         EnsureContentTypeTemplates(homeTemplate, contentPageTemplate);
         EnsureHomePageProperties();
+        UpgradeBodyContentToRichText();
 
         if (contentService.GetRootContent().Any())
         {
@@ -245,8 +246,9 @@ public sealed class ContentSeeder(
 
         var textBox = dataTypeService.GetByEditorAlias("Umbraco.TextBox").FirstOrDefault();
         var textArea = dataTypeService.GetByEditorAlias("Umbraco.TextArea").FirstOrDefault();
-        logger.LogInformation("ContentSeeder: textBox={TextBox}, textArea={TextArea}",
-            textBox?.Name ?? "NULL", textArea?.Name ?? "NULL");
+        var richText = dataTypeService.GetByEditorAlias("Umbraco.RichText").FirstOrDefault();
+        logger.LogInformation("ContentSeeder: textBox={TextBox}, textArea={TextArea}, richText={RichText}",
+            textBox?.Name ?? "NULL", textArea?.Name ?? "NULL", richText?.Name ?? "NULL");
 
         if (textBox == null || textArea == null)
         {
@@ -269,7 +271,7 @@ public sealed class ContentSeeder(
                 contentPage.SetDefaultTemplate(contentPageTemplate);
             }
             var pageHeading = new PropertyType(shortStringHelper, textBox) { Alias = "pageHeading", Name = "Page Heading" };
-            var bodyContent = new PropertyType(shortStringHelper, textArea) { Alias = "bodyContent", Name = "Body Content" };
+            var bodyContent = new PropertyType(shortStringHelper, richText ?? textArea) { Alias = "bodyContent", Name = "Body Content" };
             var pageImage = new PropertyType(shortStringHelper, textBox) { Alias = "pageImage", Name = "Page Image" };
             contentPage.AddPropertyType(pageHeading, "content", "Content");
             contentPage.AddPropertyType(bodyContent, "content", "Content");
@@ -319,6 +321,38 @@ public sealed class ContentSeeder(
             "Content", "Content");
         contentTypeService.Save(homePage, Constants.Security.SuperUserId);
         logger.LogInformation("ContentSeeder: added Block List 'content' property to homePage.");
+    }
+
+    private void UpgradeBodyContentToRichText()
+    {
+        var contentPage = contentTypeService.Get("contentPage");
+        if (contentPage == null) return;
+
+        var bodyProp = contentPage.PropertyTypes.FirstOrDefault(p => p.Alias == "bodyContent");
+        if (bodyProp == null || bodyProp.PropertyEditorAlias == "Umbraco.RichText") return;
+
+        var richText = dataTypeService.GetByEditorAlias("Umbraco.RichText").FirstOrDefault();
+        if (richText == null)
+        {
+            logger.LogWarning("ContentSeeder: Umbraco.RichText data type not found, cannot upgrade bodyContent.");
+            return;
+        }
+
+        var propKey = bodyProp.Key;
+        var propSortOrder = bodyProp.SortOrder;
+
+        contentPage.RemovePropertyType("bodyContent");
+
+        var newProp = new PropertyType(shortStringHelper, richText)
+        {
+            Key = propKey,
+            Alias = "bodyContent",
+            Name = "Body Content",
+            SortOrder = propSortOrder
+        };
+        contentPage.AddPropertyType(newProp, "Content", "Content");
+        contentTypeService.Save(contentPage, Constants.Security.SuperUserId);
+        logger.LogInformation("ContentSeeder: upgraded bodyContent from TextArea to Umbraco.RichText.");
     }
 
     private void MigrateMediaPathsToImg()
