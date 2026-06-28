@@ -105,6 +105,34 @@ public sealed class PassiveMemberDropdownParsingTests
         Assert.NotEqual(MemberStatus.Deleted.Key, jsonArray);
     }
 
+    // ── Crash scenarios that require defensive reconstitution ─────────────────
+
+    [Fact]
+    public void Reconstitute_NullLevelKey_ThrowsDomainException()
+    {
+        // UmbracoDropdownHelper.ParseDropdownValue(null, null) returns null when
+        // a member's membershipLevel property is unset. Without the try/catch in
+        // UmbracoPassiveMembers.ReconstituteOrNull, this unhandled exception propagates
+        // through OnInitializedAsync and causes the admin page to return HTTP 500.
+        var nullLevel = UmbracoDropdownHelper.ParseDropdownValue(null, null);
+        Assert.Throws<DomainException>(() => PassiveMember.Reconstitute(
+            1, 42, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
+            null, "max@muster.ch", nullLevel!, false, null,
+            DateTime.UtcNow, "Pending", null, null, null, null, null, null, null));
+    }
+
+    [Fact]
+    public void Reconstitute_InvalidFieldNumber_ThrowsDomainException()
+    {
+        // When int.TryParse fails for the fieldNumber property, the default value 0
+        // is used. Without the try/catch, FieldNumber's range check throws, crashing
+        // the admin page for every request that enumerates members.
+        Assert.Throws<DomainException>(() => PassiveMember.Reconstitute(
+            1, 0, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
+            null, "max@muster.ch", "Bronze", false, null,
+            DateTime.UtcNow, "Pending", null, null, null, null, null, null, null));
+    }
+
     // ── Reconstitute mapping integration ──────────────────────────────────────
 
     [Theory]

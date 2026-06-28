@@ -28,6 +28,12 @@ public sealed class MembershipLevelTests
     }
 
     [Fact]
+    public void FromKey_Null_ThrowsDomainException()
+    {
+        Assert.Throws<DomainException>(() => MembershipLevel.FromKey(null!));
+    }
+
+    [Fact]
     public void StaticInstances_ReturnSameReference()
     {
         Assert.Same(MembershipLevel.Bronze, MembershipLevel.FromKey("Bronze"));

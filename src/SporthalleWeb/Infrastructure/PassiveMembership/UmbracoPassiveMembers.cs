@@ -31,7 +31,8 @@ public class UmbracoPassiveMembers(
         var result = memberService.GetMembersByMemberType(MemberTypeAlias)
             .Where(m => (UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null)) == MemberStatus.Pending.Key)
             .OrderBy(m => m.CreateDate)
-            .Select(Reconstitute)
+            .Select(ReconstituteOrNull)
+            .OfType<PassiveMember>()
             .ToList();
         return Task.FromResult<IReadOnlyList<PassiveMember>>(result);
     }
@@ -41,9 +42,23 @@ public class UmbracoPassiveMembers(
         var result = memberService.GetMembersByMemberType(MemberTypeAlias)
             .Where(m => UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null) == MemberStatus.Confirmed.Key)
             .OrderBy(m => int.TryParse(m.GetValue<string>("fieldNumber"), out var fn) ? fn : 0)
-            .Select(Reconstitute)
+            .Select(ReconstituteOrNull)
+            .OfType<PassiveMember>()
             .ToList();
         return Task.FromResult<IReadOnlyList<PassiveMember>>(result);
+    }
+
+    private PassiveMember? ReconstituteOrNull(IMember m)
+    {
+        try
+        {
+            return Reconstitute(m);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Skipping passivMember {MemberId} with invalid data.", m.Id);
+            return null;
+        }
     }
 
     public Task<PassiveMember?> FindByIdAsync(int id)
