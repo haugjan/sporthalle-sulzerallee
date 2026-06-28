@@ -140,14 +140,20 @@
             </label>
           </div>
 
-          <div class="bm-field bm-field--2col">
-            <label>Zeit (5-Min-Schritte)
-              <span style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem">
-                <input type="time" id="admin-bm-booking-start" step="300" style="flex:1" />
-                <span style="color:#555;font-weight:400;text-transform:none;letter-spacing:0">bis</span>
-                <input type="time" id="admin-bm-booking-end" step="300" style="flex:1" />
-              </span>
-            </label>
+          <div class="bm-field">
+            <label class="d-block">Zeit von *</label>
+            <TimePickerComponent HiddenInputId="admin-bm-booking-start"
+                                 Value="@_bookingStartTime"
+                                 ValueChanged="@(v => _bookingStartTime = v)"
+                                 Step="5" />
+          </div>
+
+          <div class="bm-field">
+            <label class="d-block">Zeit bis *</label>
+            <TimePickerComponent HiddenInputId="admin-bm-booking-end"
+                                 Value="@_bookingEndTime"
+                                 ValueChanged="@(v => _bookingEndTime = v)"
+                                 Step="5" />
           </div>
 
           <div class="bm-field bm-field--2col" style="position:relative">
@@ -283,6 +289,8 @@
 
     private DateOnly _seriesStart = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _seriesEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(6);
+    private string _bookingStartTime = "08:00";
+    private string _bookingEndTime = "10:00";
     private string _seriesStartTime = "08:00";
     private string _seriesEndTime = "10:00";
     private bool _bookingShowTitlePublic;
@@ -387,6 +395,14 @@
             contactLastName = m.ContactLastName,
         });
         return JsonSerializer.Serialize(result);
+    }
+
+    [JSInvokable]
+    public void SetBookingTimes(string start, string end)
+    {
+        _bookingStartTime = start;
+        _bookingEndTime = end;
+        StateHasChanged();
     }
 
     [JSInvokable]

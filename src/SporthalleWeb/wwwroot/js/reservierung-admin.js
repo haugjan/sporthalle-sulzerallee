@@ -506,6 +506,7 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-blocker-end', enStr);
     setEl('admin-bm-booking-start', stStr);
     setEl('admin-bm-booking-end', enStr);
+    if (_dotNet) _dotNet.invokeMethodAsync('SetBookingTimes', stStr, enStr);
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
     setTimeout(function () {
