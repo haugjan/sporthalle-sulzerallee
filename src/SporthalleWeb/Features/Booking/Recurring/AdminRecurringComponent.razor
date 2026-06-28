@@ -62,6 +62,12 @@
                     <div class="col-sm-8">
                         <label class="form-label fw-semibold">Bezeichnung *</label>
                         <input class="form-control" @bind="_fTitle" placeholder="@(_fIsBlocker ? "z.B. Hallenpflege, Wartung" : "z.B. Schulsport Klasse 3a")" />
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="checkbox" id="chk-stp-recurring" @bind="_fShowTitlePublic" />
+                            <label class="form-check-label fw-normal text-secondary" for="chk-stp-recurring" style="font-size:0.85rem">
+                                Bezeichnung auf öffentlichem Kalender anzeigen
+                            </label>
+                        </div>
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label fw-semibold">Wochentag *</label>
@@ -133,15 +139,6 @@
                     <div class="col-12">
                         <label class="form-label fw-semibold">Bemerkungen</label>
                         <textarea class="form-control" @bind="_fNotes" rows="2"></textarea>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="chk-stp-recurring"
-                                   @bind="_fShowTitlePublic" />
-                            <label class="form-check-label" for="chk-stp-recurring">
-                                Bezeichnung auf öffentlichem Kalender anzeigen
-                            </label>
-                        </div>
                     </div>
                 </div>
 
