@@ -48,7 +48,6 @@ public sealed class CreateBooking(
             endLocal.ToString("HH:mm"));
 
         await email.SendProvisionConfirmationToRenterAsync(booking, member, customBody);
-        await email.SendAdminNewBookingNotificationAsync(booking, member);
 
         return booking;
     }

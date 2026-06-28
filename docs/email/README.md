@@ -35,7 +35,6 @@ massgeblich ist `EmailLayout.cs`.
 | Reservationsbestätigung | `BrevoBookingEmail.SendProvisionConfirmationToRenterAsync` |
 | Buchungsbestätigung | `BrevoBookingEmail.SendBookingConfirmedToRenterAsync` |
 | Buchungsabsage | `BrevoBookingEmail.SendBookingRejectedToRenterAsync` |
-| Admin-Benachrichtigung (neue Anfrage) | `BrevoBookingEmail.SendAdminNewBookingNotificationAsync` |
 | Passivmitglied-Anfrage / Bestätigung | `BrevoPassiveMemberEmail.SendRegistrationConfirmationAsync` |
 
 Alle bauen ihr HTML über `EmailLayout.Render(...)` und senden es als

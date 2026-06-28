@@ -17,9 +17,9 @@ public sealed class BrevoBookingEmail(
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    private string AdminEmail => config["Brevo:AdminEmail"] ?? "admin@sporthalle-sulzerallee.ch";
-    private string SenderEmail => config["Brevo:SenderEmail"] ?? "noreply@sporthalle-sulzerallee.ch";
-    private string SenderName => "Sporthalle Sulzerallee";
+    // Reservation mails are sent from (and replies go to) the reservations inbox.
+    private const string SenderEmail = "reservation@sporthalle-sulzerallee.ch";
+    private const string SenderName = "Sporthalle Sulzerallee";
 
     // Alle Reservations-Mails immer als BCC an die Reservationsadresse.
     private const string ReservationBcc = "reservation@sporthalle-sulzerallee.ch";
@@ -39,17 +39,6 @@ public sealed class BrevoBookingEmail(
                 detail: customEmailBody is null ? $"Anlass: {slot.Title}" : null,
                 note: customEmailBody is null ? "Du erhältst eine separate Bestätigung, sobald die Reservation genehmigt wurde." : null));
     }
-
-    public Task SendAdminNewBookingNotificationAsync(BookingSlot slot, HallMember member) =>
-        SendAsync(AdminEmail, SenderName,
-            $"Neue Reservationsanfrage von {ContactName(member)}",
-            BuildEmail(
-                title: "Neue Reservationsanfrage",
-                greeting: "Hallo",
-                body: $"Eine neue Reservationsanfrage ist eingegangen.",
-                detail: $"Mieter: {ContactName(member)} ({member.Email.Value})<br>Zeitslot: {FormatSlot(slot)}<br>Anlass: {slot.Title}",
-                ctaUrl: "https://www.sporthalle-sulzerallee.ch/umbraco",
-                ctaLabel: "Zur Verwaltung"));
 
     public Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
     {
