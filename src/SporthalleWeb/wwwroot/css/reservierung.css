@@ -282,6 +282,17 @@
   align-self: start;
 }
 
+/* The backoffice "Erfassen" tab runs in an iframe without the public 68px
+   site-nav, so the sticky offsets (week-nav top:68px, panel top:120px) would
+   leave the calendar scrolling *above* the date row. Reset them to the iframe top. */
+.reservierung-admin .week-nav {
+  top: 0;
+}
+
+.reservierung-admin .reservierung-panel-col {
+  top: 52px; /* 36px week-nav + 16px week-nav margin */
+}
+
 /* ── Auswahl-Overlay (Drag-to-Select) ─────────────────────────────────── */
 
 .cal-selection {
