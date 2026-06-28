@@ -104,7 +104,7 @@
                     @if (!_fIsBlocker)
                     {
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Mieter</label>
+                            <label class="form-label fw-semibold">Mieter *</label>
                             @if (_fMemberId.HasValue)
                             {
                                 <div class="d-flex align-items-center gap-2 mb-1">
@@ -428,6 +428,7 @@ else
     private async Task SubmitAsync()
     {
         if (string.IsNullOrWhiteSpace(_fTitle)) { _error = "Bezeichnung ist erforderlich."; return; }
+        if (!_fIsBlocker && !_fMemberId.HasValue) { _error = "Mieter ist erforderlich."; return; }
         if (_fEndTime <= _fStartTime) { _error = "Endzeit muss nach Startzeit liegen."; return; }
         if (_fSeriesEnd < _fSeriesStart) { _error = "Serie-Ende muss nach Serie-Beginn liegen."; return; }
 
