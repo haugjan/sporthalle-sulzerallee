@@ -80,3 +80,33 @@ jobs:
           done
           echo "Deployment did not complete within 10 minutes."
           exit 1
+
+      - name: Warm up the site
+        run: |
+          BASE="https://app-sporthalle-sulzerallee.azurewebsites.net"
+          # Pages to pre-load so the first real visitor doesn't pay the cold-start cost.
+          PAGES="/ /reservierung /passivmitgliedschaft"
+
+          # Wait for the home page to return 200 (Umbraco fully started after restart).
+          echo "Waiting for the app to respond after restart..."
+          READY=0
+          for i in $(seq 1 40); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 "$BASE/")
+            echo "Attempt $i: GET / -> $HTTP_STATUS"
+            if [ "$HTTP_STATUS" = "200" ]; then
+              READY=1
+              break
+            fi
+            sleep 15
+          done
+          if [ "$READY" != "1" ]; then
+            echo "Site did not return 200 within the warm-up window."
+            exit 1
+          fi
+
+          # Prime the remaining pages so their views are JIT-compiled and caches filled.
+          for PAGE in $PAGES; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 "$BASE$PAGE")
+            echo "Warmed $PAGE -> $HTTP_STATUS"
+          done
+          echo "Warm-up complete."
