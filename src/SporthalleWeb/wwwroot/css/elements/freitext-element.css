@@ -14,3 +14,42 @@
 }
 .fte-text p { margin-bottom: 1.2em; }
 .fte-text p:last-child { margin-bottom: 0; }
+
+/* WYSIWYG-Variante: formatierter Fliesstext mit Überschriften, Listen, Links, Bildern */
+.fte-text--rich > :first-child { margin-top: 0; }
+.fte-text--rich > :last-child { margin-bottom: 0; }
+.fte-text--rich h2,
+.fte-text--rich h3,
+.fte-text--rich h4 {
+  font-family: 'Anton', Impact, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink, #1a1a1a);
+  line-height: 1.1;
+  margin: 1.8em 0 0.6em;
+}
+.fte-text--rich h2 { font-size: 1.9rem; }
+.fte-text--rich h3 { font-size: 1.45rem; }
+.fte-text--rich h4 { font-size: 1.2rem; }
+.fte-text--rich ul,
+.fte-text--rich ol { margin: 0 0 1.2em 1.4em; padding: 0; }
+.fte-text--rich li { margin-bottom: 0.4em; }
+.fte-text--rich a {
+  color: var(--dust, #eb504b);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.fte-text--rich a:hover { text-decoration: none; }
+.fte-text--rich strong { font-weight: 700; color: #2a2a2a; }
+.fte-text--rich blockquote {
+  margin: 1.4em 0;
+  padding: 0.4em 0 0.4em 1.2em;
+  border-left: 3px solid var(--dust, #eb504b);
+  color: #555;
+  font-style: italic;
+}
+.fte-text--rich img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.6em 0; }
+.fte-text--rich hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+.fte-text--rich table { width: 100%; border-collapse: collapse; margin: 1.4em 0; }
+.fte-text--rich th,
+.fte-text--rich td { border: 1px solid #e2e2e2; padding: 0.5em 0.7em; text-align: left; }

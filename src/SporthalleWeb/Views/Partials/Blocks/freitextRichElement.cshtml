@@ -1,0 +1,14 @@
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
+@{
+    var html = Model.Content.Value<string>("text");
+}
+@if (!string.IsNullOrWhiteSpace(html))
+{
+  <section class="fte-section">
+    <div class="fte-container">
+      <div class="fte-text fte-text--rich">
+        @Html.Raw(html)
+      </div>
+    </div>
+  </section>
+}
