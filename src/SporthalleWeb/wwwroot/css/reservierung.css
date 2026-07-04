@@ -540,6 +540,43 @@
   margin-bottom: 0.35rem;
 }
 
+/* ── Nutzungsvereinbarung-Link (unter den Preisen) ───────────────────────── */
+.nv-link-wrap { margin-top: 0.9rem; }
+
+.nv-link {
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dust, rgb(235,80,75));
+  text-decoration: underline;
+}
+
+.nv-link:hover { text-decoration: none; }
+
+/* ── Nutzungsvereinbarung-Checkbox (Buchungsmodal) ───────────────────────── */
+.bm-nv-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.bm-nv-check input[type="checkbox"] {
+  margin-top: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  accent-color: var(--dust, rgb(235,80,75));
+  cursor: pointer;
+}
+
+.bm-nv-check a {
+  color: var(--dust, rgb(235,80,75));
+  text-decoration: underline;
+}
+
 /* ── Buchungs-Modal ────────────────────────────────────────────────────── */
 
 .bm-overlay {

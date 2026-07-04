@@ -5,6 +5,16 @@
     var preisTitel = Model.Content.Value<string>("preisTitel") ?? "";
     var preisText  = Model.Content.Value<string>("preisText")  ?? "";
     var hasPreis   = !string.IsNullOrWhiteSpace(preisTitel) || !string.IsNullOrWhiteSpace(preisText);
+
+    // Nutzungsvereinbarung (verlinkte Datei unter den Preisen und im Buchungsmodal)
+    var nvTitel = Model.Content.Value<string>("nutzungsvereinbarungTitel");
+    if (string.IsNullOrWhiteSpace(nvTitel)) nvTitel = "Nutzungsvereinbarung";
+    var nvMedia = Model.Content.GetProperty("nutzungsvereinbarungDatei")?.GetValue() as Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent;
+    var nvUrl   = nvMedia?.Url() ?? "";
+    var nvDatum = Model.Content.Value<DateTime>("nutzungsvereinbarungDatum");
+    var nvDatumText = nvDatum != default(DateTime) ? nvDatum.ToString("dd.MM.yyyy") : "";
+    var hasNv   = !string.IsNullOrWhiteSpace(nvUrl);
+    var nvLinkText = string.IsNullOrEmpty(nvDatumText) ? nvTitel : $"{nvTitel} (Stand: {nvDatumText})";
 }
 <section class="res-element">
   <div class="reservierung-section">
@@ -88,6 +98,12 @@
             }
           </div>
         }
+        @if (hasNv)
+        {
+          <div class="nv-link-wrap">
+            <a href="@nvUrl" class="nv-link" target="_blank" rel="noopener">@nvLinkText →</a>
+          </div>
+        }
       </div>
 
     </div>
@@ -166,6 +182,16 @@
               <textarea id="bm-notes" rows="3" placeholder="Weitere Angaben (optional)"></textarea>
             </label>
           </div>
+          @if (hasNv)
+          {
+            <div class="bm-field bm-field--2col bm-nv-field">
+              <label class="bm-nv-check">
+                <input type="checkbox" id="bm-nv-accept" />
+                <span>Ich habe die <a href="@nvUrl" target="_blank" rel="noopener">@nvTitel</a> gelesen und akzeptiere sie. *</span>
+              </label>
+            </div>
+          }
+
           <div id="bm-turnstile" class="bm-turnstile" data-sitekey="@(Config["Turnstile:SiteKey"] is { Length: > 0 } k ? k : "1x00000000000000000000AA")"></div>
 
           <div id="bm-error" class="bm-error" hidden></div>

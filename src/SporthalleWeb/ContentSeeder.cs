@@ -41,6 +41,7 @@ public sealed class ContentSeeder(
         EnsureHomePageProperties();
         UpgradeBodyContentToRichText();
         UpgradePreisTextToRichText();
+        EnsureReservationAgreementProperties();
 
         if (contentService.GetRootContent().Any())
         {
@@ -386,6 +387,66 @@ public sealed class ContentSeeder(
         reservationElement.AddPropertyType(newProp, "Content", "Preise");
         contentTypeService.Save(reservationElement, Constants.Security.SuperUserId);
         logger.LogInformation("ContentSeeder: upgraded preisText from TextArea to Umbraco.RichText.");
+    }
+
+    // Adds the Nutzungsvereinbarung fields (file, title, date) to reservationElement on
+    // existing installs where uSync ImportOnStartup may be disabled (e.g. production).
+    private void EnsureReservationAgreementProperties()
+    {
+        var el = contentTypeService.Get("reservationElement");
+        if (el == null) return;
+
+        var mediaPickerKey = Guid.Parse("fd1e0da5-5606-4862-b679-5d0cf3a52a59");
+        var mediaPicker = dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault(d => d.Key == mediaPickerKey)
+                       ?? dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault();
+        var textBox = dataTypeService.GetByEditorAlias("Umbraco.TextBox").FirstOrDefault();
+        var datePicker = dataTypeService.GetByEditorAlias("Umbraco.DateTime").FirstOrDefault();
+        if (mediaPicker == null || textBox == null || datePicker == null)
+        {
+            logger.LogWarning("ContentSeeder: data types for Nutzungsvereinbarung not found, skipping.");
+            return;
+        }
+
+        const string groupAlias = "nutzungsvereinbarung";
+        const string groupName = "Nutzungsvereinbarung";
+        var changed = false;
+
+        if (el.PropertyTypes.All(p => p.Alias != "nutzungsvereinbarungDatei"))
+        {
+            el.AddPropertyType(new PropertyType(shortStringHelper, mediaPicker)
+            {
+                Alias = "nutzungsvereinbarungDatei",
+                Name = "Nutzungsvereinbarung (Datei)",
+                SortOrder = 0
+            }, groupAlias, groupName);
+            changed = true;
+        }
+        if (el.PropertyTypes.All(p => p.Alias != "nutzungsvereinbarungTitel"))
+        {
+            el.AddPropertyType(new PropertyType(shortStringHelper, textBox)
+            {
+                Alias = "nutzungsvereinbarungTitel",
+                Name = "Nutzungsvereinbarung Titel",
+                SortOrder = 1
+            }, groupAlias, groupName);
+            changed = true;
+        }
+        if (el.PropertyTypes.All(p => p.Alias != "nutzungsvereinbarungDatum"))
+        {
+            el.AddPropertyType(new PropertyType(shortStringHelper, datePicker)
+            {
+                Alias = "nutzungsvereinbarungDatum",
+                Name = "Nutzungsvereinbarung Datum",
+                SortOrder = 2
+            }, groupAlias, groupName);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            contentTypeService.Save(el, Constants.Security.SuperUserId);
+            logger.LogInformation("ContentSeeder: added Nutzungsvereinbarung properties to reservationElement.");
+        }
     }
 
     private void MigrateMediaPathsToImg()

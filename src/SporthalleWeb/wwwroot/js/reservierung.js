@@ -679,6 +679,9 @@
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Buchungsanfrage senden'; }
 
+    var nvCheck = document.getElementById('bm-nv-accept');
+    if (nvCheck) nvCheck.checked = false;
+
     updateOrgField();
     modal.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
@@ -744,6 +747,12 @@
     if (!billingPostalCode) { showModalError('Bitte gib die PLZ ein.'); return; }
     if (!billingCity) { showModalError('Bitte gib den Ort ein.'); return; }
     if (!eventTitle) { showModalError('Bitte gib die Bezeichnung ein.'); return; }
+
+    var nvCheck = document.getElementById('bm-nv-accept');
+    if (nvCheck && !nvCheck.checked) {
+      showModalError('Bitte bestätige, dass du die Nutzungsvereinbarung gelesen hast.');
+      return;
+    }
 
     var submitBtn = document.getElementById('bm-submit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Wird gesendet…'; }
