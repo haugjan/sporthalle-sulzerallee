@@ -637,6 +637,22 @@
 .pm-wizard-level__name { font-weight: 700; font-size: 0.95rem; color: #1a1a1a; display: block; }
 .pm-wizard-level__fee  { font-size: 0.85rem; color: #888; }
 
+/* Locked level (e.g. Bronze on a special field) */
+.pm-wizard-level--locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+.pm-wizard-level--locked:hover { border-color: #e0e0e0; background: #f5f5f5; }
+.pm-wizard-level--locked input[type="radio"] { cursor: not-allowed; }
+
+.pm-wizard-level__hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: rgb(235,80,75);
+  line-height: 1.4;
+}
+
 /* Wizard form inputs */
 .pm-wizard__body .pm-form-group { margin-bottom: 1rem; }
 

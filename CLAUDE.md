@@ -261,7 +261,8 @@ Note: code (namespace `SporthalleWeb.Features.PassiveMembership.*`, type names) 
 ```
 Domain/PassiveMembership/PassiveMemberAggregate/   ns SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate
   PassiveMember.cs               Aggregate Root
-  FieldNumber.cs                 Value Object (1–300)
+  FieldNumber.cs                 Value Object (1–1000)
+  FloorGrid.cs                   Grid resolution constants (Columns 40 × Rows 25 = 1000 fields)
   MemberEmail.cs                 Value Object (normalised lowercase)
   MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
   MemberStatus.cs                Pending / Confirmed / Deleted
@@ -326,7 +327,7 @@ Auth: Umbraco backoffice session cookie (inherited by the iframe).
 
 ### Public Floor Plan
 
-The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The component renders a 20×15 SVG grid (300 fields) and a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
+The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The component renders a 40×25 SVG grid (1000 fields) and a 6-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain). Special/VIP fields (Torraum, Anspielkreis, Anspielpunkt) require Silber or Gold; Bronze is blocked for them (enforced in `PassiveMember.Register` and in the wizard's level step).
 
 ### Membership Levels
 
@@ -351,7 +352,7 @@ Table name kept in German to avoid a destructive migration. All column names are
 | Column | Type | Notes |
 |---|---|---|
 | Id | INT IDENTITY | PK |
-| FieldNumber | INT UNIQUE | 1–300 |
+| FieldNumber | INT UNIQUE | 1–1000 |
 | FirstName, LastName | NVARCHAR(100) | |
 | AddressLine | NVARCHAR(300) | |
 | PostalCode, City | NVARCHAR | |
@@ -370,7 +371,7 @@ Migration: `PassiveMemberMigration` plan (v1: create table, v2: drop+recreate fo
 
 ```
 GET  /api/passivmitglieder/felder
-     → { occupiedFields: [{fieldNumber, displayName, vipLabel}], totalFields: 300 }
+     → { occupiedFields: [{fieldNumber, displayName, vipLabel}], totalFields: 1000 }
 
 POST /api/passivmitglieder/register
      Body: { fieldNumber, firstName, lastName, addressLine, postalCode, city,

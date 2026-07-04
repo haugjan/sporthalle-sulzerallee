@@ -80,7 +80,7 @@ public class UmbracoPassiveMembers(
             // Skip members with a missing/invalid field number instead of letting the
             // FieldNumber value object throw — one bad row must not blank the whole floor plan.
             var raw = m.GetValue<string>("fieldNumber");
-            if (!int.TryParse(raw, out var fn) || fn is < 1 or > 300)
+            if (!int.TryParse(raw, out var fn) || fn < 1 || fn > FloorGrid.TotalFields)
             {
                 logger.LogWarning(
                     "Skipping passivMember {MemberId} with invalid fieldNumber '{FieldNumber}'.", m.Id, raw);

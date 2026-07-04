@@ -6,8 +6,8 @@ public record FieldNumber
 
     public FieldNumber(int value)
     {
-        if (value < 1 || value > 300)
-            throw new DomainException($"Feldnummer muss zwischen 1 und 300 liegen (war: {value}).");
+        if (value < 1 || value > FloorGrid.TotalFields)
+            throw new DomainException($"Feldnummer muss zwischen 1 und {FloorGrid.TotalFields} liegen (war: {value}).");
         Value = value;
     }
 }

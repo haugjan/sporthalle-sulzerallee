@@ -2,38 +2,39 @@ namespace SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
 
 public static class VipField
 {
-    // col 1-3, row 5-9 (0-based, fieldNumber = row*20 + col + 1)
-    private static readonly HashSet<int> GoalCreaseLeft  = ComputeRange(cols: (1, 3),   rows: (5, 9));
-    private static readonly HashSet<int> GoalCreaseRight = ComputeRange(cols: (16, 18), rows: (5, 9));
-    private static readonly HashSet<int> CenterCircle    = ComputeRange(cols: (8, 11),  rows: (5, 9));
+    // VIP areas expressed as fractions [0,1] of the floor grid (x = column axis,
+    // y = row axis). Defining them as fractions keeps them aligned with the goal
+    // creases, centre circle and face-off spots painted on the floor image no
+    // matter the grid resolution (see FloorGrid).
+    private sealed record Region(string Label, double X0, double X1, double Y0, double Y1);
 
-    // Face-off spots: top/bottom of each side + center top/bottom
-    private static readonly HashSet<int> FaceOffSpots =
+    private static readonly Region[] Regions =
     [
-        45,
-        // left bottom (col 2, row 12) = 12*20+2+1=243
-        243,
-        // right top (col 17, row 2) = 2*20+17+1=58
-        58,
-        // right bottom (col 17, row 12) = 12*20+17+1=258
-        258
+        new("Torraum",      0.05, 0.20, 1.0 / 3, 2.0 / 3), // left goal crease
+        new("Torraum",      0.80, 0.95, 1.0 / 3, 2.0 / 3), // right goal crease
+        new("Anspielkreis", 0.40, 0.60, 1.0 / 3, 2.0 / 3), // centre circle
+        new("Anspielpunkt", 0.20, 0.25, 0.12, 0.21),       // face-off left top
+        new("Anspielpunkt", 0.10, 0.15, 0.79, 0.88),       // face-off left bottom
+        new("Anspielpunkt", 0.85, 0.90, 0.12, 0.21),       // face-off right top
+        new("Anspielpunkt", 0.85, 0.90, 0.79, 0.88),       // face-off right bottom
     ];
 
-    public static string? GetLabel(int fieldNumber) =>
-        GoalCreaseLeft.Contains(fieldNumber)  ? "Torraum" :
-        GoalCreaseRight.Contains(fieldNumber) ? "Torraum" :
-        CenterCircle.Contains(fieldNumber)    ? "Anspielkreis" :
-        FaceOffSpots.Contains(fieldNumber)    ? "Anspielpunkt" :
-        null;
+    public static string? GetLabel(int fieldNumber)
+    {
+        if (fieldNumber < 1 || fieldNumber > FloorGrid.TotalFields) return null;
+
+        var idx = fieldNumber - 1;
+        var col = idx % FloorGrid.Columns;
+        var row = idx / FloorGrid.Columns;
+        var cx = (col + 0.5) / FloorGrid.Columns;
+        var cy = (row + 0.5) / FloorGrid.Rows;
+
+        foreach (var r in Regions)
+            if (cx >= r.X0 && cx <= r.X1 && cy >= r.Y0 && cy <= r.Y1)
+                return r.Label;
+
+        return null;
+    }
 
     public static bool IsVip(int fieldNumber) => GetLabel(fieldNumber) != null;
-
-    private static HashSet<int> ComputeRange((int from, int to) cols, (int from, int to) rows)
-    {
-        var result = new HashSet<int>();
-        for (var r = rows.from; r <= rows.to; r++)
-            for (var c = cols.from; c <= cols.to; c++)
-                result.Add(r * 20 + c + 1);
-        return result;
-    }
 }

@@ -31,7 +31,7 @@
     }
   </button>
 
-  <p class="pm-counter"><span id="pm-counter">@_occupiedCount von 300 Feldern belegt</span></p>
+  <p class="pm-counter"><span id="pm-counter">@_occupiedCount von @FloorGrid.TotalFields Feldern belegt</span></p>
 
   @*
     Container: always clickable. In non-expanded state, the SVG has pointer-events:none
@@ -43,15 +43,19 @@
     <img src="/img/unihockey-boden.svg" alt="" aria-hidden="true" id="pm-floor-img" />
     @* SVG grid overlaid on the image. pointer-events:none when collapsed (see CSS). *@
     <svg viewBox="0 0 840 440" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
-      @for (int row = 0; row < 15; row++)
+      @{
+        var cw = 800.0 / FloorGrid.Columns; // cell width in viewBox units
+        var chBase = 400.0 / FloorGrid.Rows; // cell height in viewBox units
+      }
+      @for (int row = 0; row < FloorGrid.Rows; row++)
       {
-        for (int col = 0; col < 20; col++)
+        for (int col = 0; col < FloorGrid.Columns; col++)
         {
-          var fn       = row * 20 + col + 1;
-          var cx       = 20 + col * 40;
-          var cy       = 20 + row * 400.0 / 15.0;
-          var ch       = 400.0 / 15.0;
-          var midX     = cx + 20;
+          var fn       = row * FloorGrid.Columns + col + 1;
+          var cx       = 20 + col * cw;
+          var cy       = 20 + row * chBase;
+          var ch       = chBase;
+          var midX     = cx + cw / 2.0;
           var midY     = cy + ch / 2.0;
           var isVip      = VipField.IsVip(fn);
           var isOccupied = _occupiedFields.Contains(fn);
@@ -64,16 +68,16 @@
           var vipLbl = !isOccupied ? VipField.GetLabel(fn) : null;
 
           <g @key="fn" @onclick="() => CellClicked(fn, isOccupied)" @onclick:stopPropagation="true">
-            @((MarkupString)$"<rect x='{cx}' y='{cy:F2}' width='40' height='{ch:F2}' class='{cssClass}' />")
+            @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}' />")
             @if (dn is not null)
             {
-              var truncated = dn.Length > 9 ? dn[..8] + "…" : dn;
-              var fullAttr  = dn.Length > 9 ? $" data-fullname=\"{HtmlEncoder.Default.Encode(dn)}\"" : "";
-              @((MarkupString)$"<text x='{midX}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='5.5' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
+              var truncated = dn.Length > 6 ? dn[..5] + "…" : dn;
+              var fullAttr  = dn.Length > 6 ? $" data-fullname=\"{HtmlEncoder.Default.Encode(dn)}\"" : "";
+              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='3.2' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
             }
-            @if (vipLbl is not null)
+            else if (vipLbl is not null)
             {
-              @((MarkupString)$"<text x='{midX}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='5.5' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.6)' pointer-events='none'>{HtmlEncoder.Default.Encode(vipLbl)}</text>")
+              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.55)' pointer-events='none'>{HtmlEncoder.Default.Encode(vipLbl)}</text>")
             }
           </g>
         }
@@ -136,12 +140,16 @@
         {
           <div class="pm-step pm-step--active" data-step="2">
             <h3>Mitgliedsstufe wählen</h3>
+            @{
+              var fieldIsVip = _selectedField is int vipFn && VipField.IsVip(vipFn);
+            }
             <div class="pm-wizard-levels">
               @foreach (var level in new[] { MembershipLevel.Bronze, MembershipLevel.Silber, MembershipLevel.Gold })
               {
                 var lk = level.Key;
-                <label class="pm-wizard-level pm-wizard-level--@lk.ToLower() @(_levelKey == lk ? "pm-wizard-level--selected" : "")">
-                  <input type="radio" name="levelKey" value="@lk" checked="@(_levelKey == lk)"
+                var locked = fieldIsVip && lk == "Bronze";
+                <label class="pm-wizard-level pm-wizard-level--@lk.ToLower() @(_levelKey == lk ? "pm-wizard-level--selected" : "") @(locked ? "pm-wizard-level--locked" : "")">
+                  <input type="radio" name="levelKey" value="@lk" checked="@(_levelKey == lk)" disabled="@locked"
                          @onchange="() => _levelKey = lk" />
                   <span class="pm-wizard-level__badge">@lk</span>
                   <span class="pm-wizard-level__info">
@@ -151,6 +159,10 @@
                 </label>
               }
             </div>
+            @if (fieldIsVip)
+            {
+              <p class="pm-wizard-level__hint">Dieses Spezialfeld (Torraum, Anspielkreis oder Anspielpunkt) ist nur mit Silber oder Gold wählbar.</p>
+            }
             @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
         }
@@ -336,6 +348,8 @@
         if (!_expanded) { await SetExpanded(true); return; }
         if (isOccupied) return;
         _selectedField = fieldNum;
+        // Bronze is not allowed on special fields; clear a prior Bronze choice.
+        if (VipField.IsVip(fieldNum) && _levelKey == "Bronze") _levelKey = "";
         _step          = Step.Field;
         _stepError     = null;
     }
@@ -357,6 +371,7 @@
     {
         _stepError = null;
         if (_step == Step.Level   && string.IsNullOrEmpty(_levelKey))        { _stepError = "Bitte eine Stufe wählen."; return; }
+        if (_step == Step.Level   && _selectedField is int vf && VipField.IsVip(vf) && _levelKey == "Bronze") { _stepError = "Für dieses Spezialfeld ist mindestens Silber erforderlich."; return; }
         if (_step == Step.Person  && (string.IsNullOrWhiteSpace(_firstName) || string.IsNullOrWhiteSpace(_lastName) || string.IsNullOrWhiteSpace(_email))) { _stepError = "Bitte alle Felder ausfüllen."; return; }
         if (_step == Step.Address && (string.IsNullOrWhiteSpace(_addressLine) || string.IsNullOrWhiteSpace(_postalCode) || string.IsNullOrWhiteSpace(_city))) { _stepError = "Bitte alle Felder ausfüllen."; return; }
         if (_step == Step.Consent && !_consent) { _stepError = "Bitte stimme der Datenschutzerklärung zu."; return; }

@@ -35,6 +35,30 @@ public sealed class PassiveMemberTests
     }
 
     [Fact]
+    public void Register_VipFieldWithBronze_Throws()
+    {
+        // field 337 (row 8, col 16) is Anspielkreis → special field, Bronze not allowed
+        Assert.Throws<DomainException>(() => PassiveMember.Register(
+            new FieldNumber(8 * 40 + 16 + 1), "Max", "Muster",
+            "Musterstrasse 1", null, "8400", "Winterthur",
+            null, new MemberEmail("max@muster.ch"),
+            MembershipLevel.Bronze, false, null));
+    }
+
+    [Theory]
+    [InlineData("Silber")]
+    [InlineData("Gold")]
+    public void Register_VipFieldWithSilberOrGold_Succeeds(string levelKey)
+    {
+        var m = PassiveMember.Register(
+            new FieldNumber(8 * 40 + 16 + 1), "Max", "Muster",
+            "Musterstrasse 1", null, "8400", "Winterthur",
+            null, new MemberEmail("max@muster.ch"),
+            MembershipLevel.FromKey(levelKey), false, null);
+        Assert.Equal(levelKey, m.Level.Key);
+    }
+
+    [Fact]
     public void Register_ShowNameOnFloor_RequiresDisplayName()
     {
         Assert.Throws<DomainException>(() => CreateMember(showNameOnFloor: true, displayName: null));

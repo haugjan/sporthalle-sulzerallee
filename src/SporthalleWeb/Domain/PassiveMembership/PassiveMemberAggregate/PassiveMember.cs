@@ -46,6 +46,9 @@ public sealed class PassiveMember
         if (showNameOnFloor && string.IsNullOrWhiteSpace(displayName))
             throw new DomainException("Anzeigename erforderlich, wenn Name sichtbar sein soll.");
 
+        if (VipField.IsVip(fieldNumber.Value) && level.Key == "Bronze")
+            throw new DomainException("Spezialfelder (Torraum, Anspielkreis, Anspielpunkt) sind nur mit Silber oder Gold wählbar.");
+
         return new PassiveMember
         {
             FieldNumber = fieldNumber,
