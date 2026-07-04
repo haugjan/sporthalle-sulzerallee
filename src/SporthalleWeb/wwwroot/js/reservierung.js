@@ -23,6 +23,12 @@
   var selectedSlot = null;
   var isDragging = false;
 
+  // Auto-Scroll beim Draggen an den Fensterrand (v.a. Mobil)
+  var autoScrollRAF = null;
+  var lastPointerY = 0;
+  var AUTOSCROLL_EDGE = 70;      // px-Zone am oberen/unteren Rand, die das Scrollen auslöst
+  var AUTOSCROLL_MAX_SPEED = 18; // max. px pro Frame
+
   // Turnstile CAPTCHA
   var _bmTsId = null;
 
@@ -442,11 +448,19 @@
     if (!isDragging || !dragState) return;
     e.preventDefault();
 
+    lastPointerY = getClientXY(e).y;
+    applyDragSelection();
+    updateAutoScroll();
+  }
+
+  // Berechnet den Endblock aus der zuletzt bekannten Zeigerposition (lastPointerY)
+  // und dem aktuellen Scroll-Offset und aktualisiert das Auswahl-Overlay.
+  function applyDragSelection() {
+    if (!dragState) return;
     var layout = computeGridLayout();
     if (!layout) return;
 
-    var xy = getClientXY(e);
-    var relY = xy.y - layout.gridRect.top;
+    var relY = lastPointerY - layout.gridRect.top;
     var rawBlock = blockFromY(relY, layout.contentTop) + 1;
     var endBlock = Math.min(TOTAL_BLOCKS, Math.max(dragState.startBlock + 2, Math.min(TOTAL_BLOCKS, rawBlock)));
 
@@ -455,9 +469,58 @@
     renderSelectionOverlay(dragState.dayIdx, dragState.startBlock, endBlock, layout);
   }
 
+  // Scroll-Geschwindigkeit abhängig davon, wie nah der Finger am Fensterrand ist.
+  // Positiv = nach unten scrollen, negativ = nach oben, 0 = ausserhalb der Randzone.
+  function computeAutoScrollSpeed() {
+    var vh = window.innerHeight;
+    if (lastPointerY > vh - AUTOSCROLL_EDGE) {
+      var down = (lastPointerY - (vh - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE;
+      return Math.min(1, down) * AUTOSCROLL_MAX_SPEED;
+    }
+    if (lastPointerY < AUTOSCROLL_EDGE) {
+      var up = (AUTOSCROLL_EDGE - lastPointerY) / AUTOSCROLL_EDGE;
+      return -Math.min(1, up) * AUTOSCROLL_MAX_SPEED;
+    }
+    return 0;
+  }
+
+  function autoScrollTick() {
+    if (!isDragging || !dragState) { autoScrollRAF = null; return; }
+
+    var speed = computeAutoScrollSpeed();
+    if (speed === 0) { autoScrollRAF = null; return; }
+
+    var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    var y = window.scrollY;
+    if ((speed < 0 && y <= 0) || (speed > 0 && y >= maxScroll)) {
+      autoScrollRAF = null;
+      return;
+    }
+
+    window.scrollBy(0, speed);
+    // Nach dem Scrollen den Endblock aus derselben Fingerposition neu berechnen,
+    // damit die Auswahl mit dem scrollenden Grid mitwächst.
+    applyDragSelection();
+    autoScrollRAF = requestAnimationFrame(autoScrollTick);
+  }
+
+  function updateAutoScroll() {
+    if (autoScrollRAF !== null) return;        // Schleife läuft bereits
+    if (computeAutoScrollSpeed() === 0) return; // Finger nicht am Rand
+    autoScrollRAF = requestAnimationFrame(autoScrollTick);
+  }
+
+  function stopAutoScroll() {
+    if (autoScrollRAF !== null) {
+      cancelAnimationFrame(autoScrollRAF);
+      autoScrollRAF = null;
+    }
+  }
+
   function onDragEnd(e) {
     if (!isDragging || !dragState) return;
     isDragging = false;
+    stopAutoScroll();
 
     var startBlock = dragState.startBlock;
     var endBlock = dragState.currentEndBlock;
