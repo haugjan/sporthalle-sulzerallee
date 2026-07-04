@@ -5,6 +5,18 @@
   max-width: 1200px; margin: 0 auto; padding: 0 2.5rem;
 }
 .pme-iframe {
-  width: 100%; min-height: 700px;
+  width: 100%;
+  /* Modest floor before the iframe reports its real content height via postMessage.
+     Kept low so the JS-set exact height can shrink below it and remove the gap. */
+  min-height: 320px;
   border: none; display: block;
+  transition: height 0.15s ease;
+}
+
+/* Full-width breakout when the floor plan is expanded (mirrors the child's expand state). */
+.pme-iframe.is-expanded {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
 }

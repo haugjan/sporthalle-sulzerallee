@@ -47,6 +47,28 @@
         window.pmNotifyExpand = function(expanded) {
             window.parent.postMessage({ type: 'pm-expand', expanded: !!expanded }, '*');
         };
+
+        // Report content height to the parent so the embedding iframe can size itself
+        // exactly to the floor plan (avoids a large empty gap below the tool).
+        (function () {
+            var lastHeight = 0;
+            function postHeight() {
+                var h = Math.ceil(document.documentElement.scrollHeight);
+                if (h > 0 && h !== lastHeight) {
+                    lastHeight = h;
+                    window.parent.postMessage({ type: 'pm-height', height: h }, '*');
+                }
+            }
+            window.addEventListener('load', postHeight);
+            window.addEventListener('resize', postHeight);
+            if (window.ResizeObserver) {
+                new ResizeObserver(postHeight).observe(document.body);
+            }
+            // Fallbacks: Blazor prerender hydration and floor-plan image load can
+            // change the height shortly after the initial paint.
+            setTimeout(postHeight, 300);
+            setTimeout(postHeight, 1200);
+        })();
     </script>
 </body>
 </html>

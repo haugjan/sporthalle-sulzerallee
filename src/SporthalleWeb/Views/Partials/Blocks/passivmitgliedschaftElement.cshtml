@@ -4,5 +4,20 @@
     <iframe src="/passivmitglieder/hallenboden"
             class="pme-iframe"
             title="Hallenboden Passivmitgliedschaft"></iframe>
+    <script>
+      (function () {
+        var frame = document.currentScript.previousElementSibling;
+        if (!frame || frame.tagName !== 'IFRAME') return;
+        window.addEventListener('message', function (e) {
+          if (e.source !== frame.contentWindow) return;
+          var d = e.data || {};
+          if (d.type === 'pm-height' && typeof d.height === 'number' && d.height > 0) {
+            frame.style.height = d.height + 'px';
+          } else if (d.type === 'pm-expand') {
+            frame.classList.toggle('is-expanded', !!d.expanded);
+          }
+        });
+      })();
+    </script>
   </div>
 </section>
