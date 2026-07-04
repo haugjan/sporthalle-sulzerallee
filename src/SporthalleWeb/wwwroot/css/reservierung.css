@@ -492,6 +492,44 @@
 
 .preis-panel--static { margin-top: 1rem; }
 
+/* RichText-Inhalt im Preis-Panel (WYSIWYG) */
+.preis-panel__richtext {
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.6;
+}
+
+.preis-panel__richtext > :first-child { margin-top: 0; }
+.preis-panel__richtext > :last-child { margin-bottom: 0; }
+
+.preis-panel__richtext p { margin: 0 0 0.6em; }
+
+.preis-panel__richtext ul,
+.preis-panel__richtext ol {
+  margin: 0 0 0.6em;
+  padding-left: 1.3em;
+}
+
+.preis-panel__richtext li { margin-bottom: 0.2em; }
+
+.preis-panel__richtext table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 0.6em;
+}
+
+.preis-panel__richtext th,
+.preis-panel__richtext td {
+  border: 1px solid #e0e0e0;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.preis-panel__richtext a {
+  color: var(--dust, rgb(235,80,75));
+  text-decoration: underline;
+}
+
 .preis-panel__label {
   display: block;
   font-size: 0.65rem;

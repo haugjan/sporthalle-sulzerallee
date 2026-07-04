@@ -84,7 +84,7 @@
             }
             @if (!string.IsNullOrWhiteSpace(preisText))
             {
-              <p>@preisText</p>
+              <div class="preis-panel__richtext">@Html.Raw(preisText)</div>
             }
           </div>
         }

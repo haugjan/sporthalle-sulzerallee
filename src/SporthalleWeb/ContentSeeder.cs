@@ -40,6 +40,7 @@ public sealed class ContentSeeder(
         EnsureContentTypeTemplates(homeTemplate, contentPageTemplate);
         EnsureHomePageProperties();
         UpgradeBodyContentToRichText();
+        UpgradePreisTextToRichText();
 
         if (contentService.GetRootContent().Any())
         {
@@ -353,6 +354,38 @@ public sealed class ContentSeeder(
         contentPage.AddPropertyType(newProp, "Content", "Content");
         contentTypeService.Save(contentPage, Constants.Security.SuperUserId);
         logger.LogInformation("ContentSeeder: upgraded bodyContent from TextArea to Umbraco.RichText.");
+    }
+
+    private void UpgradePreisTextToRichText()
+    {
+        var reservationElement = contentTypeService.Get("reservationElement");
+        if (reservationElement == null) return;
+
+        var preisProp = reservationElement.PropertyTypes.FirstOrDefault(p => p.Alias == "preisText");
+        if (preisProp == null || preisProp.PropertyEditorAlias == "Umbraco.RichText") return;
+
+        var richText = dataTypeService.GetByEditorAlias("Umbraco.RichText").FirstOrDefault();
+        if (richText == null)
+        {
+            logger.LogWarning("ContentSeeder: Umbraco.RichText data type not found, cannot upgrade preisText.");
+            return;
+        }
+
+        var propKey = preisProp.Key;
+        var propSortOrder = preisProp.SortOrder;
+
+        reservationElement.RemovePropertyType("preisText");
+
+        var newProp = new PropertyType(shortStringHelper, richText)
+        {
+            Key = propKey,
+            Alias = "preisText",
+            Name = "Preis Text",
+            SortOrder = propSortOrder
+        };
+        reservationElement.AddPropertyType(newProp, "Content", "Preise");
+        contentTypeService.Save(reservationElement, Constants.Security.SuperUserId);
+        logger.LogInformation("ContentSeeder: upgraded preisText from TextArea to Umbraco.RichText.");
     }
 
     private void MigrateMediaPathsToImg()
