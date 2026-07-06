@@ -1,0 +1,61 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zahlung abgebrochen – Sporthalle Sulzerallee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --dust: #EB504B; --ink: #101010; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            font-family: "Manrope", Arial, sans-serif; color: var(--ink);
+            background: #f4f4f4; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+        }
+        .card {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+            max-width: 560px; width: 100%; overflow: hidden; text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,.06);
+        }
+        .card__bar { height: 6px; background: var(--dust); }
+        .card__inner { padding: 40px 36px 44px; }
+        .card__logo { width: 190px; max-width: 60%; height: auto; margin-bottom: 24px; }
+        h1 {
+            font-family: "Anton", "Arial Black", sans-serif; font-weight: 400;
+            text-transform: uppercase; letter-spacing: .5px; font-size: 34px;
+            line-height: 1.1; margin: 0 0 6px;
+        }
+        .rule { height: 3px; width: 48px; background: var(--dust); margin: 14px auto 22px; }
+        p { font-size: 16px; line-height: 1.65; color: #323232; margin: 0 0 16px; }
+        .twint { font-weight: 700; }
+        .btn {
+            display: inline-block; margin-top: 14px; background: var(--dust); color: #fff;
+            text-decoration: none; font-weight: 700; font-size: 15px;
+            padding: 13px 28px; border-radius: 6px;
+        }
+        .icon { width: 64px; height: 64px; margin: 0 auto 18px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card__bar"></div>
+        <div class="card__inner">
+            <img class="card__logo" src="/img/sporthalle_sulzerallee_logo_neu.png" alt="Sporthalle Sulzerallee" />
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#EB504B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <h1>Zahlung abgebrochen</h1>
+            <div class="rule"></div>
+            <p>Deine Zahlung wurde nicht abgeschlossen. Deine Anmeldung ist gespeichert, dein Feld wird aber erst nach erfolgreicher Zahlung definitiv gesichert und deine Nennung erscheint erst nach Zahlungseingang.</p>
+            <p>Du kannst die erste Zahlung jederzeit per <span class="twint">TWINT</span> nachholen. Den Zahlungslink findest du in deiner Bestätigungs-E-Mail.</p>
+            <a class="btn" href="https://www.sporthalle-sulzerallee.ch/passivmitgliedschaft">Zurück zur Website</a>
+        </div>
+    </div>
+</body>
+</html>
