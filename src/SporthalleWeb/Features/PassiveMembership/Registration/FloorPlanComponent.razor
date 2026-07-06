@@ -97,7 +97,8 @@
 {
   <div class="pm-success-wrap">
     <div class="pm-message pm-message--success">
-      Herzlich willkommen! Deine Anmeldung ist eingegangen. Du erhältst in Kürze eine Bestätigungs-E-Mail.
+      Herzlich willkommen! Deine Anmeldung ist eingegangen. Du wirst nun zur Zahlung weitergeleitet.
+      Falls die Weiterleitung nicht funktioniert, <a href="@PaymentLink.Url" target="_top">hier klicken, um zu bezahlen</a>.
     </div>
   </div>
 }
@@ -444,6 +445,9 @@
             _step           = Step.None;
             _selectedField  = null;
             _success        = true;
+
+            // Payment is mandatory: send the customer straight to the RaiseNow payment page.
+            await JS.InvokeVoidAsync("pmRedirectToPayment", PaymentLink.Url);
         }
         catch (FieldAlreadyTakenException) { _captchaInitialized = false; _submitError = "Dieses Feld wurde soeben von jemand anderem gewählt. Bitte wähle ein anderes."; }
         catch (DomainException ex)         { _captchaInitialized = false; _submitError = ex.Message; }

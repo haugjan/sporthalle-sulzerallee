@@ -87,9 +87,12 @@ public class UmbracoPassiveMembers(
                 continue;
             }
 
-            var show = m.GetValue<bool>("showNameOnFloor");
-            var displayName = show && status == MemberStatus.Confirmed.Key
-                ? m.GetValue<string>("floorDisplayName").NullIfEmpty()
+            // The name is only shown once the yearly fee has been paid; an
+            // unpaid field stays occupied but anonymous on the floor plan.
+            var isPaid = m.GetValue<DateTime?>(PassivMemberAliases.PaidAt).HasValue;
+            var show = m.GetValue<bool>(PassivMemberAliases.ShowNameOnFloor);
+            var displayName = show && isPaid
+                ? m.GetValue<string>(PassivMemberAliases.FloorDisplayName).NullIfEmpty()
                 : null;
             result.Add((new FieldNumber(fn), displayName));
         }

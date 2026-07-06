@@ -47,6 +47,13 @@
         window.pmNotifyExpand = function(expanded) {
             window.parent.postMessage({ type: 'pm-expand', expanded: !!expanded }, '*');
         };
+        // Send the whole browser (top window, not just this iframe) to the payment page
+        // after a successful registration. Falls back to the iframe if the top window
+        // is not reachable (e.g. cross-origin embedding).
+        window.pmRedirectToPayment = function(url) {
+            try { window.top.location.href = url; }
+            catch (e) { window.location.href = url; }
+        };
 
         // Report content height to the parent so the embedding iframe can size itself
         // exactly to the floor plan (avoids a large empty gap below the tool).

@@ -33,11 +33,13 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
             title: "Passivmitgliedschaft bestätigt",
             body: "Herzlich willkommen bei der Sporthalle Sulzerallee! " +
                   $"Deine Anmeldung als Passivmitglied ({member.Level.DisplayName}) ist eingegangen. " +
-                  "Du erhältst die Rechnung für den Jahresbeitrag in Kürze separat.",
+                  $"Für den Jahresbeitrag von CHF {member.Level.YearlyFee}.– bezahlst du bequem über den folgenden Link. " +
+                  "Sobald deine Zahlung eingegangen ist, wird eine allfällig gewünschte Nennung auf dem Unihockeyfeld angezeigt.",
             greeting: $"Hallo {member.FirstName},",
             details: details,
-            ctaUrl: "https://www.sporthalle-sulzerallee.ch",
-            ctaLabel: "Zur Website");
+            note: "Hast du direkt nach der Anmeldung bereits bezahlt? Dann kannst du diesen Hinweis ignorieren.",
+            ctaUrl: PaymentLink.Url,
+            ctaLabel: "Jetzt bezahlen");
 
         var payload = new
         {
