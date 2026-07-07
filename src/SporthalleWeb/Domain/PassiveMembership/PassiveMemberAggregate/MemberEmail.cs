@@ -9,8 +9,6 @@ public record MemberEmail
     public MemberEmail(string value)
     {
         var trimmed = value?.Trim() ?? "";
-        // MailAddress.TryCreate verifies basic structure (local@domain) without being so strict
-        // that it rejects addresses already stored from the previous '@'-only check.
         if (string.IsNullOrWhiteSpace(trimmed)
             || !MailAddress.TryCreate(trimmed, out var parsed)
             || parsed.Address != trimmed)

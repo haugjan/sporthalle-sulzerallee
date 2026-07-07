@@ -17,11 +17,9 @@ public sealed class BrevoBookingEmail(
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
-    // Reservation mails are sent from (and replies go to) the reservations inbox.
     private const string SenderEmail = "reservation@sporthalle-sulzerallee.ch";
     private const string SenderName = "Sporthalle Sulzerallee";
 
-    // Alle Reservations-Mails immer als BCC an die Reservationsadresse.
     private const string ReservationBcc = "reservation@sporthalle-sulzerallee.ch";
 
     public Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
@@ -74,7 +72,6 @@ public sealed class BrevoBookingEmail(
     private static string ContactName(HallMember member) =>
         $"{member.ContactFirstName} {member.ContactLastName}".Trim();
 
-    // Shared, homepage-aligned layout (see Infrastructure/Shared/EmailLayout.cs).
     private static string BuildEmail(
         string title, string greeting, string body,
         string? detail = null, string? note = null,

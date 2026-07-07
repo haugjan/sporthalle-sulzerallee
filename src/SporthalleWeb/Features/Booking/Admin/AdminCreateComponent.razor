@@ -8,7 +8,6 @@
 @inject IHallMembers Members
 @implements IAsyncDisposable
 
-<!-- Calendar (identical to the public page) -->
 <div style="padding: 0.5rem 0 1rem;">
 
   <div class="reservierung-layout" style="padding: 0 1.5rem; gap: 1.5rem;">
@@ -72,7 +71,6 @@
   </div>
 </div>
 
-<!-- Admin-Buchungsmodal -->
 <div class="bm-overlay" id="admin-booking-modal" hidden aria-modal="true" role="dialog">
   <div class="bm-card">
 
@@ -83,7 +81,6 @@
 
     <div class="bm-slot-summary" id="admin-bm-slot-summary"></div>
 
-    <!-- Typ-Wahl -->
     <div style="display:flex; gap:0.75rem; padding: 0.75rem 1.5rem 0.5rem;">
       <button id="admin-type-blocker" class="bm-btn-primary" style="flex:1; font-size:0.95rem;">Blocker</button>
       <button id="admin-type-booking" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Buchung</button>
@@ -93,7 +90,6 @@
       <button id="admin-sched-recurring" class="bm-btn-secondary" style="flex:1; font-size:0.95rem;">Serientermin</button>
     </div>
 
-    <!-- Blocker-Formular -->
     <div id="admin-bm-body-blocker-single">
       <div class="bm-body">
         <div class="bm-form">
@@ -125,7 +121,6 @@
       </div>
     </div>
 
-    <!-- Buchungsformular -->
     <div id="admin-bm-body-booking-single" hidden>
       <div class="bm-body">
         <div class="bm-form">
@@ -190,7 +185,6 @@
       </div>
     </div>
 
-    <!-- Serientermin-Formular -->
     <div id="admin-bm-body-recurring" hidden>
       <div class="bm-body">
         <div class="bm-form">
@@ -252,7 +246,6 @@
               <textarea id="admin-bm-recurring-notes" rows="2" placeholder="Weitere Angaben (optional)"></textarea>
             </label>
           </div>
-          <!-- Konflikt-Panel (hidden initially) -->
           <div id="admin-bm-recurring-conflicts" hidden style="width:100%">
             <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:0.9rem 1rem;color:#664d03">
               <strong>Konflikte gefunden:</strong>
@@ -273,7 +266,6 @@
       </div>
     </div>
 
-    <!-- Erfolgsmeldung -->
     <div class="bm-success" id="admin-bm-success" hidden>
       <div class="bm-success-icon">&#x2713;</div>
       <h3 id="admin-bm-success-title">Gespeichert!</h3>
@@ -355,7 +347,6 @@
                 return Ok(true);
             }
 
-            // Record the booking directly as confirmed
             if (payload.MemberId is null)
                 return Err("Bitte wähle einen Mieter aus.");
 
@@ -464,7 +455,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("SporthalleAdmin.destroyCalendar"); } catch { /* component gone */ }
+        try { await JS.InvokeVoidAsync("SporthalleAdmin.destroyCalendar"); } catch { }
         _objRef?.Dispose();
     }
 

@@ -37,7 +37,6 @@ public sealed class UmbracoHallMembers(
 
     public async Task<HallMember> CreateAsync(RegisterRenterCommand cmd)
     {
-        // Validate postal-code format (Swiss 4-digit / foreign lenient) before persisting.
         _ = PostalCode.Create(cmd.BillingPostalCode, cmd.BillingCountry);
 
         var displayName = $"{cmd.ContactFirstName} {cmd.ContactLastName}".Trim();
@@ -75,7 +74,6 @@ public sealed class UmbracoHallMembers(
         var member = memberService.GetById(memberId)
             ?? throw new DomainException($"Member {memberId} nicht gefunden.");
 
-        // Validate postal-code format before persisting profile changes.
         _ = PostalCode.Create(billingPostalCode);
 
         member.Name = $"{contactFirstName} {contactLastName}".Trim();
@@ -135,7 +133,6 @@ public sealed class UmbracoHallMembers(
         return Task.FromResult<IReadOnlyList<HallMember>>(results.Take(10).ToList());
     }
 
-    // internal for MemberTypeConsistencyTests
     internal static void SetMemberProperties(IMember member, RegisterRenterCommand cmd)
     {
         member.SetValue(HallMemberAliases.RenterType,        cmd.RenterType.Value.ToString());
@@ -172,8 +169,6 @@ public sealed class UmbracoHallMembers(
         HasKey: member.GetValue<bool>(HallMemberAliases.HasKey)
     );
 
-    // The Umbraco.ColorPicker stores its value as JSON ({"value":"#C62828","label":"..."}),
-    // or as a bare colour string for older entries. Either way, normalise to "#RRGGBB".
     private static string? GetColorValue(IMember member, string alias)
     {
         var raw = member.GetValue<string>(alias);

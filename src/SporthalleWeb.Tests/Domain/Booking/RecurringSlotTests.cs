@@ -12,8 +12,8 @@ public sealed class RecurringSlotTests
     [Fact]
     public void Create_SetsAllProperties()
     {
-        var start = new DateOnly(2026, 1, 5);  // Monday
-        var end = new DateOnly(2026, 1, 26);   // Monday
+        var start = new DateOnly(2026, 1, 5);
+        var end = new DateOnly(2026, 1, 26);
         var slot = RecurringSlot.Create(
             "Training", DayOfWeek.Monday,
             new TimeOnly(9, 0), new TimeOnly(11, 0),
@@ -32,7 +32,6 @@ public sealed class RecurringSlotTests
     [Fact]
     public void GenerateOccurrences_ReturnsOnlyMatchingDayOfWeek()
     {
-        // 4 Mondays: Jan 5, 12, 19, 26
         var slot = RecurringSlot.Create(
             "T", DayOfWeek.Monday,
             new TimeOnly(9, 0), new TimeOnly(11, 0),
@@ -61,7 +60,6 @@ public sealed class RecurringSlotTests
     [Fact]
     public void GenerateOccurrences_NoDayOfWeekInRange_ReturnsEmpty()
     {
-        // Jan 6 (Tue) to Jan 7 (Wed) — no Monday
         var slot = RecurringSlot.Create(
             "T", DayOfWeek.Monday,
             new TimeOnly(10, 0), new TimeOnly(12, 0),

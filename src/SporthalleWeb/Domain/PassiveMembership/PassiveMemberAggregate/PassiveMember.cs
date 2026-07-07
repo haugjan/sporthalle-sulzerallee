@@ -47,7 +47,7 @@ public sealed class PassiveMember
             throw new DomainException("Anzeigename erforderlich, wenn Name sichtbar sein soll.");
 
         if (VipField.IsVip(fieldNumber.Value) && level.Key == "Bronze")
-            throw new DomainException("Spezialfelder (Torraum, Anspielkreis, Anspielpunkt) sind nur mit Silber oder Gold wählbar.");
+            throw new DomainException("Spezialfelder (Mittelkreis, Torraum, Anspielpunkt) sind nur mit Silber oder Gold wählbar.");
 
         return new PassiveMember
         {

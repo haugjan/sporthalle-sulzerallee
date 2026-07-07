@@ -13,7 +13,6 @@
     var festBlock   = blocks.FirstOrDefault(b => b.Content.ContentType.Alias == "festElement");
     var teaserBlocks = blocks.Where(b => b.Content.ContentType.Alias == "teaserElement").ToList();
 
-    // Hero values – MediaPicker3 single-pick returns MediaWithCrops<Image>, not IEnumerable
     var heroMediaObj  = heroBlock?.Content.GetProperty("heroImage")?.GetValue() as IPublishedContent;
     var heroImage     = heroMediaObj?.GetCropUrl() ?? "";
     var heroLogoObj   = heroBlock?.Content.GetProperty("logoSvg")?.GetValue() as IPublishedContent;
@@ -21,7 +20,6 @@
     var schlagwoerter = (heroBlock?.Content.Value<string>("schlagwoerter") ?? "Winterthur,Schulen,Unihockey")
                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    // Banner values
     var bannerLabel   = heroBlock?.Content.Value<string>("bannerLabel") ?? "";
     var bannerTitle   = heroBlock?.Content.Value<string>("bannerTitle") ?? "";
     var bannerText    = heroBlock?.Content.Value<string>("bannerText")  ?? "";
@@ -30,7 +28,6 @@
     var showBanner    = !string.IsNullOrEmpty(bannerTitle)
                         && (bannerEndDate == null || bannerEndDate.Value.Date >= DateTime.Now.Date);
 
-    // Fest values
     var festLabel = festBlock?.Content.Value<string>("label") ?? "";
     var festTitel = festBlock?.Content.Value<string>("titel") ?? "";
     var festDatum = festBlock?.Content.Value<string>("datum") ?? "";
@@ -42,7 +39,6 @@
   <link rel="stylesheet" href="/css/elements/teaser-element.css?v=2" />
 }
 
-<!-- HERO -->
 <section class="hero">
   @if (!string.IsNullOrEmpty(heroImage))
   {
@@ -100,7 +96,6 @@
   </div>
 </section>
 
-<!-- ERÖFFNUNGSFEST -->
 @if (festBlock != null && !string.IsNullOrEmpty(festTitel))
 {
   <section class="fest-section" style="background:rgb(235,80,75)">
@@ -124,7 +119,6 @@
   </section>
 }
 
-<!-- TEASERS -->
 @if (teaserBlocks.Count > 0)
 {
   <section>

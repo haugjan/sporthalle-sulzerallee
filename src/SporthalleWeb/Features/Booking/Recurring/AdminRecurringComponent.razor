@@ -23,7 +23,6 @@
     </div>
 }
 
-<!-- Jahr-Navigation und Neue-Serie-Button -->
 <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
     <button class="btn btn-sm btn-outline-secondary" @onclick="PrevYear">‹ @(_year - 1)</button>
     <strong>@_year</strong>
@@ -45,7 +44,6 @@
                 }
             </div>
             <div class="card-body">
-                <!-- Art der Serie -->
                 <div class="d-flex gap-2 mb-3">
                     <button type="button"
                             class="btn btn-sm @(!_fIsBlocker ? "btn-primary" : "btn-outline-secondary")"
@@ -181,7 +179,6 @@
     </div>
 }
 
-<!-- Serienliste -->
 @if (_loading)
 {
     <p>Lade…</p>
@@ -247,7 +244,6 @@ else
     </div>
 }
 
-<!-- Lösch-Bestätigung -->
 @if (_deleteId.HasValue)
 {
     <div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
@@ -282,7 +278,6 @@ else
     private string? _error;
     private bool _saving;
 
-    // Form state
     private bool _showForm;
     private int? _editingId;
     private string _fTitle = "";
@@ -300,11 +295,9 @@ else
     private string _fMemberSearch = "";
     private IReadOnlyList<HallMember> _memberResults = [];
 
-    // Conflict state
     private List<string> _conflictDates = [];
     private RecurringSlotCommand? _pendingCommand;
 
-    // Delete state
     private int? _deleteId;
     private string _deleteTitle = "";
 

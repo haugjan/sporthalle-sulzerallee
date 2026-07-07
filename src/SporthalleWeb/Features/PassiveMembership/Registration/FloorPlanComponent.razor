@@ -10,7 +10,6 @@
 
 <link rel="stylesheet" href="/css/passivmitglied.css" />
 
-@* ── Floor plan ──────────────────────────────────────────── *@
 <section class="pm-floor-section @(_expanded ? "is-expanded" : "")" id="pm-floor-section">
 
   <button class="pm-floor-toggle" id="pm-floor-toggle" @onclick="ToggleExpand"
@@ -33,28 +32,27 @@
 
   <p class="pm-counter"><span id="pm-counter">@_occupiedCount von @FloorGrid.TotalFields Feldern belegt</span></p>
 
-  @*
-    Container: always clickable. In non-expanded state, the SVG has pointer-events:none
-    so clicks fall through to this div → expand. In expanded state, cell <g> elements
-    get clicks normally (and stop propagation so the container handler is not triggered).
-  *@
   <div id="pm-svg-container" @onclick="OnContainerClick">
-    @* Floor image rendered as a real <img> — reliable cross-browser *@
-    <img src="/img/unihockey-boden.svg" alt="" aria-hidden="true" id="pm-floor-img" />
-    @* SVG grid overlaid on the image. pointer-events:none when collapsed (see CSS). *@
-    <svg viewBox="0 0 840 440" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
+    <img src="/img/hallenboden.png" alt="" aria-hidden="true" id="pm-floor-img" />
+    <svg viewBox="0 0 840 354" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
       @{
-        var cw = 800.0 / FloorGrid.Columns; // cell width in viewBox units
-        var chBase = 400.0 / FloorGrid.Rows; // cell height in viewBox units
+        // The grid overlays only the blue playing surface of the hall floor plan.
+        // These fractions locate that rectangle inside the background image; the
+        // rest of the image (walls, ancillary rooms, staircase) stays unselectable.
+        const double imgW = 840.0, imgH = 354.0;
+        const double fx0 = 0.14515, fy0 = 0.05714, fx1 = 0.91906, fy1 = 0.93968;
+        var bx0 = fx0 * imgW;
+        var by0 = fy0 * imgH;
+        var cw = (fx1 * imgW - bx0) / FloorGrid.Columns;
+        var ch = (fy1 * imgH - by0) / FloorGrid.Rows;
       }
       @for (int row = 0; row < FloorGrid.Rows; row++)
       {
         for (int col = 0; col < FloorGrid.Columns; col++)
         {
           var fn       = row * FloorGrid.Columns + col + 1;
-          var cx       = 20 + col * cw;
-          var cy       = 20 + row * chBase;
-          var ch       = chBase;
+          var cx       = bx0 + col * cw;
+          var cy       = by0 + row * ch;
           var midX     = cx + cw / 2.0;
           var midY     = cy + ch / 2.0;
           var isVip      = VipField.IsVip(fn);
@@ -68,16 +66,19 @@
           var vipLbl = !isOccupied ? VipField.GetLabel(fn) : null;
 
           <g @key="fn" @onclick="() => CellClicked(fn, isOccupied)" @onclick:stopPropagation="true">
-            @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}' />")
+            @if (vipLbl is not null)
+            {
+              @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}'><title>{HtmlEncoder.Default.Encode($"Spezialfeld: {vipLbl}")}</title></rect>")
+            }
+            else
+            {
+              @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}' />")
+            }
             @if (dn is not null)
             {
               var truncated = dn.Length > 6 ? dn[..5] + "…" : dn;
               var fullAttr  = dn.Length > 6 ? $" data-fullname=\"{HtmlEncoder.Default.Encode(dn)}\"" : "";
-              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='3.2' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
-            }
-            else if (vipLbl is not null)
-            {
-              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.55)' pointer-events='none'>{HtmlEncoder.Default.Encode(vipLbl)}</text>")
+              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
             }
           </g>
         }
@@ -87,12 +88,11 @@
 
   <div class="pm-legend">
     <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--free"></span> Frei</div>
-    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--vip"></span> Torraum / Anspielkreis</div>
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--vip"></span> Spezialfeld (Mittelkreis / Torraum / Anspielpunkt)</div>
     <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--occupied"></span> Belegt</div>
   </div>
 </section>
 
-@* ── Success message ─────────────────────────────────────── *@
 @if (_success)
 {
   <div class="pm-success-wrap">
@@ -103,7 +103,6 @@
   </div>
 }
 
-@* ── Wizard modal ─────────────────────────────────────────── *@
 @if (_step != Step.None)
 {
   <div class="pm-wizard-overlay" role="dialog" aria-modal="true" aria-label="Anmeldung Passivmitgliedschaft"
@@ -162,7 +161,7 @@
             </div>
             @if (fieldIsVip)
             {
-              <p class="pm-wizard-level__hint">Dieses Spezialfeld (Torraum, Anspielkreis oder Anspielpunkt) ist nur mit Silber oder Gold wählbar.</p>
+              <p class="pm-wizard-level__hint">Dieses Spezialfeld (Mittelkreis, Torraum oder Anspielpunkt) ist nur mit Silber oder Gold wählbar.</p>
             }
             @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>
@@ -334,9 +333,6 @@
         }
     }
 
-    // In collapsed state the SVG has pointer-events:none (CSS), so clicks reach
-    // #pm-svg-container and expand the plan. In expanded state, cell <g> elements
-    // stop propagation, so this only fires on clicks in empty SVG space (harmless).
     private async Task SetExpanded(bool value)
     {
         _expanded = value;
@@ -353,7 +349,6 @@
         if (!_expanded) { await SetExpanded(true); return; }
         if (isOccupied) return;
         _selectedField = fieldNum;
-        // Bronze is not allowed on special fields; clear a prior Bronze choice.
         if (VipField.IsVip(fieldNum) && _levelKey == "Bronze") _levelKey = "";
         _step          = Step.Field;
         _stepError     = null;
@@ -449,9 +444,6 @@
             _step           = Step.None;
             _success        = true;
 
-            // Payment is mandatory: send the customer straight to the RaiseNow payment page.
-            // The field number travels along as a RaiseNow custom parameter so the payment can be
-            // reconciled to the correct floor field in the manager.
             _paymentUrl = PaymentLink.ForField(cmd.FieldNumber, cmd.Email, $"{cmd.FirstName} {cmd.LastName}");
             _selectedField  = null;
             await JS.InvokeVoidAsync("pmRedirectToPayment", _paymentUrl);

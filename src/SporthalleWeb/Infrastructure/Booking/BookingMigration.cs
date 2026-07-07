@@ -54,15 +54,10 @@ public class AddAllBookingTablesV2(IMigrationContext context) : AsyncMigrationBa
     }
 }
 
-// v1.2.0 — simplified slot model: SlotType replaces BookingStatus, Title replaces EventType,
-// pricing and recurring fields removed, RecurringRules and SchoolHolidays tables dropped.
-// No production data exists, so drop/recreate is safe.
 public class SimplifyDataModelV3(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()
     {
-        // Drop/recreate for pre-Type schema omitted: v1 always creates BookingSlots with Type column.
-
         if (TableExists("RecurringRules"))
             Delete.Table("RecurringRules").Do();
 
@@ -90,7 +85,6 @@ public class AddRecurringSlotsV5(IMigrationContext context) : AsyncMigrationBase
         if (!TableExists("RecurringSlots"))
             Create.Table<RecurringSlotRecord>().Do();
 
-        // Each migration version runs exactly once (framework-tracked); no column-existence check needed.
         if (TableExists("BookingSlots"))
             Execute.Sql("ALTER TABLE \"BookingSlots\" ADD \"RecurringSlotId\" INTEGER NULL").Do();
 
@@ -98,7 +92,6 @@ public class AddRecurringSlotsV5(IMigrationContext context) : AsyncMigrationBase
     }
 }
 
-// v1.5.0 — SlotType.Serie was renamed to SlotType.Recurring; update existing DB rows.
 public class RenameSerieToRecurringV6(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()
@@ -108,12 +101,10 @@ public class RenameSerieToRecurringV6(IMigrationContext context) : AsyncMigratio
     }
 }
 
-// v1.6.0 — Add IsBlocker and MemberId columns to RecurringSlots; backfill IsBlocker from BookingSlots.
 public class AddIsBlockerAndMemberIdToRecurringSlotsV7(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()
     {
-        // Each migration version runs exactly once (framework-tracked); no column-existence check needed.
         if (TableExists("RecurringSlots"))
         {
             Execute.Sql("ALTER TABLE \"RecurringSlots\" ADD \"IsBlocker\" INTEGER NOT NULL DEFAULT 0").Do();
@@ -165,9 +156,6 @@ public class DropMagicLinkTokensV11(IMigrationContext context) : AsyncMigrationB
     }
 }
 
-// v1.11.0 — Slot/Serie colour is no longer stored per slot; the display colour now
-// derives from the renting hall member. Drop the unused Color columns.
-// ALTER TABLE ... DROP COLUMN is supported by both SQLite (3.35+) and SQL Server.
 public class DropSlotColorColumnsV12(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()
@@ -180,8 +168,6 @@ public class DropSlotColorColumnsV12(IMigrationContext context) : AsyncMigration
     }
 }
 
-// v1.12.0 — No-op: aligns the plan's terminal state with databases that reached v1.12.0
-// via a worktree where DropSlotColorColumnsV12 was originally registered as that version.
 public class AlignStateV13(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync() => Task.CompletedTask;

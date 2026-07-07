@@ -32,9 +32,6 @@ public sealed class ContentSeeder(
 
         var (homeTemplate, contentPageTemplate) = EnsureTemplates();
 
-        // Check published TemplateId BEFORE saving content types: saving a content type
-        // with a default template sets the draft node's TemplateId as a side effect,
-        // which would make the check below falsely report that republishing is not needed.
         EnsureContentTemplates(homeTemplate, contentPageTemplate);
 
         EnsureContentTypeTemplates(homeTemplate, contentPageTemplate);
@@ -389,8 +386,6 @@ public sealed class ContentSeeder(
         logger.LogInformation("ContentSeeder: upgraded preisText from TextArea to Umbraco.RichText.");
     }
 
-    // Adds the Nutzungsvereinbarung fields (file, title, date) to reservationElement on
-    // existing installs where uSync ImportOnStartup may be disabled (e.g. production).
     private void EnsureReservationAgreementProperties()
     {
         var el = contentTypeService.Get("reservationElement");

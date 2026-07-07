@@ -29,7 +29,6 @@
             {
                 <div style="display:flex;flex:1;overflow:hidden;min-height:0">
 
-                    <!-- Left: all form details -->
                     <div style="flex:0 0 42%;overflow-y:auto;padding:1rem;border-right:1px solid #dee2e6">
 
                         <div class="mb-3">
@@ -128,7 +127,6 @@
                         }
                     </div>
 
-                    <!-- Right: time picker — JS renders the 30-min drag grid; fine-tune below in 5-min steps -->
                     <div style="flex:1;overflow-y:auto;padding:1rem">
                         <label class="form-label fw-semibold">
                             Uhrzeit <small class="text-muted fw-normal">(aufziehen zum Wählen, danach in 5-Min-Schritten anpassbar)</small>
@@ -380,7 +378,6 @@
         return $"{totalMin / 60:00}:{totalMin % 60:00}";
     }
 
-    // Admin may fine-tune the dragged 30-minute slot to 5-minute precision.
     private async Task OnStartTimeChanged(string v)
     {
         _editStartTime = v;
@@ -395,8 +392,6 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // Conflict detection is based on the actual (possibly 5-minute) times, not the
-    // coarse 30-minute drag selection.
     private void CheckConflicts()
     {
         _editConflict = false;

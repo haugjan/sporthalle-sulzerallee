@@ -20,8 +20,6 @@ public sealed class BookingAdminApiController(
     IBookingCsv csvExport,
     IHallMembers memberManager) : ControllerBase
 {
-    // ── Pending bookings ──────────────────────────────────────────────────────
-
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending()
     {
@@ -29,9 +27,6 @@ public sealed class BookingAdminApiController(
         return Ok(items.Select(x => MapToDto(x.Slot, x.Member)));
     }
 
-    // ── All bookings (filtered) ───────────────────────────────────────────────
-
-    // GET /api/admin/reservierungen?from=2026-01-01&to=2026-12-31&type=Booked
     [HttpGet("")]
     public async Task<IActionResult> GetAll(
         [FromQuery] DateOnly? from,
@@ -50,8 +45,6 @@ public sealed class BookingAdminApiController(
         return Ok(slots.Select(s => MapToDto(s, null)));
     }
 
-    // ── Single booking ────────────────────────────────────────────────────────
-
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -60,8 +53,6 @@ public sealed class BookingAdminApiController(
             return NotFound(new { error = $"Buchung {id} nicht gefunden." });
         return Ok(MapToDto(slot, null));
     }
-
-    // ── Create slot (admin) ───────────────────────────────────────────────────
 
     [HttpPost("")]
     public async Task<IActionResult> Create([FromBody] AdminCreateSlotRequest req)
@@ -84,8 +75,6 @@ public sealed class BookingAdminApiController(
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Confirm (Reserved → Booked) ───────────────────────────────────────────
-
     [HttpPost("{id:int}/bestaetigen")]
     public async Task<IActionResult> Confirm(int id)
     {
@@ -96,8 +85,6 @@ public sealed class BookingAdminApiController(
         }
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
-
-    // ── Reject (deletes Reserved slot) ───────────────────────────────────────
 
     [HttpPost("{id:int}/ablehnen")]
     public async Task<IActionResult> Reject(int id, [FromBody] AdminRejectRequest req)
@@ -112,8 +99,6 @@ public sealed class BookingAdminApiController(
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    // ── Delete (Booked or Blocker) ────────────────────────────────────────────
-
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -124,8 +109,6 @@ public sealed class BookingAdminApiController(
         }
         catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
     }
-
-    // ── Member search ─────────────────────────────────────────────────────────
 
     [HttpGet("members/search")]
     public async Task<IActionResult> SearchMembers([FromQuery] string? q)
@@ -143,8 +126,6 @@ public sealed class BookingAdminApiController(
         }));
     }
 
-    // ── CSV export ────────────────────────────────────────────────────────────
-
     [HttpGet("export")]
     public async Task<IActionResult> Export(
         [FromQuery] DateOnly from,
@@ -155,8 +136,6 @@ public sealed class BookingAdminApiController(
             to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc));
         return File(csv, "text/csv", $"reservierungen-{from:yyyy-MM-dd}-{to:yyyy-MM-dd}.csv");
     }
-
-    // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static object MapToDto(BookingSlot slot, HallMember? member) => new
     {
@@ -181,8 +160,6 @@ public sealed class BookingAdminApiController(
             phone            = member.Phone,
         }
     };
-
-    // ── Dev-only seed: create recurring slots without auth ────────────────────
 
     [HttpPost("serientermine/seed")]
     [AllowAnonymous]
@@ -209,8 +186,6 @@ public sealed class BookingAdminApiController(
         var result = await createSerie.ExecuteAsync(cmd, "seed", skipConflicts: true);
         return Ok(result);
     }
-
-    // ── Dev-only: HallMember search without auth (for seed scripts) ────────────
 
     [HttpGet("serientermine/members")]
     [AllowAnonymous]

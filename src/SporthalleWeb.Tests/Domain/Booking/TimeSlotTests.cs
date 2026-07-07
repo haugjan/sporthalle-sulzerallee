@@ -60,9 +60,9 @@ public sealed class TimeSlotTests
     }
 
     [Theory]
-    [InlineData(8, 10, 4)]   // 120 min / 30 = 4 blocks
-    [InlineData(8, 9, 2)]    // 60 min / 30 = 2 blocks
-    [InlineData(8, 8, 1, 30)]  // 30 min / 30 = 1 block
+    [InlineData(8, 10, 4)]
+    [InlineData(8, 9, 2)]
+    [InlineData(8, 8, 1, 30)]
     public void BlockCount_ReturnsCorrectCount(int startHour, int endHour, int expected, int endMinute = 0)
     {
         var slot = new TimeSlot(Utc(startHour), new DateTime(2026, 6, 1, endHour, endMinute, 0, DateTimeKind.Utc));
@@ -72,7 +72,7 @@ public sealed class TimeSlotTests
     [Fact]
     public void BlockCount_CustomBlockSize_DividesCorrectly()
     {
-        var slot = new TimeSlot(Utc(8), Utc(10)); // 120 min
+        var slot = new TimeSlot(Utc(8), Utc(10));
         Assert.Equal(2, slot.BlockCount(60));
     }
 

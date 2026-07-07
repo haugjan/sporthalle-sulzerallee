@@ -1,18 +1,12 @@
 
 using System.Globalization;
 
-// Swiss German as the default culture for all threads.
-// This makes Blazor @bind, implicit ToString() calls, and number/date parsing
-// use Swiss format (dd.MM.yyyy dates, HH:mm times, apostrophe thousands separator).
 var swissCulture = new CultureInfo("de-CH");
 CultureInfo.DefaultThreadCurrentCulture   = swissCulture;
 CultureInfo.DefaultThreadCurrentUICulture = swissCulture;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Resolve SQLite Data Source to an absolute path using content root.
-// A relative path in the connection string resolves from Directory.GetCurrentDirectory()
-// which may differ from the content root when dotnet run is invoked from the repo root.
 var sqliteProviderKey = "ConnectionStrings:umbracoDbDSN_ProviderName";
 if (builder.Configuration[sqliteProviderKey] == "Microsoft.Data.Sqlite")
 {
@@ -25,9 +19,6 @@ if (builder.Configuration[sqliteProviderKey] == "Microsoft.Data.Sqlite")
         var valueStart = start + prefix.Length;
         var end = connStr.IndexOf(';', valueStart);
         var dataSource = end >= 0 ? connStr[valueStart..end] : connStr[valueStart..];
-        // Resolve relative path to absolute, then strip Cache=Shared (triggers SQLite URI
-        // mode on Windows which breaks absolute Windows paths) and Mode= (default is
-        // ReadWriteCreate anyway). Always rebuild with a clean minimal connection string.
         var absDataSource = Path.IsPathRooted(dataSource)
             ? dataSource
             : Path.GetFullPath(dataSource.Replace('/', Path.DirectorySeparatorChar),
@@ -35,12 +26,6 @@ if (builder.Configuration[sqliteProviderKey] == "Microsoft.Data.Sqlite")
         var resolved = $"Data Source={absDataSource};Foreign Keys=True;Pooling=True";
         builder.Configuration[connKey] = resolved;
 
-        // Pre-create the SQLite file and enable WAL mode before Umbraco boots.
-        // WAL (Write-Ahead Logging) prevents SQLITE_BUSY (error 5) that occurs when
-        // Umbraco's schema migrator, OpenIddict/EF Core, and NPoco repositories all
-        // open the same SQLite file concurrently at startup. WAL mode is stored in the
-        // DB file itself, so this only needs to run once — but running it every startup
-        // is safe and ensures the setting survives if the DB is replaced.
         Directory.CreateDirectory(Path.GetDirectoryName(absDataSource)!);
         using (var init = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={absDataSource}"))
         {
@@ -52,8 +37,6 @@ if (builder.Configuration[sqliteProviderKey] == "Microsoft.Data.Sqlite")
     }
 }
 
-// Prevent app crash when a background service hits a transient SQL timeout.
-// Without this, HostOptions defaults to StopHost, which kills the entire process.
 builder.Services.Configure<HostOptions>(options =>
 {
     options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
@@ -68,15 +51,12 @@ var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddWebsite()
     .AddComposers();
 
-// Allow HTTP in local development (OpenIddict requires HTTPS by default).
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.PostConfigure<OpenIddict.Server.AspNetCore.OpenIddictServerAspNetCoreOptions>(options =>
         options.DisableTransportSecurityRequirement = true);
 }
 
-// Azure Blob Storage for media: only active outside local development.
-// Connection string is injected via Azure App Service environment variables.
 if (!builder.Environment.IsDevelopment())
 {
     umbracoBuilder.AddAzureBlobMediaFileSystem();

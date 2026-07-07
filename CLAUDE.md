@@ -216,6 +216,68 @@ GitHub Actions (`deploy.yml`) builds and ZipDeploys to Azure on push to `main`. 
   ```
 - Culture: `Program.cs` sets `de-CH` as the default culture for all threads so date and number formatting is consistent with Swiss locale across both production (Linux) and local dev (Windows).
 
+## Framework Gotchas & Non-Obvious Constraints
+
+The source code is kept comment-free (Clean Code). The non-obvious "why" knowledge that
+used to live in inline comments is collected here, grouped by the file it applies to. When
+you change one of these files, read the matching entry first.
+
+### Startup — `Program.cs`
+
+- **Absolute SQLite path**: the connection string's relative `Data Source` is resolved to an absolute path against the content root, because a relative path otherwise resolves from `Directory.GetCurrentDirectory()`, which differs from the content root when `dotnet run` is invoked from the repo root. The rebuilt connection string also strips `Cache=Shared` (triggers SQLite URI mode on Windows, which breaks absolute Windows paths) and `Mode=` (default `ReadWriteCreate` is already correct).
+- **SQLite WAL mode** is enabled before Umbraco boots to prevent `SQLITE_BUSY` (error 5) when the schema migrator, OpenIddict/EF Core, and NPoco repositories open the same file concurrently at startup. WAL is stored in the DB file itself, so running it every startup is harmless and keeps the setting if the DB is replaced.
+- **Background-service exceptions**: `HostOptions.BackgroundServiceExceptionBehavior` is set to `Ignore` so a transient SQL timeout in a hosted service does not `StopHost` and kill the whole process.
+- OpenIddict's HTTPS transport requirement is disabled in Development so local HTTP works. Azure Blob media storage is only wired up outside Development.
+
+### Content & member-type seeding — `ContentSeeder.cs`, `MemberTypeSeeder.cs`
+
+- **Check published `TemplateId` BEFORE saving content types**: saving a content type that has a default template sets the draft node's `TemplateId` as a side effect, which would make a later "does this need republishing?" check falsely report *no*.
+- `ContentSeeder.EnsureReservationElement` adds the Nutzungsvereinbarung fields (file, title, date) to `reservationElement` on existing installs where uSync `ImportOnStartup` may be disabled (e.g. production).
+- **Redundant data-type / member-type saves trigger a ModelsBuilder regeneration** (`InMemoryAuto`), which in production causes 500s and app recycles. The seeder therefore only writes when the stored value actually differs from the desired value. Every "only write when different" guard in the seeder exists for this reason.
+- Umbraco ships the `Umbraco.EmailAddress` property editor but no data type instance for it, and no uSync config seeds one; the seeder creates it on demand and falls back to `TextBox` if the editor is not registered.
+- **Umbraco 17 backoffice resolves a property editor's UI from `EditorUiAlias`, not `EditorAlias`.** Without it the backoffice shows "The configured property editor UI could not be found." The dropdown editor has a null-fallback; the ColorPicker does not, so its `EditorUiAlias` must be set explicitly.
+- `Umbraco.DropDown.Flexible` config expects `items` as a plain string list, e.g. `{ "multiple": false, "items": ["A", "B"] }`.
+- `Umbraco.ColorPicker` config expects `{ "useLabel": false, "items": [{ "value": "RRGGBB", "label": "..." }] }`. The `ColorListValidator` calls `ToString()` on the items value and deserializes the result as JSON, so `items` must be a `JsonElement` (stringifies to JSON, persists as an array). A plain `List` fails validation because its `ToString()` yields a type name. Swatch values are stored WITHOUT the leading `#`; the ColorPicker adds it back when rendering and on the saved value. On reload the stored items round-trip as a `System.Text.Json.JsonElement`; before persistence they may be an in-memory `IDictionary`.
+- `AddOrUpdateProperty`: if a property already exists with a *different* data type, it is removed and re-added, so existing member values for that property are lost. The seeder counts real schema changes so callers save only when something actually changed.
+
+### Domain value objects
+
+- **`FloorGrid`** is the single source of truth for the floor-plan grid resolution (40 columns × 25 rows = 1000 fields), referenced by both the domain (`FieldNumber`, `VipField`) and the presentation (`FloorPlanComponent`) so the field count stays consistent.
+- **`VipField`** defines VIP areas geometrically in normalised coordinates of the blue playing surface (u = length, v = width) and marks a field special when its grid cell intersects a Mittelkreis disc, a Torraum rectangle, or an Anspielpunkt spot. Circle tests are aspect-corrected (the surface is wider than tall) so discs stay round regardless of grid resolution. The shape constants are the single place to retune the special-field layout.
+- **`PostalCode`**: Swiss codes must be 4 digits (1000–9999); foreign codes are accepted leniently (non-empty, max 10 chars). `FromStorage` rehydrates without validation so legacy/imported values never block loading; new values go through `Create`.
+- **`MemberEmail` / `RenterEmail`**: use `MailAddress.TryCreate` (basic `local@domain` structure) rather than a stricter check, so addresses already stored under the previous `@`-only rule are not rejected on reload.
+
+### Umbraco dropdown & ColorPicker value parsing
+
+- **`Umbraco.DropDown.Flexible` persists values as a JSON array** (e.g. `["Privatperson"]`, `["Pending"]`). Domain types (`RenterType`, `MembershipLevel`, `MemberStatus`) do not parse JSON, so `UmbracoDropdownHelper.ParseDropdownValue` must strip the array and return the first element before the value reaches domain code. Passing the raw JSON string straight to a domain constructor throws (e.g. `DomainException("Unbekannter Mietertyp: [\"Privatperson\"]")`) and, before the fix, made status filtering silently return zero results because the JSON array string never equals the plain key.
+- **`Umbraco.ColorPicker` stores its value as JSON** (`{"value":"#C62828","label":"..."}`) or as a bare colour string for older entries; `UmbracoHallMembers` normalises either form to `#RRGGBB`.
+- **`UmbracoPassiveMembers` reconstitution is defensive**: members with a missing/invalid field number are skipped rather than letting `FieldNumber` throw, so one bad row cannot blank the whole floor plan or return HTTP 500 on the admin page. A member's name is only shown on the floor plan once the yearly fee is paid; an unpaid field stays occupied but anonymous.
+
+### NPoco ↔ SQLite mapping — `RecurringSlotRecord`
+
+- The date/time fields are stored as TEXT (`"HH:mm"` / `"yyyy-MM-dd"`) because NPoco + Microsoft.Data.Sqlite cannot map a TEXT column to `TimeOnly`/`DateOnly` (`InvalidCastException`). `RecurringSlotRepository` converts to/from the domain's `TimeOnly`/`DateOnly`.
+
+### Migrations — `BookingMigration.cs`, `PassiveMemberMigration.cs`
+
+- Each migration version runs exactly once (framework-tracked), so migrations need no column-existence checks. `ALTER TABLE ... DROP COLUMN` is supported by both SQLite (3.35+) and SQL Server.
+- Booking history: **v1.2.0** simplified the slot model (`SlotType` replaced `BookingStatus`, `Title` replaced `EventType`, pricing/recurring fields and the `RecurringRules`/`SchoolHolidays` tables dropped; drop/recreate was safe as no production data existed). **v1.5.0** renamed `SlotType.Serie` → `Recurring` in existing rows. **v1.6.0** added `IsBlocker`/`MemberId` to `RecurringSlots`. **v1.11.0** dropped the per-slot `Color` columns (display colour now derives from the renting hall member). **v1.12.0** is a no-op that aligns the plan's terminal state with databases that reached it via a worktree.
+- Passive-member history: **v1** no-op, **v2** creates the definitive table (IDENTITY PK, explicitly named PK constraint because SQL Server requires it), **v3** no-op, **v9** drops the dedicated table (passive members moved to Umbraco Members).
+
+### Calendar availability — `GetAvailableTimeSlots`, `GetAvailableDays`, `GetWeekSlots`
+
+- Any overlap into a public block, even a few minutes from a 5-minute admin booking, makes the whole block unavailable: floor the start, ceil the end.
+- The display colour of a week slot comes from the renting member; `GetWeekSlots` caches the member lookup per member id.
+
+### Email routing
+
+- Reservation mails are sent from (and replies go to) the reservations inbox, always with a BCC to the reservations address. Passive-membership registrations instead notify the general office inbox.
+- `BookingMailTemplates` placeholders: `{Vorname}`, `{Name}`, `{Anlass}`, `{Datum}`, `{Von}`, `{Bis}`. Admin-configured reservation/confirmation texts override the defaults; the defaults apply when nothing is configured.
+
+### Floor-plan component — `FloorPlanComponent.razor`
+
+- In the collapsed state the SVG has `pointer-events:none` (CSS), so a click reaches `#pm-svg-container` and expands the plan. In the expanded state the cell `<g>` elements stop propagation, so the container handler only fires on empty SVG space (harmless).
+- Payment is mandatory: after sign-up the customer is redirected straight to the RaiseNow payment page, with the field number carried along as a RaiseNow custom parameter so the payment can be reconciled to the correct floor field.
+
 ## Content Types
 
 | Alias | Name | Template | Allowed under |
@@ -266,7 +328,7 @@ Domain/PassiveMembership/PassiveMemberAggregate/   ns SporthalleWeb.Domain.Passi
   MemberEmail.cs                 Value Object (normalised lowercase)
   MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
   MemberStatus.cs                Pending / Confirmed / Deleted
-  VipField.cs                    Named areas (Torraum, Anspielkreis, Anspielpunkt)
+  VipField.cs                    Named areas (Mittelkreis, Torraum, Anspielpunkt), geometric
   DomainException.cs             + FieldAlreadyTakenException + MemberNotFoundException
 
 Features/PassiveMembership/
@@ -311,7 +373,7 @@ Views/PassivMitgliedschaft.cshtml  Umbraco template shell (filename matches temp
 
 wwwroot/css/passivmitglied.css
 wwwroot/js/passivmitglied.js
-wwwroot/media/unihockey-boden.svg
+wwwroot/img/hallenboden.png       Floor plan background (real hall plan; blue playing surface)
 ```
 
 Passive members are stored as **Umbraco Members** (member type `passivMember`); there is no longer a dedicated `PassivMitglieder` table (dropped in migration v9).
@@ -327,7 +389,7 @@ Auth: Umbraco backoffice session cookie (inherited by the iframe).
 
 ### Public Floor Plan
 
-The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The component renders a 40×25 SVG grid (1000 fields) and a 6-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain). Special/VIP fields (Torraum, Anspielkreis, Anspielpunkt) require Silber or Gold; Bronze is blocked for them (enforced in `PassiveMember.Register` and in the wizard's level step).
+The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The background is the real hall floor plan (`wwwroot/img/hallenboden.png`); the component overlays a 40×25 SVG grid (1000 fields) positioned **only over the blue playing surface** (walls, ancillary rooms and the staircase stay unselectable) plus a 6-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain); the blue rectangle's location inside the image is stored as normalised fractions in the component. Special/VIP fields (Mittelkreis, Torraum, Anspielpunkt) require Silber or Gold; Bronze is blocked for them (enforced in `PassiveMember.Register` and in the wizard's level step).
 
 ### Membership Levels
 
@@ -339,11 +401,13 @@ The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passiv
 
 ### Floor Plan VIP Areas (German labels, public-facing)
 
+Derived geometrically in `VipField` from the plan markings (normalised u = length, v = width of the blue surface). A cell is special when it intersects one of these shapes:
+
 | Area | Fields |
 |---|---|
-| Torraum | Left and right goal creases |
-| Anspielkreis | Centre circle |
-| Anspielpunkte | Face-off spots |
+| Mittelkreis | The two centre circles — every field inside the disc |
+| Torraum | The two goal creases at the short ends |
+| Anspielpunkt | The four corner face-off spots |
 
 ### Database Table: `PassivMitglieder`
 

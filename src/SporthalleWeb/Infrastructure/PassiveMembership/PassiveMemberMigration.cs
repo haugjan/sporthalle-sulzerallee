@@ -25,14 +25,11 @@ public class PassiveMemberMigrationPlan : MigrationPlan
     }
 }
 
-// v1 left as a no-op: v2 creates the definitive table schema.
 public class CreatePassiveMemberTableMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-// v2: drops the table if it exists (handles fresh DBs and partial prior runs),
-// then recreates it with IDENTITY PK and explicit PK name (SQL Server requires named constraints).
 public class FixPassiveMemberAutoIncrementMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()
@@ -72,14 +69,11 @@ public class FixPassiveMemberAutoIncrementMigration(IMigrationContext context) :
     }
 }
 
-// v3 left as a no-op so existing databases at v2 can advance to v3 cleanly.
 public class AddMemberStatusColumnsMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-// Each migration version runs exactly once (framework-tracked), so no column-existence checks needed.
-// v2 recreates the table without these columns, so they are guaranteed absent when v4 runs.
 public class EnsureMemberStatusColumnsMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()
@@ -123,7 +117,6 @@ public class EnsurePhoneAndAddressLine2ColumnsMigration(IMigrationContext contex
     protected override Task MigrateAsync() => Task.CompletedTask;
 }
 
-// v9: passive members moved to Umbraco Members; drop the dedicated table.
 public class DropPassivMitgliederTableMigration(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync()

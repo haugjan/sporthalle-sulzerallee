@@ -10,7 +10,6 @@ public record MemberStatus
 
     public MemberStatusValue Value { get; }
 
-    /// <summary>Persisted string (dropdown value): "Pending" / "Confirmed" / "Deleted".</summary>
     public string Key => Value.ToString();
 
     public MemberStatus(MemberStatusValue value) => Value = value;

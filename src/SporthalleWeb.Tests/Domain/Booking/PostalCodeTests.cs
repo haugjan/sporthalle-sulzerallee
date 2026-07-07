@@ -18,11 +18,11 @@ public sealed class PostalCodeTests
     }
 
     [Theory]
-    [InlineData("123")]      // too short
-    [InlineData("12345")]    // too long
-    [InlineData("0999")]     // below 1000
-    [InlineData("84a0")]     // non-digit
-    [InlineData("")]         // empty
+    [InlineData("123")]
+    [InlineData("12345")]
+    [InlineData("0999")]
+    [InlineData("84a0")]
+    [InlineData("")]
     public void Create_InvalidSwiss_ThrowsDomainException(string input)
     {
         Assert.Throws<DomainException>(() => PostalCode.Create(input, "Schweiz"));

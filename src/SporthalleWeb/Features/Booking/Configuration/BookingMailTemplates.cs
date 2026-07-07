@@ -1,11 +1,5 @@
 namespace SporthalleWeb.Features.Booking.Configuration;
 
-/// <summary>
-/// Default, editable mail texts for the booking flow (Du-Form). Admins can override
-/// the reservation and confirmation texts in the Konfiguration tab; these defaults
-/// are used when nothing is configured. Placeholders: {Vorname}, {Name}, {Anlass},
-/// {Datum}, {Von}, {Bis}.
-/// </summary>
 public static class BookingMailTemplates
 {
     public const string ReservationDefault =
@@ -34,7 +28,6 @@ public static class BookingMailTemplates
         "Sportliche Grüsse\n" +
         "Dein Team der Sporthalle Sulzerallee";
 
-    /// <summary>Replaces the placeholders in a template with the concrete values.</summary>
     public static string Apply(
         string template, string vorname, string name,
         string anlass, string datum, string von, string bis) =>

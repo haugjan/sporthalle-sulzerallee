@@ -39,8 +39,6 @@ public sealed class MemberTypeSeeder(
         var trueFalse = all.FirstOrDefault(d => d.EditorAlias == "Umbraco.TrueFalse")
             ?? throw new InvalidOperationException("Umbraco.TrueFalse data type not found.");
 
-        // Umbraco ships the Umbraco.EmailAddress property editor but no data type instance for it,
-        // and there is no uSync config seeding one. Create it on demand; fall back to TextBox.
         var emailType = all.FirstOrDefault(d => d.EditorAlias == "Umbraco.EmailAddress")
             ?? TryCreateDataType(all, "Email Address", "Umbraco.EmailAddress", ValueStorageType.Nvarchar)
             ?? textBox;
@@ -65,8 +63,6 @@ public sealed class MemberTypeSeeder(
         return Task.CompletedTask;
     }
 
-    // Creates a data type from a property editor that needs no special configuration.
-    // Returns null if the editor is not registered (caller falls back to another type).
     private IDataType? TryCreateDataType(List<IDataType> all, string name, string editorAlias, ValueStorageType storageType)
     {
         if (!propertyEditors.TryGet(editorAlias, out var editor))
@@ -87,21 +83,14 @@ public sealed class MemberTypeSeeder(
         if (!propertyEditors.TryGet("Umbraco.DropDown.Flexible", out var editor))
             throw new InvalidOperationException("Umbraco.DropDown.Flexible property editor not found.");
 
-        // Umbraco.DropDown.Flexible expects 'items' as a plain string list,
-        // e.g. { "multiple": false, "items": ["A", "B"] }.
         var config = new Dictionary<string, object>
         {
             ["multiple"] = false,
             ["items"]    = values.ToList()
         };
 
-        // Umbraco 17 backoffice resolves the UI from EditorUiAlias, not EditorAlias.
-        // Without it the backoffice shows "The configured property editor UI could not be found."
         const string uiAlias = "Umb.PropertyEditorUi.Dropdown";
 
-        // Repair existing data types whose config or EditorUiAlias may be wrong.
-        // Only write when the stored value actually differs — otherwise every startup
-        // re-saves the data type and triggers a ModelsBuilder regeneration (InMemoryAuto).
         var existing = all.FirstOrDefault(d => d.Name == name);
         if (existing is not null)
         {
@@ -128,8 +117,6 @@ public sealed class MemberTypeSeeder(
         return dt;
     }
 
-    // True when the stored config already represents a single-select dropdown with exactly
-    // these items (in order), so the seeder can skip a redundant save.
     private static bool DropdownConfigMatches(IDictionary<string, object>? config, string[] values)
     {
         if (config is null) return false;
@@ -144,9 +131,6 @@ public sealed class MemberTypeSeeder(
         return stored.Count == values.Length && stored.SequenceEqual(values);
     }
 
-    // The appointment colour palette offered for booking slots (see the admin
-    // calendar components). Stored as swatch values WITHOUT the leading '#'; the
-    // ColorPicker editor adds it back when rendering and on the saved value.
     private static readonly string[] AppointmentColors =
         ["C62828", "FFD54F", "1A1A1A", "2B6CB0", "2F855A", "702459", "D97706", "0E7490"];
 
@@ -155,22 +139,14 @@ public sealed class MemberTypeSeeder(
         if (!propertyEditors.TryGet("Umbraco.ColorPicker", out var editor))
             throw new InvalidOperationException("Umbraco.ColorPicker property editor not found.");
 
-        // Umbraco.ColorPicker expects { "useLabel": false, "items": [{ "value": "RRGGBB", "label": "..." }] }.
-        // The ColorListValidator calls ToString() on the items value and deserializes it as JSON,
-        // so items must be a JsonElement (stringifies to JSON, persists as an array) — NOT a plain List,
-        // whose ToString() yields a type name and fails validation.
         var config = new Dictionary<string, object>
         {
             ["useLabel"] = false,
             ["items"]    = ColorItemsElement(colors)
         };
 
-        // The backoffice resolves the property editor UI from EditorUiAlias; unlike the
-        // dropdown editor it has no null-fallback, so it must be set explicitly.
         const string uiAlias = "Umb.PropertyEditorUi.ColorPicker";
 
-        // Only write when something actually differs — a redundant data type save
-        // triggers a ModelsBuilder regeneration (see GetOrCreateDropdown).
         var existing = all.FirstOrDefault(d => d.Name == name);
         if (existing is not null)
         {
@@ -196,17 +172,12 @@ public sealed class MemberTypeSeeder(
         return dt;
     }
 
-    // Builds the colour-picker "items" as a JsonElement: { value, label } per colour,
-    // values WITHOUT the leading '#' (the editor adds it). A JsonElement stringifies to
-    // JSON (so the ColorListValidator accepts it) and persists as a JSON array.
     private static System.Text.Json.JsonElement ColorItemsElement(string[] colors)
     {
         var items = colors.Select(hex => new { value = hex, label = "#" + hex }).ToArray();
         return System.Text.Json.JsonSerializer.SerializeToElement(items);
     }
 
-    // True when the stored config is a single-value colour picker whose swatch values
-    // match exactly (in order), so the seeder can skip a redundant save.
     private static bool ColorPickerConfigMatches(IDictionary<string, object>? config, string[] colors)
     {
         if (config is null) return false;
@@ -222,9 +193,6 @@ public sealed class MemberTypeSeeder(
             && stored.SequenceEqual(colors, StringComparer.OrdinalIgnoreCase);
     }
 
-    // Enumerates the stored item "value"s. Handles the JsonElement array produced on
-    // reload as well as an in-memory IEnumerable, so the match never triggers a
-    // redundant save (which would force a ModelsBuilder regeneration).
     private static List<string?>? ColorItemValues(object? itemsObj)
     {
         switch (itemsObj)
@@ -240,8 +208,6 @@ public sealed class MemberTypeSeeder(
         }
     }
 
-    // Reads the "value" of a stored colour-picker item, which round-trips as a
-    // System.Text.Json.JsonElement (object) or, before persistence, an IDictionary.
     private static string? ColorPickerItemValue(object? item) => item switch
     {
         System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Object
@@ -250,8 +216,6 @@ public sealed class MemberTypeSeeder(
             => d.TryGetValue("value", out var v) ? v?.ToString() : null,
         _ => null
     };
-
-    // ── Hall Renter (hallMember) ──────────────────────────────────────────────
 
     private void EnsureHallMemberType(IDataType textBox, IDataType textArea, IDataType trueFalse, IDataType renterTypeDropdown, IDataType colorPicker)
     {
@@ -293,8 +257,6 @@ public sealed class MemberTypeSeeder(
             memberTypeService.Save(memberType);
     }
 
-    // ── Passive Member (passivMember) ─────────────────────────────────────────
-
     private void EnsurePassivMemberType(
         IDataType textBox, IDataType textArea, IDataType trueFalse,
         IDataType emailType, IDataType dateType,
@@ -321,24 +283,20 @@ public sealed class MemberTypeSeeder(
         const string adminGn = "Admin";
         var before = _propertyChanges;
 
-        // Contact & membership
         EnsureProperty(memberType, emailType,               PassivMemberAliases.Email,           "E-Mail",             mandatory: true,  sort: 0,  infoG, infoGn);
         EnsureProperty(memberType, textBox,                 PassivMemberAliases.FirstName,       "First Name",         mandatory: true,  sort: 1,  infoG, infoGn);
         EnsureProperty(memberType, textBox,                 PassivMemberAliases.LastName,        "Last Name",          mandatory: true,  sort: 2,  infoG, infoGn);
         EnsureProperty(memberType, textBox,                 PassivMemberAliases.FieldNumber,     "Field Number",       mandatory: true,  sort: 3,  infoG, infoGn);
         EnsureProperty(memberType, membershipLevelDropdown, PassivMemberAliases.MembershipLevel, "Membership Level",   mandatory: true,  sort: 4,  infoG, infoGn);
-        // Address — same aliases as hallMember
         EnsureProperty(memberType, textBox, PassivMemberAliases.BillingAddress,    "Billing Address",     mandatory: true,  sort: 5,  infoG, infoGn);
         EnsureProperty(memberType, textBox, PassivMemberAliases.AddressLine2,      "Address Line 2",      mandatory: false, sort: 6,  infoG, infoGn);
         EnsureProperty(memberType, textBox, PassivMemberAliases.BillingPostalCode, "Billing Postal Code", mandatory: true,  sort: 7,  infoG, infoGn);
         EnsureProperty(memberType, textBox, PassivMemberAliases.BillingCity,       "Billing City",        mandatory: true,  sort: 8,  infoG, infoGn);
         EnsureProperty(memberType, textBox, PassivMemberAliases.BillingCountry,    "Billing Country",     mandatory: false, sort: 9,  infoG, infoGn);
         EnsureProperty(memberType, textBox, PassivMemberAliases.Phone,             "Phone",               mandatory: false, sort: 10, infoG, infoGn);
-        // Floor display
         EnsureProperty(memberType, trueFalse, PassivMemberAliases.ShowNameOnFloor,  "Show Name on Floor", mandatory: false, sort: 11, infoG, infoGn);
         EnsureProperty(memberType, textBox,   PassivMemberAliases.FloorDisplayName, "Floor Display Name", mandatory: false, sort: 12, infoG, infoGn);
 
-        // Admin
         EnsureProperty(memberType, statusDropdown, PassivMemberAliases.Status,                 "Status",                    mandatory: false, sort: 0, adminG, adminGn);
         EnsureProperty(memberType, dateType,       PassivMemberAliases.PaidAt,                 "Paid At",                   mandatory: false, sort: 1, adminG, adminGn);
         EnsureProperty(memberType, textBox,        PassivMemberAliases.PaidBy,                 "Paid By",                   mandatory: false, sort: 2, adminG, adminGn);
@@ -353,13 +311,6 @@ public sealed class MemberTypeSeeder(
             memberTypeService.Save(memberType);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    // Adds the property if missing; if it already exists with a different data type,
-    // removes it and re-adds it (existing member values for that property are lost).
-    // Always updates the display name.
-    // Counts member-type schema changes so callers can save only when something actually
-    // changed. A redundant member-type save triggers a ModelsBuilder regeneration.
     private int _propertyChanges;
 
     private void EnsureProperty(IMemberType memberType, IDataType dataType, string alias, string name,
@@ -374,7 +325,6 @@ public sealed class MemberTypeSeeder(
 
             if (existing.DataTypeKey == dataType.Key) return;
 
-            // Data type changed — remove and re-add (member values for this property are lost).
             memberType.RemovePropertyType(alias);
         }
 

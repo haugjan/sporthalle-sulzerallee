@@ -6,12 +6,6 @@ using Xunit;
 
 namespace SporthalleWeb.Tests.Infrastructure.Booking;
 
-/// <summary>
-/// Guards the NPoco ↔ SQLite mapping for RecurringSlotRecord. The date/time fields are
-/// stored as TEXT ("HH:mm" / "yyyy-MM-dd") because NPoco + Microsoft.Data.Sqlite cannot
-/// cast a TEXT column to TimeOnly/DateOnly directly. RecurringSlotRepository is responsible
-/// for parsing the strings into domain types.
-/// </summary>
 public sealed class RecurringSlotDateTimeMappingTests
 {
     private static IDatabase OpenDb(SqliteConnection conn) => new Database(conn, DatabaseType.SQLite);

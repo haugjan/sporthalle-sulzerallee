@@ -9,7 +9,7 @@ public sealed class MemberStatusTests
     [InlineData("Pending", MemberStatusValue.Pending)]
     [InlineData("Confirmed", MemberStatusValue.Confirmed)]
     [InlineData("Deleted", MemberStatusValue.Deleted)]
-    [InlineData("pending", MemberStatusValue.Pending)]   // case-insensitive
+    [InlineData("pending", MemberStatusValue.Pending)]
     public void FromKey_ValidKey_ReturnsStatus(string key, MemberStatusValue expected)
     {
         Assert.Equal(expected, MemberStatus.FromKey(key).Value);

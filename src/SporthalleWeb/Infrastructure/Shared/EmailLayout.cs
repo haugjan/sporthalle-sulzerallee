@@ -1,23 +1,10 @@
 namespace SporthalleWeb.Infrastructure.Shared;
 
-/// <summary>
-/// Single source of truth for the visual layout of all system e-mails.
-/// Produces self-contained HTML (sent via Brevo's <c>htmlContent</c>, no Brevo template).
-/// Design follows the homepage: Dust red (#EB504B), ink (#101010), Manrope / Anton.
-/// Reference markup: <c>docs/email/brevo-universal-template.html</c>.
-/// </summary>
 public static class EmailLayout
 {
     private const string LogoUrl =
         "https://app-sporthalle-sulzerallee.azurewebsites.net/img/sporthalle_sulzerallee_logo_neu.png";
 
-    /// <param name="title">Heading shown in the mail (required).</param>
-    /// <param name="body">Main text. Plain text with line breaks or simple HTML.</param>
-    /// <param name="greeting">Optional salutation line (e.g. "Guten Tag Max Muster").</param>
-    /// <param name="details">Optional detail box (e.g. summary/fields).</param>
-    /// <param name="note">Optional muted secondary note below the body.</param>
-    /// <param name="ctaUrl">Optional call-to-action button URL.</param>
-    /// <param name="ctaLabel">Optional button label (default "Mehr erfahren").</param>
     public static string Render(
         string title,
         string body,

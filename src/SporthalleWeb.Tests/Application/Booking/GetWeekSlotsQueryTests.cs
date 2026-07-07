@@ -33,8 +33,6 @@ public sealed class GetWeekSlotsQueryTests
             createdAt: BaseUtc, updatedAt: BaseUtc, createdBy: "admin",
             recurringSlotId: null, showTitlePublic: showTitlePublic);
 
-    // ── ShowTitlePublic title-masking ──────────────────────────────────────────
-
     [Fact]
     public async Task Execute_ShowTitlePublicTrue_ReturnsTitleInDto()
     {
@@ -49,7 +47,6 @@ public sealed class GetWeekSlotsQueryTests
     [Fact]
     public async Task Execute_ShowTitlePublicFalse_ReturnsEmptyTitleInDto()
     {
-        // Before the fix the title was always returned. Now ShowTitlePublic gates it.
         _repo.Setup(r => r.GetForWeekAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
              .ReturnsAsync([MakeSlot(SlotType.Booked, "Unihockey", showTitlePublic: false)]);
 
@@ -61,7 +58,6 @@ public sealed class GetWeekSlotsQueryTests
     [Fact]
     public async Task Execute_ShowTitlePublicFalse_TitleIsNotLeaked()
     {
-        // The internal title must not appear in the public DTO at all.
         _repo.Setup(r => r.GetForWeekAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
              .ReturnsAsync([MakeSlot(SlotType.Reserved, "Geheimes Training", showTitlePublic: false)]);
 
@@ -69,8 +65,6 @@ public sealed class GetWeekSlotsQueryTests
 
         Assert.DoesNotContain("Geheimes Training", result[0].Title);
     }
-
-    // ── Rejected slots are excluded ────────────────────────────────────────────
 
     [Fact]
     public async Task Execute_RejectedSlot_IsExcludedFromResult()
@@ -101,8 +95,6 @@ public sealed class GetWeekSlotsQueryTests
         Assert.Empty(result);
     }
 
-    // ── All non-rejected slot types are included ───────────────────────────────
-
     [Theory]
     [InlineData(SlotType.Booked)]
     [InlineData(SlotType.Reserved)]
@@ -118,8 +110,6 @@ public sealed class GetWeekSlotsQueryTests
         Assert.Single(result);
         Assert.Equal(type.ToString(), result[0].Type);
     }
-
-    // ── DTO field mapping ──────────────────────────────────────────────────────
 
     [Fact]
     public async Task Execute_MapsUtcTimesCorrectly()

@@ -6,8 +6,6 @@ public sealed record PostalCode
 
     private PostalCode(string value) => Value = value;
 
-    /// <summary>Validates new input. Swiss postal codes must be 4 digits (1000–9999);
-    /// foreign codes are accepted leniently (non-empty, max 10 chars).</summary>
     public static PostalCode Create(string value, string? country = null)
     {
         var trimmed = value?.Trim() ?? "";
@@ -28,8 +26,6 @@ public sealed record PostalCode
         return new PostalCode(trimmed);
     }
 
-    /// <summary>Rehydrates from storage without validation, so legacy/imported values never
-    /// block loading. New values are validated via <see cref="Create"/>.</summary>
     public static PostalCode FromPersistence(string? value) => new((value ?? "").Trim());
 
     private static bool IsSwiss(string? country)

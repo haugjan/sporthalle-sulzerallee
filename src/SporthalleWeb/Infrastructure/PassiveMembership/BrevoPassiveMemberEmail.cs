@@ -11,7 +11,6 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
 {
     private readonly BrevoEmailOptions _opts = opts.Value;
 
-    // Passive-membership registrations notify the general office inbox (not reservations).
     private static readonly string[] AdminBcc =
     [
         "info@sporthalle-sulzerallee.ch"

@@ -24,8 +24,6 @@ public sealed class BookingController(
     IHallConfiguration hallConfig,
     ICaptcha captcha) : ControllerBase
 {
-    // ── Configuration ─────────────────────────────────────────────────────────
-
     [HttpGet("konfiguration")]
     public async Task<IActionResult> GetConfiguration()
     {
@@ -45,8 +43,6 @@ public sealed class BookingController(
             bookingCutoffDate = cutoffDate?.ToString("yyyy-MM-dd")
         });
     }
-
-    // ── Guest booking ─────────────────────────────────────────────────────────
 
     [HttpPost("gast-buchung")]
     public async Task<IActionResult> GuestBooking([FromBody] GuestBookingRequest req)
@@ -125,8 +121,6 @@ public sealed class BookingController(
         }
     }
 
-    // ── Calendar / week view ──────────────────────────────────────────────────
-
     [HttpGet("wochen-slots")]
     public async Task<IActionResult> GetWeekSlots([FromQuery] DateOnly from)
     {
@@ -144,8 +138,6 @@ public sealed class BookingController(
     public async Task<IActionResult> GetAvailableTimeSlots(
         [FromQuery] DateOnly date, [FromQuery] int duration = 60)
         => Ok(await availableTimeSlotsQuery.GetAsync(date, duration));
-
-    // ── Admin endpoints ───────────────────────────────────────────────────────
 
     [HttpGet("admin/pending")]
     [Authorize(Roles = "admin")]

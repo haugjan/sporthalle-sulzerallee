@@ -11,7 +11,6 @@ public sealed class GetWeekSlots(IBookingSlots slotRepo, IHallMembers members)
         var toUtc = fromUtc.AddDays(7);
         var slots = await slotRepo.GetForWeekAsync(fromUtc, toUtc);
 
-        // The display colour comes from the renting member; cache lookups per member.
         var colorByMember = new Dictionary<int, string?>();
         var result = new List<WeekSlotDto>();
         foreach (var s in slots.Where(s => s.Type != SlotType.Rejected))

@@ -14,34 +14,27 @@ public class BookingComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
-        // Migration
         builder.AddComponent<BookingMigrationComponent>();
 
-        // HTTP clients
         builder.Services.AddHttpClient("Brevo");
         builder.Services.AddHttpClient("Turnstile");
 
-        // Repositories
         builder.Services.AddScoped<IBookingSlots, BookingSlotRepository>();
         builder.Services.AddScoped<IRecurringSlots, RecurringSlotRepository>();
         builder.Services.AddScoped<IBookingAudit, BookingAuditRepository>();
 
-        // Infrastructure adapters
         builder.Services.AddScoped<IHallMembers, UmbracoHallMembers>();
         builder.Services.AddScoped<IHallConfiguration, UmbracoHallConfiguration>();
         builder.Services.AddScoped<IBookingEmail, BrevoBookingEmail>();
         builder.Services.AddScoped<IBookingCsv, BookingCsvExport>();
         builder.Services.AddScoped<ICaptcha, TurnstileBookingCaptcha>();
 
-        // Application queries
         builder.Services.AddScoped<GetWeekSlots>();
         builder.Services.AddScoped<GetAvailableDays>();
         builder.Services.AddScoped<GetAvailableTimeSlots>();
 
-        // Config store (raw key-value)
         builder.Services.AddScoped<IHallConfigStore, UmbracoHallConfigStore>();
 
-        // Application use cases
         builder.Services.AddScoped<CreateBooking>();
         builder.Services.AddScoped<ConfirmBooking>();
         builder.Services.AddScoped<RejectBooking>();

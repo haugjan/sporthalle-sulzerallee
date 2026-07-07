@@ -5,51 +5,52 @@ namespace SporthalleWeb.Tests.Domain.PassiveMembership;
 
 public sealed class VipFieldTests
 {
-    // 40 columns × 25 rows grid → fieldNumber = row * 40 + col + 1
+    // Sample fields derived from the geometric VIP definition in VipField.cs.
+    // If the marking geometry (circle radius, goal/spot positions) is retuned,
+    // these samples must be recomputed.
 
     [Theory]
-    [InlineData(8 * 40 + 2 + 1)]   // Torraum left (col 2, row 8)
-    [InlineData(16 * 40 + 7 + 1)]  // Torraum left (col 7, row 16)
-    [InlineData(8 * 40 + 37 + 1)]  // Torraum right (col 37, row 8)
-    [InlineData(8 * 40 + 16 + 1)]  // Anspielkreis (col 16, row 8)
-    [InlineData(16 * 40 + 23 + 1)] // Anspielkreis (col 23, row 16)
-    [InlineData(3 * 40 + 8 + 1)]   // Anspielpunkt left-top (col 8, row 3)
-    public void IsVip_VipField_ReturnsTrue(int fieldNumber)
+    [InlineData(131)] // on the left Mittelkreis ring
+    [InlineData(149)] // on the left Mittelkreis ring
+    public void IsVip_CentreCircleRing_ReturnsTrue(int fieldNumber)
     {
         Assert.True(VipField.IsVip(fieldNumber));
+        Assert.Equal("Mittelkreis", VipField.GetLabel(fieldNumber));
     }
 
     [Theory]
-    [InlineData(1)]    // top-left corner, not VIP
-    [InlineData(1000)] // bottom-right corner, not VIP
-    [InlineData(21)]   // top edge, not VIP
-    public void IsVip_NonVipField_ReturnsFalse(int fieldNumber)
+    [InlineData(361)] // inside the left Torraum
+    [InlineData(398)] // inside the left Torraum
+    public void GetLabel_GoalCrease_ReturnsTorraum(int fieldNumber)
+    {
+        Assert.Equal("Torraum", VipField.GetLabel(fieldNumber));
+    }
+
+    [Theory]
+    [InlineData(43)] // top-left corner face-off spot
+    [InlineData(76)]
+    public void GetLabel_FaceOffSpot_ReturnsAnspielpunkt(int fieldNumber)
+    {
+        Assert.Equal("Anspielpunkt", VipField.GetLabel(fieldNumber));
+    }
+
+    [Theory]
+    [InlineData(1)]     // extreme corner, outside every special area
+    [InlineData(500)]   // open floor between the two centre circles
+    [InlineData(1000)]  // opposite extreme corner
+    public void IsVip_PlainField_ReturnsFalse(int fieldNumber)
     {
         Assert.False(VipField.IsVip(fieldNumber));
+        Assert.Null(VipField.GetLabel(fieldNumber));
     }
 
-    [Fact]
-    public void GetLabel_GoalCrease_ReturnsTorraum()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(1001)]
+    public void GetLabel_OutOfRange_ReturnsNull(int fieldNumber)
     {
-        Assert.Equal("Torraum", VipField.GetLabel(8 * 40 + 2 + 1));   // left
-        Assert.Equal("Torraum", VipField.GetLabel(8 * 40 + 37 + 1));  // right
-    }
-
-    [Fact]
-    public void GetLabel_CenterCircle_ReturnsAnspielkreis()
-    {
-        Assert.Equal("Anspielkreis", VipField.GetLabel(8 * 40 + 16 + 1));
-    }
-
-    [Fact]
-    public void GetLabel_FaceOffSpot_ReturnsAnspielpunkt()
-    {
-        Assert.Equal("Anspielpunkt", VipField.GetLabel(3 * 40 + 8 + 1));
-    }
-
-    [Fact]
-    public void GetLabel_NonVipField_ReturnsNull()
-    {
-        Assert.Null(VipField.GetLabel(1));
+        Assert.Null(VipField.GetLabel(fieldNumber));
+        Assert.False(VipField.IsVip(fieldNumber));
     }
 }

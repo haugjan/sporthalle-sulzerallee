@@ -15,8 +15,6 @@ public class UmbracoPassiveMembers(
 {
     private const string MemberTypeAlias = "passivMember";
 
-    // ── Query ─────────────────────────────────────────────────────────────────
-
     public Task<bool> IsFieldTakenAsync(FieldNumber field)
     {
         var fieldStr = field.Value.ToString();
@@ -77,8 +75,6 @@ public class UmbracoPassiveMembers(
             var status = UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>("status"), null);
             if (status == MemberStatus.Deleted.Key) continue;
 
-            // Skip members with a missing/invalid field number instead of letting the
-            // FieldNumber value object throw — one bad row must not blank the whole floor plan.
             var raw = m.GetValue<string>("fieldNumber");
             if (!int.TryParse(raw, out var fn) || fn < 1 || fn > FloorGrid.TotalFields)
             {
@@ -87,8 +83,6 @@ public class UmbracoPassiveMembers(
                 continue;
             }
 
-            // The name is only shown once the yearly fee has been paid; an
-            // unpaid field stays occupied but anonymous on the floor plan.
             var isPaid = m.GetValue<DateTime?>(PassivMemberAliases.PaidAt).HasValue;
             var show = m.GetValue<bool>(PassivMemberAliases.ShowNameOnFloor);
             var displayName = show && isPaid
@@ -98,8 +92,6 @@ public class UmbracoPassiveMembers(
         }
         return Task.FromResult<IReadOnlyList<(FieldNumber, string?)>>(result);
     }
-
-    // ── Mutations ─────────────────────────────────────────────────────────────
 
     public async Task<PassiveMember> SaveAsync(PassiveMember member)
     {
@@ -122,7 +114,6 @@ public class UmbracoPassiveMembers(
     {
         var username = Username(member.FieldNumber.Value);
 
-        // Re-register a previously soft-deleted field: reuse the existing slot.
         var existingUser = await memberManager.FindByNameAsync(username);
         if (existingUser is not null)
         {
@@ -169,12 +160,9 @@ public class UmbracoPassiveMembers(
         return Task.CompletedTask;
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
-
     private static string Username(int fieldNumber) => $"pm-{fieldNumber:D3}";
     private static string SyntheticEmail(int fieldNumber) => $"pm-{fieldNumber:D3}@passiv.internal";
 
-    // internal for MemberTypeConsistencyTests
     internal static void SetProperties(IMember m, PassiveMember pm)
     {
         m.SetValue(PassivMemberAliases.Email,                  pm.Email.Value);
