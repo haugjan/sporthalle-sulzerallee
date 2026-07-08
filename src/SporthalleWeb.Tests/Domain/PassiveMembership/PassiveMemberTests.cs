@@ -38,7 +38,7 @@ public sealed class PassiveMemberTests
     public void Register_VipFieldWithBronze_Throws()
     {
         Assert.Throws<DomainException>(() => PassiveMember.Register(
-            new FieldNumber(8 * 40 + 16 + 1), "Max", "Muster",
+            new FieldNumber(502), "Max", "Muster",
             "Musterstrasse 1", null, "8400", "Winterthur",
             null, new MemberEmail("max@muster.ch"),
             MembershipLevel.Bronze, false, null));
@@ -50,7 +50,7 @@ public sealed class PassiveMemberTests
     public void Register_VipFieldWithSilberOrGold_Succeeds(string levelKey)
     {
         var m = PassiveMember.Register(
-            new FieldNumber(8 * 40 + 16 + 1), "Max", "Muster",
+            new FieldNumber(502), "Max", "Muster",
             "Musterstrasse 1", null, "8400", "Winterthur",
             null, new MemberEmail("max@muster.ch"),
             MembershipLevel.FromKey(levelKey), false, null);
