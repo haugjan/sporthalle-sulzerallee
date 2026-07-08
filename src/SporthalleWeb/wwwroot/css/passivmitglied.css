@@ -401,7 +401,7 @@
 
 .pm-cell--free {
   fill: transparent;
-  stroke: rgba(255,255,255,0.1);
+  stroke: rgba(12,35,70,0.1);
   stroke-width: 0.5;
 }
 .pm-cell--free:hover, .pm-cell--free:focus {

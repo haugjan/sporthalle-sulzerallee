@@ -88,7 +88,7 @@
 
   <div class="pm-legend">
     <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--free"></span> Frei</div>
-    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--vip"></span> Spezialfeld (Mittelkreis / Torraum / Anspielpunkt)</div>
+    <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--vip"></span> Spezialfeld (Torraum / Mittelpunkt)</div>
     <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--occupied"></span> Belegt</div>
   </div>
 </section>
@@ -161,7 +161,7 @@
             </div>
             @if (fieldIsVip)
             {
-              <p class="pm-wizard-level__hint">Dieses Spezialfeld (Mittelkreis, Torraum oder Anspielpunkt) ist nur mit Silber oder Gold wählbar.</p>
+              <p class="pm-wizard-level__hint">Dieses Spezialfeld (Torraum oder Mittelpunkt) ist nur mit Silber oder Gold wählbar.</p>
             }
             @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
           </div>

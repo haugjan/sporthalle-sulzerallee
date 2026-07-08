@@ -5,39 +5,34 @@ namespace SporthalleWeb.Tests.Domain.PassiveMembership;
 
 public sealed class VipFieldTests
 {
-    // Sample fields derived from the geometric VIP definition in VipField.cs.
-    // If the marking geometry (circle radius, goal/spot positions) is retuned,
-    // these samples must be recomputed.
+    // Special fields are defined explicitly in VipField.cs:
+    //   Rectangle 408..611, Rectangle 434..637, single field 502.
 
     [Theory]
-    [InlineData(131)] // on the left Mittelkreis ring
-    [InlineData(149)] // on the left Mittelkreis ring
-    public void IsVip_CentreCircleRing_ReturnsTrue(int fieldNumber)
-    {
-        Assert.True(VipField.IsVip(fieldNumber));
-        Assert.Equal("Mittelkreis", VipField.GetLabel(fieldNumber));
-    }
-
-    [Theory]
-    [InlineData(361)] // inside the left Torraum
-    [InlineData(398)] // inside the left Torraum
-    public void GetLabel_GoalCrease_ReturnsTorraum(int fieldNumber)
+    [InlineData(408)] // top-left corner of the left rectangle
+    [InlineData(611)] // bottom-right corner of the left rectangle
+    [InlineData(490)] // inside the left rectangle
+    [InlineData(434)] // top-left corner of the right rectangle
+    [InlineData(637)] // bottom-right corner of the right rectangle
+    [InlineData(515)] // inside the right rectangle
+    public void GetLabel_RectangleField_ReturnsTorraum(int fieldNumber)
     {
         Assert.Equal("Torraum", VipField.GetLabel(fieldNumber));
+        Assert.True(VipField.IsVip(fieldNumber));
     }
 
-    [Theory]
-    [InlineData(43)] // top-left corner face-off spot
-    [InlineData(76)]
-    public void GetLabel_FaceOffSpot_ReturnsAnspielpunkt(int fieldNumber)
+    [Fact]
+    public void GetLabel_CentreField_ReturnsMittelpunkt()
     {
-        Assert.Equal("Anspielpunkt", VipField.GetLabel(fieldNumber));
+        Assert.Equal("Mittelpunkt", VipField.GetLabel(502));
+        Assert.True(VipField.IsVip(502));
     }
 
     [Theory]
-    [InlineData(1)]     // extreme corner, outside every special area
-    [InlineData(500)]   // open floor between the two centre circles
-    [InlineData(1000)]  // opposite extreme corner
+    [InlineData(1)]    // corner, outside every special area
+    [InlineData(407)]  // one column left of the left rectangle
+    [InlineData(501)]  // next to the centre field but not special
+    [InlineData(1000)] // opposite corner
     public void IsVip_PlainField_ReturnsFalse(int fieldNumber)
     {
         Assert.False(VipField.IsVip(fieldNumber));

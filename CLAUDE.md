@@ -243,7 +243,7 @@ you change one of these files, read the matching entry first.
 ### Domain value objects
 
 - **`FloorGrid`** is the single source of truth for the floor-plan grid resolution (40 columns × 25 rows = 1000 fields), referenced by both the domain (`FieldNumber`, `VipField`) and the presentation (`FloorPlanComponent`) so the field count stays consistent.
-- **`VipField`** defines VIP areas geometrically in normalised coordinates of the blue playing surface (u = length, v = width) and marks a field special when its grid cell intersects a Mittelkreis disc, a Torraum rectangle, or an Anspielpunkt spot. Circle tests are aspect-corrected (the surface is wider than tall) so discs stay round regardless of grid resolution. The shape constants are the single place to retune the special-field layout.
+- **`VipField`** defines the special ("VIP") fields explicitly by field number, chosen on the numbered floor plan: two rectangles given by their top-left/bottom-right field number (`Torraum`, 408..611 and 434..637) plus single fields (`Mittelpunkt`, 502). `GetLabel` converts a field number to col/row via `FloorGrid` and tests rectangle membership, then the single-field map. This is the single place to retune the special-field layout: edit the `Rectangles` / `SingleFields` entries.
 - **`PostalCode`**: Swiss codes must be 4 digits (1000–9999); foreign codes are accepted leniently (non-empty, max 10 chars). `FromStorage` rehydrates without validation so legacy/imported values never block loading; new values go through `Create`.
 - **`MemberEmail` / `RenterEmail`**: use `MailAddress.TryCreate` (basic `local@domain` structure) rather than a stricter check, so addresses already stored under the previous `@`-only rule are not rejected on reload.
 
@@ -328,7 +328,7 @@ Domain/PassiveMembership/PassiveMemberAggregate/   ns SporthalleWeb.Domain.Passi
   MemberEmail.cs                 Value Object (normalised lowercase)
   MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
   MemberStatus.cs                Pending / Confirmed / Deleted
-  VipField.cs                    Named areas (Mittelkreis, Torraum, Anspielpunkt), geometric
+  VipField.cs                    Special fields by number (Torraum rectangles, Mittelpunkt)
   DomainException.cs             + FieldAlreadyTakenException + MemberNotFoundException
 
 Features/PassiveMembership/
@@ -389,7 +389,7 @@ Auth: Umbraco backoffice session cookie (inherited by the iframe).
 
 ### Public Floor Plan
 
-The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The background is the real hall floor plan (`wwwroot/img/hallenboden.png`); the component overlays a 40×25 SVG grid (1000 fields) positioned **only over the blue playing surface** (walls, ancillary rooms and the staircase stay unselectable) plus a 6-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain); the blue rectangle's location inside the image is stored as normalised fractions in the component. Special/VIP fields (Mittelkreis, Torraum, Anspielpunkt) require Silber or Gold; Bronze is blocked for them (enforced in `PassiveMember.Register` and in the wizard's level step).
+The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The background is the real hall floor plan (`wwwroot/img/hallenboden.png`); the component overlays a 40×25 SVG grid (1000 fields) positioned **only over the blue playing surface** (walls, ancillary rooms and the staircase stay unselectable) plus a 6-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain); the blue rectangle's location inside the image is stored as normalised fractions in the component. Special/VIP fields (two Torraum rectangles, the Mittelpunkt) require Silber or Gold; Bronze is blocked for them (enforced in `PassiveMember.Register` and in the wizard's level step).
 
 ### Membership Levels
 
@@ -401,13 +401,12 @@ The `_PassivMitgliedschaftModule.cshtml` partial embeds an `<iframe src="/passiv
 
 ### Floor Plan VIP Areas (German labels, public-facing)
 
-Derived geometrically in `VipField` from the plan markings (normalised u = length, v = width of the blue surface). A cell is special when it intersects one of these shapes:
+Defined explicitly by field number in `VipField`, picked on the numbered floor plan (49 fields total):
 
 | Area | Fields |
 |---|---|
-| Mittelkreis | The two centre circles — every field inside the disc |
-| Torraum | The two goal creases at the short ends |
-| Anspielpunkt | The four corner face-off spots |
+| Torraum | Rectangle 408..611 (24 fields) and rectangle 434..637 (24 fields) |
+| Mittelpunkt | Field 502 |
 
 ### Database Table: `PassivMitglieder`
 
