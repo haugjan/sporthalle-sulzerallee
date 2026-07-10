@@ -44,6 +44,7 @@ public sealed class ContentSeeder(
         UpgradePreisTextToRichText();
         EnsureReservationAgreementProperties();
         EnsurePassivmitgliedschaftElementProperties();
+        EnsurePassivmitgliedschaftBlockEditable();
 
         if (contentService.GetRootContent().Any())
         {
@@ -561,6 +562,42 @@ public sealed class ContentSeeder(
         };
         dataTypeService.Save(dt);
         return dt;
+    }
+
+    private void EnsurePassivmitgliedschaftBlockEditable()
+    {
+        const string elementKey = "a2000002-0000-4000-8000-000000000002";
+
+        var dt = dataTypeService.GetAll()
+            .FirstOrDefault(d => d.EditorAlias == "Umbraco.BlockList" && d.Name == "Flex Page Blocks");
+        if (dt?.ConfigurationData is null) return;
+
+        System.Text.Json.Nodes.JsonNode? root;
+        try { root = System.Text.Json.Nodes.JsonNode.Parse(serializer.Serialize(dt.ConfigurationData)); }
+        catch { return; }
+
+        if (root is not System.Text.Json.Nodes.JsonObject obj
+            || obj["blocks"] is not System.Text.Json.Nodes.JsonArray blocks) return;
+
+        var changed = false;
+        foreach (var block in blocks.OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            if (block["contentElementTypeKey"]?.ToString() != elementKey) continue;
+            if (block["forceHideContentEditorInOverlay"] is System.Text.Json.Nodes.JsonValue hv
+                && hv.TryGetValue<bool>(out var hidden) && hidden)
+            {
+                block["forceHideContentEditorInOverlay"] = false;
+                changed = true;
+            }
+        }
+        if (!changed) return;
+
+        var newConfig = serializer.Deserialize<Dictionary<string, object>>(root.ToJsonString());
+        if (newConfig is null) return;
+
+        dt.ConfigurationData = newConfig;
+        dataTypeService.Save(dt);
+        logger.LogInformation("ContentSeeder: enabled content editor overlay for passivmitgliedschaftElement block.");
     }
 
     private void MigrateMediaPathsToImg()
