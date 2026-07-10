@@ -42,7 +42,7 @@
 
   <div id="pm-svg-container" @onclick="OnContainerClick">
     <img src="@(string.IsNullOrWhiteSpace(_settings.BackgroundUrl) ? "/img/hallenboden.png" : _settings.BackgroundUrl)" alt="" aria-hidden="true" id="pm-floor-img" />
-    <svg viewBox="0 0 840 354" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 840 354" preserveAspectRatio="none" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
       @{
         // The grid overlays only the configured playing-surface region of the hall
         // floor plan. The region fractions locate that rectangle inside the background
