@@ -17,7 +17,8 @@ public sealed class PassiveMemberTests
             new MemberEmail("max@muster.ch"),
             MembershipLevel.Bronze,
             showNameOnFloor,
-            displayName);
+            displayName,
+            VipField.Default);
 
     [Fact]
     public void Register_ValidData_CreatesPendingMember()
@@ -41,7 +42,7 @@ public sealed class PassiveMemberTests
             new FieldNumber(502), "Max", "Muster",
             "Musterstrasse 1", null, "8400", "Winterthur",
             null, new MemberEmail("max@muster.ch"),
-            MembershipLevel.Bronze, false, null));
+            MembershipLevel.Bronze, false, null, VipField.Default));
     }
 
     [Theory]
@@ -53,8 +54,31 @@ public sealed class PassiveMemberTests
             new FieldNumber(502), "Max", "Muster",
             "Musterstrasse 1", null, "8400", "Winterthur",
             null, new MemberEmail("max@muster.ch"),
-            MembershipLevel.FromKey(levelKey), false, null);
+            MembershipLevel.FromKey(levelKey), false, null, VipField.Default);
         Assert.Equal(levelKey, m.Level.Key);
+    }
+
+    [Fact]
+    public void Register_CustomSpecialMap_BlocksBronzeOnConfiguredField()
+    {
+        var map = new SpecialFieldMap([new SpecialArea("Sonderzone", 100, 100)]);
+        Assert.Throws<DomainException>(() => PassiveMember.Register(
+            new FieldNumber(100), "Max", "Muster",
+            "Musterstrasse 1", null, "8400", "Winterthur",
+            null, new MemberEmail("max@muster.ch"),
+            MembershipLevel.Bronze, false, null, map));
+    }
+
+    [Fact]
+    public void Register_EmptySpecialMap_AllowsBronzeOnDefaultVipField()
+    {
+        var map = new SpecialFieldMap([]);
+        var m = PassiveMember.Register(
+            new FieldNumber(502), "Max", "Muster",
+            "Musterstrasse 1", null, "8400", "Winterthur",
+            null, new MemberEmail("max@muster.ch"),
+            MembershipLevel.Bronze, false, null, map);
+        Assert.Equal("Bronze", m.Level.Key);
     }
 
     [Fact]
@@ -85,7 +109,7 @@ public sealed class PassiveMemberTests
         var m = PassiveMember.Register(
             new FieldNumber(1), "  Max  ", "  Muster  ",
             "  Musterstrasse 1  ", null, "  8400  ", "  Winterthur  ",
-            null, new MemberEmail("x@y.com"), MembershipLevel.Bronze, false, null);
+            null, new MemberEmail("x@y.com"), MembershipLevel.Bronze, false, null, VipField.Default);
         Assert.Equal("Max", m.FirstName);
         Assert.Equal("Muster", m.LastName);
         Assert.Equal("Musterstrasse 1", m.AddressLine);
@@ -98,7 +122,7 @@ public sealed class PassiveMemberTests
     {
         var m = PassiveMember.Register(
             new FieldNumber(1), "X", "Y", "Str 1", null, "1234", "City",
-            "   ", new MemberEmail("x@y.com"), MembershipLevel.Bronze, false, null);
+            "   ", new MemberEmail("x@y.com"), MembershipLevel.Bronze, false, null, VipField.Default);
         Assert.Null(m.Phone);
     }
 

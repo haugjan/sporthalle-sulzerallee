@@ -458,6 +458,7 @@ public sealed class ContentSeeder(
         var imagePicker = dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault(d => d.Key == imagePickerKey)
                        ?? dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault();
         var colorPicker = EnsureEyeDropperDataType();
+        var rasterPicker = EnsureBodenplanRasterDataType();
         if (imagePicker == null)
         {
             logger.LogWarning("ContentSeeder: media picker data type not found, skipping passivmitgliedschaftElement properties.");
@@ -487,6 +488,17 @@ public sealed class ContentSeeder(
                 Name = "Linienfarbe",
                 Description = "Farbe der Feld-Begrenzungslinien inklusive Transparenz. Ohne Angabe wird die Standardfarbe verwendet.",
                 SortOrder = 1
+            }, groupAlias, groupName);
+            changed = true;
+        }
+        if (rasterPicker != null && el.PropertyTypes.All(p => p.Alias != "bodenplanRaster"))
+        {
+            el.AddPropertyType(new PropertyType(shortStringHelper, rasterPicker)
+            {
+                Alias = "bodenplanRaster",
+                Name = "Rasterbereich & Spezialfelder",
+                Description = "Rasterbereich über dem Bild aufziehen und Spezialfelder anklicken. Ohne Angabe gelten die Standardwerte.",
+                SortOrder = 2
             }, groupAlias, groupName);
             changed = true;
         }
@@ -522,6 +534,30 @@ public sealed class ContentSeeder(
                 ["showAlpha"] = true,
                 ["showPalette"] = true
             }
+        };
+        dataTypeService.Save(dt);
+        return dt;
+    }
+
+    private IDataType? EnsureBodenplanRasterDataType()
+    {
+        var key = Guid.Parse("d7f3a9b2-4c81-4e05-8f6a-2b1c3d4e5f60");
+        var existing = dataTypeService.GetAll().FirstOrDefault(d => d.Key == key);
+        if (existing != null) return existing;
+
+        if (!propertyEditors.TryGet("Umbraco.Plain.Json", out var editor) &&
+            !propertyEditors.TryGet("Umbraco.Plain.String", out editor))
+        {
+            logger.LogWarning("ContentSeeder: no plain JSON/String editor found, cannot create Bodenplan Raster data type.");
+            return null;
+        }
+
+        var dt = new DataType(editor, serializer)
+        {
+            Key = key,
+            Name = "Bodenplan Raster",
+            EditorUiAlias = "Sporthalle.PropertyEditorUi.BodenplanRaster",
+            DatabaseType = ValueStorageType.Ntext
         };
         dataTypeService.Save(dt);
         return dt;

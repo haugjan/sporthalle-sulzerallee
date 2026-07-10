@@ -25,6 +25,8 @@ public class PassiveMemberComposer : IComposer
         builder.Services.AddSingleton<IPassiveMemberExport, ClosedXmlPassiveMemberExport>();
         builder.Services.AddSingleton<IPassiveMemberAbaninja, AbaninjaPassiveMemberExport>();
 
+        builder.Services.AddScoped<IFloorPlanSettings, UmbracoFloorPlanSettings>();
+
         builder.Services.AddScoped<RegisterMember>();
         builder.Services.AddScoped<GetFieldStatuses>();
         builder.Services.AddScoped<PassiveMemberAdmin>();

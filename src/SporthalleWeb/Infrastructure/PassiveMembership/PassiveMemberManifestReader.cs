@@ -33,6 +33,21 @@ internal sealed class PassiveMemberManifestReader : IPackageManifestReader
                     new { alias = "Umb.Condition.SectionAlias", match = "pm.Section" }
                 },
                 meta = new { label = "Passivmitglieder", pathname = "passivmitglieder" }
+            },
+            new
+            {
+                type = "propertyEditorUi",
+                alias = "Sporthalle.PropertyEditorUi.BodenplanRaster",
+                name = "Bodenplan Raster",
+                element = "/App_Plugins/PassivMitglieder/pm-floor-config.js",
+                elementName = "pm-floor-config",
+                meta = new
+                {
+                    label = "Bodenplan Raster",
+                    icon = "icon-grid",
+                    group = "common",
+                    propertyEditorSchemaAlias = "Umbraco.Plain.Json"
+                }
             }
         ]
     };

@@ -1,17 +1,7 @@
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem>
-@{
-    var bgMedia = Model.Content.GetProperty("bodenplanBild")?.GetValue() as Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent;
-    var bgUrl = bgMedia?.GetCropUrl();
-    var lineColor = Model.Content.Value<string>("linienFarbe");
-
-    var query = new List<string>();
-    if (!string.IsNullOrWhiteSpace(bgUrl)) query.Add("bg=" + Uri.EscapeDataString(bgUrl));
-    if (!string.IsNullOrWhiteSpace(lineColor)) query.Add("line=" + Uri.EscapeDataString(lineColor));
-    var iframeSrc = "/passivmitglieder/hallenboden" + (query.Count > 0 ? "?" + string.Join("&", query) : "");
-}
 <section class="pme-section">
   <div class="pme-container">
-    <iframe src="@iframeSrc"
+    <iframe src="/passivmitglieder/hallenboden"
             class="pme-iframe"
             title="Hallenboden Passivmitgliedschaft"></iframe>
     <script>

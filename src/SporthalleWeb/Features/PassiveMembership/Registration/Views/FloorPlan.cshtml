@@ -1,8 +1,8 @@
 @using SporthalleWeb.Features.PassiveMembership.Registration
-@model FloorPlanViewModel
+@model string
 @{
     Layout = null;
-    var siteKey = Model?.SiteKey ?? "1x00000000000000000000AA";
+    var siteKey = Model ?? "1x00000000000000000000AA";
 }
 <!DOCTYPE html>
 <html lang="de">
@@ -18,9 +18,7 @@
 </head>
 <body>
     <component type="typeof(FloorPlanComponent)" render-mode="ServerPrerendered"
-               param-TurnstileSiteKey="@siteKey"
-               param-BackgroundUrl="@Model?.BackgroundUrl"
-               param-LineColor="@Model?.LineColor" />
+               param-TurnstileSiteKey="@siteKey" />
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script src="/_framework/blazor.server.js"></script>
     <script>

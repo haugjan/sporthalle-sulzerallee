@@ -11,12 +11,14 @@ public sealed class RegisterMemberUseCaseTests
 {
     private readonly Mock<IPassiveMembers> _repo = new();
     private readonly Mock<IPassiveMemberEmail> _email = new();
+    private readonly Mock<IFloorPlanSettings> _settings = new();
     private readonly RegisterMember _sut;
 
     public RegisterMemberUseCaseTests()
     {
+        _settings.Setup(s => s.GetAsync()).ReturnsAsync(FloorPlanSettings.Default);
         _sut = new RegisterMember(
-            _repo.Object, _email.Object,
+            _repo.Object, _email.Object, _settings.Object,
             NullLogger<RegisterMember>.Instance);
     }
 

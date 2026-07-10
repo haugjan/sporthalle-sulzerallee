@@ -20,6 +20,7 @@ public record RegisterMemberCommand(
 public sealed class RegisterMember(
     IPassiveMembers repo,
     IPassiveMemberEmail email,
+    IFloorPlanSettings settings,
     ILogger<RegisterMember> logger)
 {
     public async Task<PassiveMember> ExecuteAsync(RegisterMemberCommand cmd)
@@ -28,6 +29,8 @@ public sealed class RegisterMember(
 
         if (await repo.IsFieldTakenAsync(fieldNumber))
             throw new FieldAlreadyTakenException(fieldNumber);
+
+        var specialFields = (await settings.GetAsync()).SpecialFields;
 
         var member = PassiveMember.Register(
             fieldNumber,
@@ -41,7 +44,8 @@ public sealed class RegisterMember(
             new MemberEmail(cmd.Email),
             MembershipLevel.FromKey(cmd.LevelKey),
             cmd.ShowNameOnFloor,
-            cmd.DisplayName);
+            cmd.DisplayName,
+            specialFields);
 
         await repo.SaveAsync(member);
 
