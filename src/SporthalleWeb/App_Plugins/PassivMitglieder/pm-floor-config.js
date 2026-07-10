@@ -77,34 +77,43 @@ class PmFloorConfigElement extends LitElement {
     this._selfUpdate = false;
   }
 
+  #loadDefaults() {
+    this._region = { ...DEFAULT_REGION };
+    this._special = DEFAULT_SPECIAL.reduce((acc, a) => Object.assign(acc, expandArea(a)), {});
+  }
+
   #loadFromValue() {
-    let model = this.value;
-    if (typeof model === 'string') {
-      const t = model.trim();
-      if (!t) { model = null; } else { try { model = JSON.parse(t); } catch { model = null; } }
-    }
-    if (model && typeof model === 'object') {
-      const r = model.region;
-      this._region = r
-        ? {
-            x0: this.#num(r.x0, DEFAULT_REGION.x0),
-            y0: this.#num(r.y0, DEFAULT_REGION.y0),
-            x1: this.#num(r.x1, DEFAULT_REGION.x1),
-            y1: this.#num(r.y1, DEFAULT_REGION.y1),
-          }
-        : { ...DEFAULT_REGION };
+    this._loaded = true;
+    try {
+      let model = this.value;
+      for (let i = 0; i < 3 && typeof model === 'string'; i++) {
+        const t = model.trim();
+        if (!t) { model = null; break; }
+        try { model = JSON.parse(t); } catch { model = null; break; }
+      }
+      if (!model || typeof model !== 'object' || Array.isArray(model)) {
+        this.#loadDefaults();
+        return;
+      }
+      const r = model.region || {};
+      this._region = {
+        x0: this.#num(r.x0, DEFAULT_REGION.x0),
+        y0: this.#num(r.y0, DEFAULT_REGION.y0),
+        x1: this.#num(r.x1, DEFAULT_REGION.x1),
+        y1: this.#num(r.y1, DEFAULT_REGION.y1),
+      };
       const special = {};
       if (Array.isArray(model.special)) {
         for (const a of model.special) {
-          if (a && Number.isFinite(a.from)) Object.assign(special, expandArea({ from: a.from, to: a.to ?? a.from, label: a.label }));
+          if (a && Number.isFinite(a.from)) {
+            Object.assign(special, expandArea({ from: a.from, to: Number.isFinite(a.to) ? a.to : a.from, label: a.label }));
+          }
         }
       }
       this._special = special;
-    } else {
-      this._region = { ...DEFAULT_REGION };
-      this._special = DEFAULT_SPECIAL.reduce((acc, a) => Object.assign(acc, expandArea(a)), {});
+    } catch {
+      this.#loadDefaults();
     }
-    this._loaded = true;
   }
 
   #num(v, fallback) { return typeof v === 'number' && isFinite(v) ? v : fallback; }
@@ -119,7 +128,7 @@ class PmFloorConfigElement extends LitElement {
 
   #emit() {
     this._selfUpdate = true;
-    this.value = this.#buildModel();
+    this.value = JSON.stringify(this.#buildModel());
     this.dispatchEvent(new CustomEvent('property-value-change', { bubbles: true, composed: true }));
     this.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
   }
