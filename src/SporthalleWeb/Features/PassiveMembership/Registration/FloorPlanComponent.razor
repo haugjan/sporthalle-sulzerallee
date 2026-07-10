@@ -32,28 +32,15 @@
 
   <p class="pm-counter"><span id="pm-counter">@_occupiedCount von @FloorGrid.TotalFields Feldern belegt</span></p>
 
-  <div class="pm-tune" style="max-width:840px;margin:0 auto 1rem;padding:12px 16px;background:#1c1c1c;border-radius:8px;color:#eee;font-size:0.85rem;display:flex;flex-direction:column;gap:10px;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <label style="flex:0 0 220px;">Hintergrund Helligkeit: <strong>@Inv(_bgBright)</strong></label>
-      <input type="range" min="0.3" max="1.7" step="0.02" value="@Inv(_bgBright)" @oninput="OnBgBright" style="flex:1;" />
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <label style="flex:0 0 220px;">Hintergrund Kontrast: <strong>@Inv(_bgContrast)</strong></label>
-      <input type="range" min="0.3" max="1.7" step="0.02" value="@Inv(_bgContrast)" @oninput="OnBgContrast" style="flex:1;" />
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <label style="flex:0 0 220px;">Linien Helligkeit: <strong>@Inv(_lineBright)</strong></label>
-      <input type="range" min="0" max="1" step="0.02" value="@Inv(_lineBright)" @oninput="OnLineBright" style="flex:1;" />
-    </div>
-  </div>
-
-  <style>
-    #pm-field-svg .pm-cell--free { stroke: hsla(214, 55%, @(Inv(_lineBright * 100))%, 0.8) !important; }
-  </style>
+  @if (!string.IsNullOrWhiteSpace(LineColor))
+  {
+    <style>
+      #pm-field-svg .pm-cell--free { stroke: @LineColor !important; }
+    </style>
+  }
 
   <div id="pm-svg-container" @onclick="OnContainerClick">
-    <img src="/img/hallenboden.png" alt="" aria-hidden="true" id="pm-floor-img"
-         style="filter: brightness(@Inv(_bgBright)) contrast(@Inv(_bgContrast));" />
+    <img src="@(string.IsNullOrWhiteSpace(BackgroundUrl) ? "/img/hallenboden.png" : BackgroundUrl)" alt="" aria-hidden="true" id="pm-floor-img" />
     <svg viewBox="0 0 840 354" id="pm-field-svg" xmlns="http://www.w3.org/2000/svg">
       @{
         // The grid overlays only the blue playing surface of the hall floor plan.
@@ -305,6 +292,8 @@
 
 @code {
     [Parameter] public string TurnstileSiteKey { get; set; } = "1x00000000000000000000AA";
+    [Parameter] public string? BackgroundUrl { get; set; }
+    [Parameter] public string? LineColor { get; set; }
 
     private enum Step { None, Field, Level, Person, Address, Consent, Captcha }
 
@@ -333,20 +322,6 @@
     private string _displayName  = "";
     private bool   _consent;
     private bool   _captchaInitialized;
-
-    private double _bgBright   = 1.0;
-    private double _bgContrast = 1.0;
-    private double _lineBright  = 0.18;
-
-    private static string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-    private static double ParseInv(ChangeEventArgs e) =>
-        double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0;
-
-    private void OnBgBright(ChangeEventArgs e)   => _bgBright   = ParseInv(e);
-    private void OnBgContrast(ChangeEventArgs e) => _bgContrast = ParseInv(e);
-    private void OnLineBright(ChangeEventArgs e) => _lineBright  = ParseInv(e);
 
     protected override async Task OnInitializedAsync()
     {

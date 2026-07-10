@@ -5,6 +5,8 @@ using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Events;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Notifications;
+using Umbraco.Cms.Core.PropertyEditors;
+using Umbraco.Cms.Core.Serialization;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 
@@ -23,6 +25,8 @@ public sealed class ContentSeeder(
     IFileService fileService,
     IShortStringHelper shortStringHelper,
     IWebHostEnvironment hostEnvironment,
+    PropertyEditorCollection propertyEditors,
+    IConfigurationEditorJsonSerializer serializer,
     ILogger<ContentSeeder> logger)
     : INotificationAsyncHandler<UmbracoApplicationStartedNotification>
 {
@@ -39,6 +43,7 @@ public sealed class ContentSeeder(
         UpgradeBodyContentToRichText();
         UpgradePreisTextToRichText();
         EnsureReservationAgreementProperties();
+        EnsurePassivmitgliedschaftElementProperties();
 
         if (contentService.GetRootContent().Any())
         {
@@ -442,6 +447,84 @@ public sealed class ContentSeeder(
             contentTypeService.Save(el, Constants.Security.SuperUserId);
             logger.LogInformation("ContentSeeder: added Nutzungsvereinbarung properties to reservationElement.");
         }
+    }
+
+    private void EnsurePassivmitgliedschaftElementProperties()
+    {
+        var el = contentTypeService.Get("passivmitgliedschaftElement");
+        if (el == null) return;
+
+        var imagePickerKey = Guid.Parse("ad9f0cf2-bda2-45d5-9ea1-a63cfc873fd3");
+        var imagePicker = dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault(d => d.Key == imagePickerKey)
+                       ?? dataTypeService.GetByEditorAlias("Umbraco.MediaPicker3").FirstOrDefault();
+        var colorPicker = EnsureEyeDropperDataType();
+        if (imagePicker == null)
+        {
+            logger.LogWarning("ContentSeeder: media picker data type not found, skipping passivmitgliedschaftElement properties.");
+            return;
+        }
+
+        const string groupAlias = "darstellung";
+        const string groupName = "Darstellung";
+        var changed = false;
+
+        if (el.PropertyTypes.All(p => p.Alias != "bodenplanBild"))
+        {
+            el.AddPropertyType(new PropertyType(shortStringHelper, imagePicker)
+            {
+                Alias = "bodenplanBild",
+                Name = "Bodenplan Bild",
+                Description = "Hintergrundbild des Hallenbodenplans. Ohne Angabe wird der Standardplan verwendet.",
+                SortOrder = 0
+            }, groupAlias, groupName);
+            changed = true;
+        }
+        if (colorPicker != null && el.PropertyTypes.All(p => p.Alias != "linienFarbe"))
+        {
+            el.AddPropertyType(new PropertyType(shortStringHelper, colorPicker)
+            {
+                Alias = "linienFarbe",
+                Name = "Linienfarbe",
+                Description = "Farbe der Feld-Begrenzungslinien inklusive Transparenz. Ohne Angabe wird die Standardfarbe verwendet.",
+                SortOrder = 1
+            }, groupAlias, groupName);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            contentTypeService.Save(el, Constants.Security.SuperUserId);
+            logger.LogInformation("ContentSeeder: added Darstellung properties to passivmitgliedschaftElement.");
+        }
+    }
+
+    private IDataType? EnsureEyeDropperDataType()
+    {
+        var key = Guid.Parse("c8e4b2a1-3f6d-4e09-9a7b-5c1d2e3f4a5b");
+        var existing = dataTypeService.GetAll().FirstOrDefault(d => d.Key == key)
+                    ?? dataTypeService.GetByEditorAlias("Umbraco.ColorPicker.EyeDropper").FirstOrDefault();
+        if (existing != null) return existing;
+
+        if (!propertyEditors.TryGet("Umbraco.ColorPicker.EyeDropper", out var editor))
+        {
+            logger.LogWarning("ContentSeeder: Umbraco.ColorPicker.EyeDropper editor not found, cannot create line-colour data type.");
+            return null;
+        }
+
+        var dt = new DataType(editor, serializer)
+        {
+            Key = key,
+            Name = "Bodenplan Linienfarbe",
+            EditorUiAlias = "Umb.PropertyEditorUi.EyeDropper",
+            DatabaseType = ValueStorageType.Nvarchar,
+            ConfigurationData = new Dictionary<string, object>
+            {
+                ["showAlpha"] = true,
+                ["showPalette"] = true
+            }
+        };
+        dataTypeService.Save(dt);
+        return dt;
     }
 
     private void MigrateMediaPathsToImg()
