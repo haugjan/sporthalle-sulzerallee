@@ -279,6 +279,13 @@ you change one of these files, read the matching entry first.
 - In the collapsed state the SVG has `pointer-events:none` (CSS), so a click reaches `#pm-svg-container` and expands the plan. In the expanded state the cell `<g>` elements stop propagation, so the container handler only fires on empty SVG space (harmless).
 - Payment is mandatory: after sign-up the customer is redirected straight to the RaiseNow payment page, with the field number carried along as a RaiseNow custom parameter so the payment can be reconciled to the correct floor field.
 
+### Floor-plan config editor — `App_Plugins/PassivMitglieder/pm-floor-config.js` and `UmbracoFloorPlanSettings`
+
+- **Read the `Umbraco.Plain.Json` value with `GetProperty(alias)?.GetSourceValue()`, NOT `element.Value<string>(alias)`.** The plain-JSON published value converter does not return a string, so `Value<string>` yields `null` and the config silently falls back to defaults (background image and line colour still work because they use different converters). This cost a debugging round.
+- **Lit SVG fragments must use the `svg` tagged template, not `html`.** Grid cells / region rectangle built with `` html`<rect .../>` `` are created in the HTML namespace and never render inside `<svg>` (the data updates, but there is no visual feedback). Use `` svg`<rect .../>` ``.
+- Pointer interaction lives on the `.stage` element with `mousedown` + `window` `mousemove`/`mouseup`; the `<img>` and the SVG overlay are `pointer-events:none` so nothing intercepts. The editor opens a native `<dialog>` (`showModal()`) so it escapes backoffice overflow/transform clipping and can go full-screen.
+- The editor persists its value as a JSON object and dispatches `property-value-change`; saving works (verified). Special fields are stored as one `{from,to,label}` entry per clicked cell; ranges from the defaults are expanded to individual cells on load.
+
 ## Content Types
 
 | Alias | Name | Template | Allowed under |
