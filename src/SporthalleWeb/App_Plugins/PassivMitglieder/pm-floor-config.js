@@ -1,4 +1,4 @@
-import { LitElement, html, css } from '@umbraco-cms/backoffice/external/lit';
+import { LitElement, html, svg, css } from '@umbraco-cms/backoffice/external/lit';
 
 const COLS = 40;
 const ROWS = 25;
@@ -209,7 +209,7 @@ class PmFloorConfigElement extends LitElement {
         const fn = fieldNo(col, row);
         const x = reg.x0 + col * cw;
         const y = reg.y0 + row * ch;
-        cells.push(html`<rect x=${x} y=${y} width=${cw} height=${ch}
+        cells.push(svg`<rect x=${x} y=${y} width=${cw} height=${ch}
           vector-effect="non-scaling-stroke"
           class="cell ${this._special[fn] ? 'cell--special' : ''}"></rect>`);
       }
@@ -221,7 +221,7 @@ class PmFloorConfigElement extends LitElement {
     const r = this._drag || this._region;
     const x0 = Math.min(r.x0, r.x1), y0 = Math.min(r.y0, r.y1);
     const w = Math.abs(r.x1 - r.x0), h = Math.abs(r.y1 - r.y0);
-    return html`<rect x=${x0} y=${y0} width=${w} height=${h}
+    return svg`<rect x=${x0} y=${y0} width=${w} height=${h}
       vector-effect="non-scaling-stroke" class="region"></rect>`;
   }
 
