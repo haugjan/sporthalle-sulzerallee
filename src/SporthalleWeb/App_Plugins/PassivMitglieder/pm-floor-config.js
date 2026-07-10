@@ -115,7 +115,7 @@ class PmFloorConfigElement extends LitElement {
   }
 
   #fractionFromEvent(e) {
-    const rect = this.renderRoot.querySelector('.pm-stage').getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     let fx = (e.clientX - rect.left) / rect.width;
     let fy = (e.clientY - rect.top) / rect.height;
     fx = Math.min(1, Math.max(0, fx));
@@ -128,7 +128,7 @@ class PmFloorConfigElement extends LitElement {
     e.preventDefault();
     const p = this.#fractionFromEvent(e);
     this._drag = { x0: p.fx, y0: p.fy, x1: p.fx, y1: p.fy };
-    this.renderRoot.querySelector('.pm-stage').setPointerCapture?.(e.pointerId);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
   #onPointerMove(e) {
@@ -137,19 +137,28 @@ class PmFloorConfigElement extends LitElement {
     this._drag = { ...this._drag, x1: p.fx, y1: p.fy };
   }
 
-  #onPointerUp() {
+  #onPointerUp(e) {
     if (this._mode !== 'region' || !this._drag) return;
     const d = this._drag;
     this._drag = null;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
     const x0 = Math.min(d.x0, d.x1), x1 = Math.max(d.x0, d.x1);
     const y0 = Math.min(d.y0, d.y1), y1 = Math.max(d.y0, d.y1);
-    if (x1 - x0 < 0.02 || y1 - y0 < 0.02) return;
+    if (x1 - x0 < 0.01 || y1 - y0 < 0.01) return;
     this._region = { x0, y0, x1, y1 };
     this.#emit();
   }
 
-  #onCellClick(fn) {
+  #onHitClick(e) {
     if (this._mode !== 'special') return;
+    const p = this.#fractionFromEvent(e);
+    const reg = this._region;
+    const cw = (reg.x1 - reg.x0) / COLS;
+    const ch = (reg.y1 - reg.y0) / ROWS;
+    const col = Math.floor((p.fx - reg.x0) / cw);
+    const row = Math.floor((p.fy - reg.y0) / ch);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+    const fn = fieldNo(col, row);
     const next = { ...this._special };
     if (next[fn]) delete next[fn];
     else next[fn] = (this._label && this._label.trim()) || 'Spezialfeld';
@@ -168,6 +177,14 @@ class PmFloorConfigElement extends LitElement {
     this.#emit();
   }
 
+  #openEditor() {
+    this.renderRoot.querySelector('dialog.modal')?.showModal();
+  }
+
+  #closeEditor() {
+    this.renderRoot.querySelector('dialog.modal')?.close();
+  }
+
   #renderGrid() {
     const reg = this._region;
     const cw = (reg.x1 - reg.x0) / COLS;
@@ -178,12 +195,9 @@ class PmFloorConfigElement extends LitElement {
         const fn = fieldNo(col, row);
         const x = reg.x0 + col * cw;
         const y = reg.y0 + row * ch;
-        const isSpecial = !!this._special[fn];
-        cells.push(html`<rect
-          x=${x} y=${y} width=${cw} height=${ch}
+        cells.push(html`<rect x=${x} y=${y} width=${cw} height=${ch}
           vector-effect="non-scaling-stroke"
-          class="cell ${isSpecial ? 'cell--special' : ''} ${this._mode === 'special' ? 'cell--clickable' : ''}"
-          @click=${() => this.#onCellClick(fn)}></rect>`);
+          class="cell ${this._special[fn] ? 'cell--special' : ''}"></rect>`);
       }
     }
     return cells;
@@ -197,63 +211,99 @@ class PmFloorConfigElement extends LitElement {
       vector-effect="non-scaling-stroke" class="region"></rect>`;
   }
 
-  render() {
-    const specialCount = Object.keys(this._special).length;
+  #renderStage(interactive) {
     return html`
-      <div class="toolbar">
-        <div class="modes">
-          <button type="button" class="${this._mode === 'region' ? 'active' : ''}"
-                  @click=${() => (this._mode = 'region')}>Rasterbereich ziehen</button>
-          <button type="button" class="${this._mode === 'special' ? 'active' : ''}"
-                  @click=${() => (this._mode = 'special')}>Spezialfelder klicken</button>
-        </div>
-        <label class="lbl">Label:
-          <input type="text" .value=${this._label}
-                 @input=${(e) => (this._label = e.target.value)} />
-        </label>
-        <span class="count">${specialCount} Spezialfeld(er)</span>
-        <button type="button" @click=${() => this.#clearSpecial()}>Spezialfelder leeren</button>
-        <button type="button" @click=${() => this.#reset()}>Auf Standard zurücksetzen</button>
-      </div>
-      <div class="hint">
-        ${this._mode === 'region'
-          ? 'Ziehe ein Rechteck über den blauen Spielfeldbereich. Das Raster wird nur dort eingeblendet.'
-          : 'Klicke einzelne Felder an, um sie als Spezialfeld zu markieren (erneut klicken zum Entfernen).'}
-      </div>
-      <div class="pm-stage stage ${this._mode === 'region' ? 'stage--region' : ''}"
-           @pointerdown=${this.#onPointerDown}
-           @pointermove=${this.#onPointerMove}
-           @pointerup=${this.#onPointerUp}>
+      <div class="stage ${interactive && this._mode === 'region' ? 'stage--crosshair' : ''}">
         <img src=${this._bgUrl} alt="" draggable="false" />
         <svg viewBox="0 0 1 1" preserveAspectRatio="none">
           ${this.#renderGrid()}
           ${this.#renderRegionOutline()}
         </svg>
+        ${interactive
+          ? html`<div class="hit ${this._mode === 'special' ? 'hit--pointer' : ''}"
+              @pointerdown=${this.#onPointerDown}
+              @pointermove=${this.#onPointerMove}
+              @pointerup=${this.#onPointerUp}
+              @click=${this.#onHitClick}></div>`
+          : ''}
+      </div>`;
+  }
+
+  render() {
+    const specialCount = Object.keys(this._special).length;
+    return html`
+      <div class="panel">
+        <div class="panel-preview">${this.#renderStage(false)}</div>
+        <div class="panel-info">
+          <div class="summary">${specialCount} Spezialfeld(er) markiert.</div>
+          <button type="button" class="primary" @click=${this.#openEditor}>Vollbild bearbeiten</button>
+        </div>
       </div>
+
+      <dialog class="modal">
+        <div class="modal-head">
+          <strong>Bodenplan: Rasterbereich &amp; Spezialfelder</strong>
+          <button type="button" class="primary" @click=${this.#closeEditor}>Fertig</button>
+        </div>
+        <div class="toolbar">
+          <div class="modes">
+            <button type="button" class="${this._mode === 'region' ? 'active' : ''}"
+                    @click=${() => (this._mode = 'region')}>Rasterbereich ziehen</button>
+            <button type="button" class="${this._mode === 'special' ? 'active' : ''}"
+                    @click=${() => (this._mode = 'special')}>Spezialfelder klicken</button>
+          </div>
+          <label class="lbl">Label:
+            <input type="text" .value=${this._label} @input=${(e) => (this._label = e.target.value)} />
+          </label>
+          <span class="count">${specialCount} Spezialfeld(er)</span>
+          <button type="button" @click=${() => this.#clearSpecial()}>Spezialfelder leeren</button>
+          <button type="button" @click=${() => this.#reset()}>Auf Standard zurücksetzen</button>
+        </div>
+        <div class="hint">
+          ${this._mode === 'region'
+            ? 'Ziehe ein Rechteck über den blauen Spielfeldbereich. Das Raster erscheint nur innerhalb dieses Bereichs.'
+            : 'Klicke einzelne Felder an, um sie als Spezialfeld zu markieren (erneut klicken entfernt sie).'}
+        </div>
+        <div class="modal-stage">${this.#renderStage(true)}</div>
+      </dialog>
     `;
   }
 
   static styles = css`
     :host { display: block; }
-    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .toolbar button { padding: 6px 10px; cursor: pointer; border: 1px solid var(--uui-color-border, #ccc);
-      background: var(--uui-color-surface, #fff); border-radius: 4px; }
-    .toolbar button.active { background: var(--uui-color-selected, #3544b1); color: #fff; border-color: transparent; }
+    button { padding: 6px 10px; cursor: pointer; border: 1px solid var(--uui-color-border, #ccc);
+      background: var(--uui-color-surface, #fff); border-radius: 4px; font: inherit; }
+    button.active, button.primary { background: var(--uui-color-selected, #3544b1); color: #fff; border-color: transparent; }
+
+    .panel { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    .panel-preview { flex: 1 1 320px; min-width: 240px; }
+    .panel-preview .stage { max-width: 520px; }
+    .panel-info { display: flex; flex-direction: column; gap: 8px; }
+    .summary { font-size: 0.9rem; opacity: 0.8; }
+
+    .stage { position: relative; width: 100%; aspect-ratio: 840 / 354; user-select: none;
+      touch-action: none; border: 1px solid var(--uui-color-border, #ccc); border-radius: 4px; overflow: hidden; }
+    .stage img { width: 100%; height: 100%; display: block; object-fit: fill; }
+    .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .stage .hit { position: absolute; inset: 0; }
+    .stage.stage--crosshair .hit { cursor: crosshair; }
+    .stage .hit--pointer { cursor: pointer; }
+    .cell { fill: transparent; stroke: rgba(53,68,177,0.35); stroke-width: 1; }
+    .cell--special { fill: rgba(201,162,39,0.5); stroke: rgba(201,162,39,0.95); }
+    .region { fill: rgba(53,68,177,0.08); stroke: #3544b1; stroke-width: 2; stroke-dasharray: 4 3; }
+
+    .modal { width: 96vw; max-width: 96vw; height: 94vh; max-height: 94vh; border: none;
+      border-radius: 8px; padding: 16px; box-sizing: border-box; }
+    .modal::backdrop { background: rgba(0,0,0,0.6); }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
     .modes { display: flex; gap: 4px; }
     .lbl { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; }
     .lbl input { padding: 4px 6px; border: 1px solid var(--uui-color-border, #ccc); border-radius: 4px; }
     .count { font-size: 0.85rem; opacity: 0.75; }
-    .hint { font-size: 0.8rem; opacity: 0.7; margin-bottom: 6px; }
-    .stage { position: relative; width: 100%; max-width: 900px; user-select: none; touch-action: none;
-      border: 1px solid var(--uui-color-border, #ccc); border-radius: 4px; overflow: hidden; }
-    .stage--region { cursor: crosshair; }
-    .stage img { display: block; width: 100%; height: auto; }
-    .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .cell { fill: transparent; stroke: rgba(53,68,177,0.35); stroke-width: 1; }
-    .cell--clickable { cursor: pointer; }
-    .cell--clickable:hover { fill: rgba(53,68,177,0.2); }
-    .cell--special { fill: rgba(201,162,39,0.45); stroke: rgba(201,162,39,0.9); }
-    .region { fill: rgba(53,68,177,0.08); stroke: #3544b1; stroke-width: 2; stroke-dasharray: 4 3; }
+    .hint { font-size: 0.85rem; opacity: 0.75; margin-bottom: 8px; }
+    .modal-stage { display: flex; justify-content: center; }
+    .modal-stage .stage { width: min(94vw, calc(74vh * 2.3729)); }
   `;
 }
 
