@@ -40,20 +40,6 @@ public sealed partial class UmbracoFloorPlanSettings(
         }
     }
 
-    public async Task<string?> GetRawRasterAsync()
-    {
-        try
-        {
-            var element = await FindElementAsync();
-            return element is null ? null : RawRaster(element);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Reading raw raster failed.");
-            return null;
-        }
-    }
-
     private static string? RawRaster(IPublishedElement element) =>
         element.GetProperty("bodenplanRaster")?.GetSourceValue()?.ToString()
         ?? element.Value<string>("bodenplanRaster");

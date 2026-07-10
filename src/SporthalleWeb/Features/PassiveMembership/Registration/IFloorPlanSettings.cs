@@ -15,6 +15,4 @@ public sealed record FloorPlanSettings(
 public interface IFloorPlanSettings
 {
     Task<FloorPlanSettings> GetAsync();
-
-    Task<string?> GetRawRasterAsync();
 }

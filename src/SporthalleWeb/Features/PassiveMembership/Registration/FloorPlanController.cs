@@ -18,19 +18,4 @@ public sealed class FloorPlanController(IConfiguration config, IFloorPlanSetting
         var s = await settings.GetAsync();
         return Json(new { backgroundUrl = s.BackgroundUrl ?? "/img/hallenboden.png" });
     }
-
-    [HttpGet("debug")]
-    public async Task<IActionResult> Debug()
-    {
-        var s = await settings.GetAsync();
-        var raw = await settings.GetRawRasterAsync();
-        return Json(new
-        {
-            backgroundUrl = s.BackgroundUrl,
-            lineColor = s.LineColor,
-            region = new { s.Region.X0, s.Region.Y0, s.Region.X1, s.Region.Y1 },
-            specialAreas = s.SpecialFields.Areas.Count,
-            rasterRaw = raw is { Length: > 400 } ? raw[..400] : raw
-        });
-    }
 }
