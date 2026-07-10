@@ -13,6 +13,7 @@ const DEFAULT_SPECIAL = [
 const colOf = (fn) => (fn - 1) % COLS;
 const rowOf = (fn) => Math.floor((fn - 1) / COLS);
 const fieldNo = (col, row) => row * COLS + col + 1;
+const pct = (v) => Math.round(v * 1000) / 10;
 
 function expandArea(area) {
   const c0 = Math.min(colOf(area.from), colOf(area.to));
@@ -46,8 +47,11 @@ class PmFloorConfigElement extends LitElement {
     this._region = { ...DEFAULT_REGION };
     this._special = {};
     this._drag = null;
+    this._dragEl = null;
     this._selfUpdate = false;
     this._loaded = false;
+    this._onWinMove = this.#onWinMove.bind(this);
+    this._onWinUp = this.#onWinUp.bind(this);
   }
 
   connectedCallback() {
@@ -56,6 +60,12 @@ class PmFloorConfigElement extends LitElement {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d && d.backgroundUrl) this._bgUrl = d.backgroundUrl; })
       .catch(() => {});
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('mousemove', this._onWinMove);
+    window.removeEventListener('mouseup', this._onWinUp);
   }
 
   firstUpdated() {
@@ -114,8 +124,8 @@ class PmFloorConfigElement extends LitElement {
     this.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
   }
 
-  #fractionFromEvent(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
+  #fractionFrom(e, el) {
+    const rect = el.getBoundingClientRect();
     let fx = (e.clientX - rect.left) / rect.width;
     let fy = (e.clientY - rect.top) / rect.height;
     fx = Math.min(1, Math.max(0, fx));
@@ -123,25 +133,29 @@ class PmFloorConfigElement extends LitElement {
     return { fx, fy };
   }
 
-  #onPointerDown(e) {
+  #onStageMouseDown(e) {
     if (this._mode !== 'region') return;
     e.preventDefault();
-    const p = this.#fractionFromEvent(e);
+    this._dragEl = e.currentTarget;
+    const p = this.#fractionFrom(e, this._dragEl);
     this._drag = { x0: p.fx, y0: p.fy, x1: p.fx, y1: p.fy };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    window.addEventListener('mousemove', this._onWinMove);
+    window.addEventListener('mouseup', this._onWinUp);
   }
 
-  #onPointerMove(e) {
-    if (this._mode !== 'region' || !this._drag) return;
-    const p = this.#fractionFromEvent(e);
+  #onWinMove(e) {
+    if (!this._drag || !this._dragEl) return;
+    const p = this.#fractionFrom(e, this._dragEl);
     this._drag = { ...this._drag, x1: p.fx, y1: p.fy };
   }
 
-  #onPointerUp(e) {
-    if (this._mode !== 'region' || !this._drag) return;
+  #onWinUp() {
+    window.removeEventListener('mousemove', this._onWinMove);
+    window.removeEventListener('mouseup', this._onWinUp);
     const d = this._drag;
     this._drag = null;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    this._dragEl = null;
+    if (!d) return;
     const x0 = Math.min(d.x0, d.x1), x1 = Math.max(d.x0, d.x1);
     const y0 = Math.min(d.y0, d.y1), y1 = Math.max(d.y0, d.y1);
     if (x1 - x0 < 0.01 || y1 - y0 < 0.01) return;
@@ -149,9 +163,9 @@ class PmFloorConfigElement extends LitElement {
     this.#emit();
   }
 
-  #onHitClick(e) {
+  #onStageClick(e) {
     if (this._mode !== 'special') return;
-    const p = this.#fractionFromEvent(e);
+    const p = this.#fractionFrom(e, e.currentTarget);
     const reg = this._region;
     const cw = (reg.x1 - reg.x0) / COLS;
     const ch = (reg.y1 - reg.y0) / ROWS;
@@ -213,24 +227,20 @@ class PmFloorConfigElement extends LitElement {
 
   #renderStage(interactive) {
     return html`
-      <div class="stage ${interactive && this._mode === 'region' ? 'stage--crosshair' : ''}">
+      <div class="stage ${interactive ? 'stage--interactive' : ''} ${interactive && this._mode === 'region' ? 'stage--crosshair' : ''}"
+           @mousedown=${interactive ? this.#onStageMouseDown : null}
+           @click=${interactive ? this.#onStageClick : null}>
         <img src=${this._bgUrl} alt="" draggable="false" />
         <svg viewBox="0 0 1 1" preserveAspectRatio="none">
           ${this.#renderGrid()}
           ${this.#renderRegionOutline()}
         </svg>
-        ${interactive
-          ? html`<div class="hit ${this._mode === 'special' ? 'hit--pointer' : ''}"
-              @pointerdown=${this.#onPointerDown}
-              @pointermove=${this.#onPointerMove}
-              @pointerup=${this.#onPointerUp}
-              @click=${this.#onHitClick}></div>`
-          : ''}
       </div>`;
   }
 
   render() {
     const specialCount = Object.keys(this._special).length;
+    const r = this._region;
     return html`
       <div class="panel">
         <div class="panel-preview">${this.#renderStage(false)}</div>
@@ -255,14 +265,19 @@ class PmFloorConfigElement extends LitElement {
           <label class="lbl">Label:
             <input type="text" .value=${this._label} @input=${(e) => (this._label = e.target.value)} />
           </label>
-          <span class="count">${specialCount} Spezialfeld(er)</span>
           <button type="button" @click=${() => this.#clearSpecial()}>Spezialfelder leeren</button>
           <button type="button" @click=${() => this.#reset()}>Auf Standard zurücksetzen</button>
         </div>
+        <div class="status">
+          Modus: <strong>${this._mode === 'region' ? 'Rasterbereich ziehen' : 'Spezialfelder klicken'}</strong>
+          &nbsp;·&nbsp; Bereich: ${pct(r.x0)}% / ${pct(r.y0)}% → ${pct(r.x1)}% / ${pct(r.y1)}%
+          &nbsp;·&nbsp; ${specialCount} Spezialfeld(er)
+          ${this._drag ? html`&nbsp;·&nbsp; <em>ziehen…</em>` : ''}
+        </div>
         <div class="hint">
           ${this._mode === 'region'
-            ? 'Ziehe ein Rechteck über den blauen Spielfeldbereich. Das Raster erscheint nur innerhalb dieses Bereichs.'
-            : 'Klicke einzelne Felder an, um sie als Spezialfeld zu markieren (erneut klicken entfernt sie).'}
+            ? 'Mit gedrückter Maustaste ein Rechteck über den blauen Spielfeldbereich ziehen.'
+            : 'Einzelne Felder anklicken, um sie als Spezialfeld zu markieren (erneut klicken entfernt sie).'}
         </div>
         <div class="modal-stage">${this.#renderStage(true)}</div>
       </dialog>
@@ -282,15 +297,14 @@ class PmFloorConfigElement extends LitElement {
     .summary { font-size: 0.9rem; opacity: 0.8; }
 
     .stage { position: relative; width: 100%; aspect-ratio: 840 / 354; user-select: none;
-      touch-action: none; border: 1px solid var(--uui-color-border, #ccc); border-radius: 4px; overflow: hidden; }
-    .stage img { width: 100%; height: 100%; display: block; object-fit: fill; }
+      border: 1px solid var(--uui-color-border, #ccc); border-radius: 4px; overflow: hidden; }
+    .stage--interactive { pointer-events: auto; }
+    .stage--crosshair { cursor: crosshair; }
+    .stage img { width: 100%; height: 100%; display: block; object-fit: fill; pointer-events: none; }
     .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-    .stage .hit { position: absolute; inset: 0; }
-    .stage.stage--crosshair .hit { cursor: crosshair; }
-    .stage .hit--pointer { cursor: pointer; }
     .cell { fill: transparent; stroke: rgba(53,68,177,0.35); stroke-width: 1; }
     .cell--special { fill: rgba(201,162,39,0.5); stroke: rgba(201,162,39,0.95); }
-    .region { fill: rgba(53,68,177,0.08); stroke: #3544b1; stroke-width: 2; stroke-dasharray: 4 3; }
+    .region { fill: rgba(53,68,177,0.10); stroke: #3544b1; stroke-width: 2; stroke-dasharray: 4 3; }
 
     .modal { width: 96vw; max-width: 96vw; height: 94vh; max-height: 94vh; border: none;
       border-radius: 8px; padding: 16px; box-sizing: border-box; }
@@ -300,8 +314,8 @@ class PmFloorConfigElement extends LitElement {
     .modes { display: flex; gap: 4px; }
     .lbl { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; }
     .lbl input { padding: 4px 6px; border: 1px solid var(--uui-color-border, #ccc); border-radius: 4px; }
-    .count { font-size: 0.85rem; opacity: 0.75; }
-    .hint { font-size: 0.85rem; opacity: 0.75; margin-bottom: 8px; }
+    .status { font-size: 0.82rem; opacity: 0.85; margin-bottom: 4px; }
+    .hint { font-size: 0.85rem; opacity: 0.7; margin-bottom: 8px; }
     .modal-stage { display: flex; justify-content: center; }
     .modal-stage .stage { width: min(94vw, calc(74vh * 2.3729)); }
   `;
