@@ -11,10 +11,7 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
 {
     private readonly BrevoEmailOptions _opts = opts.Value;
 
-    private static readonly string[] AdminBcc =
-    [
-        "info@sporthalle-sulzerallee.ch"
-    ];
+    private const string AdminBcc = "passivmitglieder@sporthalle-sulzerallee.ch";
 
     public async Task SendRegistrationConfirmationAsync(PassiveMember member)
     {
@@ -43,7 +40,7 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
         {
             sender = new { name = "Sporthalle Sulzerallee", email = "noreply@sporthalle-sulzerallee.ch" },
             to = new[] { new { email = member.Email.Value, name = $"{member.FirstName} {member.LastName}" } },
-            bcc = AdminBcc.Select(e => new { email = e }).ToArray(),
+            bcc = new[] { new { email = AdminBcc } },
             subject = $"Willkommen als Passivmitglied – {fieldDesc}",
             htmlContent
         };
