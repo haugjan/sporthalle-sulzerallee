@@ -25,7 +25,6 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
 
         var details = $"Feld: {fieldDesc}\n" +
                       $"Stufe: {member.Level.DisplayName} ({member.Level.Key}) – CHF {member.Level.YearlyFee}.–/Jahr\n" +
-                      $"Adresse: {member.AddressLine}, {member.PostalCode.Value} {member.City}\n" +
                       $"Anmeldedatum: {member.CreatedAt:dd.MM.yyyy}";
 
         var htmlContent = EmailLayout.Render(

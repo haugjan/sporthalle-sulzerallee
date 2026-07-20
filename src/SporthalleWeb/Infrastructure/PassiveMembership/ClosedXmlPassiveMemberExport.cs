@@ -14,8 +14,7 @@ public sealed class ClosedXmlPassiveMemberExport : IPassiveMemberExport
         string[] headers =
         [
             "Nr.", "Feld-Nr.", "VIP-Zone", "Stufe", "CHF/Jahr",
-            "Vorname", "Nachname", "Adresse", "Adresszusatz", "PLZ", "Stadt",
-            "Telefon", "E-Mail", "Angemeldet am", "Bezahlt am", "Notizen"
+            "Vorname", "Nachname", "Telefon", "E-Mail", "Angemeldet am", "Bezahlt am", "Notizen"
         ];
 
         for (var i = 0; i < headers.Length; i++)
@@ -39,15 +38,11 @@ public sealed class ClosedXmlPassiveMemberExport : IPassiveMemberExport
             ws.Cell(r, 5).Style.NumberFormat.Format = "#,##0.00";
             ws.Cell(r, 6).Value = m.FirstName;
             ws.Cell(r, 7).Value = m.LastName;
-            ws.Cell(r, 8).Value = m.AddressLine;
-            ws.Cell(r, 9).Value = m.AddressLine2 ?? "";
-            ws.Cell(r, 10).Value = m.PostalCode.Value;
-            ws.Cell(r, 11).Value = m.City;
-            ws.Cell(r, 12).Value = m.Phone ?? "";
-            ws.Cell(r, 13).Value = m.Email.Value;
-            ws.Cell(r, 14).Value = m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy");
-            ws.Cell(r, 15).Value = m.PaidAt.HasValue ? m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy") : "";
-            ws.Cell(r, 16).Value = m.Notes ?? "";
+            ws.Cell(r, 8).Value = m.Phone ?? "";
+            ws.Cell(r, 9).Value = m.Email.Value;
+            ws.Cell(r, 10).Value = m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy");
+            ws.Cell(r, 11).Value = m.PaidAt.HasValue ? m.PaidAt.Value.ToLocalTime().ToString("dd.MM.yyyy") : "";
+            ws.Cell(r, 12).Value = m.Notes ?? "";
         }
 
         ws.Columns().AdjustToContents();

@@ -125,13 +125,13 @@
       </div>
 
       <div class="pm-progress" aria-hidden="true">
-        @for (int s = 1; s <= 6; s++)
+        @for (int s = 1; s <= 5; s++)
         {
           var stepNum = s;
           <span class="pm-progress__dot @(CurrentStepNum() >= stepNum ? "pm-progress__dot--active" : "")"
                 data-step="@stepNum"></span>
         }
-        <span class="pm-progress__label" id="pm-step-label">Schritt @CurrentStepNum() von 6</span>
+        <span class="pm-progress__label" id="pm-step-label">Schritt @CurrentStepNum() von 5</span>
       </div>
 
       <div class="pm-wizard__body">
@@ -197,39 +197,9 @@
           </div>
         }
 
-        @if (_step == Step.Address)
-        {
-          <div class="pm-step pm-step--active" data-step="4">
-            <h3>Adresse</h3>
-            <div class="pm-form-group">
-              <label>Strasse und Hausnummer *</label>
-              <input class="pm-input" @bind="_addressLine" placeholder="Musterstrasse 1" />
-            </div>
-            <div class="pm-form-group">
-              <label>Adresszusatz</label>
-              <input class="pm-input" @bind="_addressLine2" placeholder="c/o, Postfach, …" />
-            </div>
-            <div class="pm-form-row">
-              <div class="pm-form-group">
-                <label>PLZ *</label>
-                <input class="pm-input" @bind="_postalCode" placeholder="8000" />
-              </div>
-              <div class="pm-form-group">
-                <label>Ort *</label>
-                <input class="pm-input" @bind="_city" placeholder="Zürich" />
-              </div>
-            </div>
-            <div class="pm-form-group">
-              <label>Telefonnummer</label>
-              <input class="pm-input" type="tel" @bind="_phone" placeholder="+41 79 123 45 67" />
-            </div>
-            @if (_stepError is not null) { <p class="pm-error">@_stepError</p> }
-          </div>
-        }
-
         @if (_step == Step.Consent)
         {
-          <div class="pm-step pm-step--active" data-step="5">
+          <div class="pm-step pm-step--active" data-step="4">
             <h3>Bodenplan & Einwilligung</h3>
             <div class="pm-form-group">
               <label class="pm-checkbox-label">
@@ -256,7 +226,7 @@
 
         @if (_step == Step.Captcha)
         {
-          <div class="pm-step pm-step--active" data-step="6">
+          <div class="pm-step pm-step--active" data-step="5">
             <h3>Bestätigung</h3>
             <p style="font-size:0.9rem;color:#555;">Bitte bestätige, dass du kein Roboter bist.</p>
             <p class="pm-twint-hint" style="font-size:0.9rem;color:#333;background:#f5f5f5;border-left:4px solid #EB504B;border-radius:4px;padding:10px 12px;margin:0 0 14px;">
@@ -296,7 +266,7 @@
 @code {
     [Parameter] public string TurnstileSiteKey { get; set; } = "1x00000000000000000000AA";
 
-    private enum Step { None, Field, Level, Person, Address, Consent, Captcha }
+    private enum Step { None, Field, Level, Person, Consent, Captcha }
 
     private FloorPlanSettings _settings = FloorPlanSettings.Default;
 
@@ -316,11 +286,6 @@
     private string _firstName    = "";
     private string _lastName     = "";
     private string _email        = "";
-    private string _addressLine  = "";
-    private string _addressLine2 = "";
-    private string _postalCode   = "";
-    private string _city         = "";
-    private string _phone        = "";
     private bool   _showNameOnFloor;
     private string _displayName  = "";
     private bool   _consent;
@@ -386,15 +351,13 @@
         if (_step == Step.Level   && string.IsNullOrEmpty(_levelKey))        { _stepError = "Bitte eine Stufe wählen."; return; }
         if (_step == Step.Level   && _selectedField is int vf && _settings.SpecialFields.IsVip(vf) && _levelKey == "Bronze") { _stepError = "Für dieses Spezialfeld ist mindestens Silber erforderlich."; return; }
         if (_step == Step.Person  && (string.IsNullOrWhiteSpace(_firstName) || string.IsNullOrWhiteSpace(_lastName) || string.IsNullOrWhiteSpace(_email))) { _stepError = "Bitte alle Felder ausfüllen."; return; }
-        if (_step == Step.Address && (string.IsNullOrWhiteSpace(_addressLine) || string.IsNullOrWhiteSpace(_postalCode) || string.IsNullOrWhiteSpace(_city))) { _stepError = "Bitte alle Felder ausfüllen."; return; }
         if (_step == Step.Consent && !_consent) { _stepError = "Bitte stimme der Datenschutzerklärung zu."; return; }
         if (_step == Step.Consent && _showNameOnFloor && string.IsNullOrWhiteSpace(_displayName)) { _stepError = "Bitte einen Anzeigenamen eingeben."; return; }
         _step = _step switch
         {
             Step.Field   => Step.Level,
             Step.Level   => Step.Person,
-            Step.Person  => Step.Address,
-            Step.Address => Step.Consent,
+            Step.Person  => Step.Consent,
             Step.Consent => Step.Captcha,
             _ => _step
         };
@@ -412,8 +375,7 @@
         {
             Step.Level   => Step.Field,
             Step.Person  => Step.Level,
-            Step.Address => Step.Person,
-            Step.Consent => Step.Address,
+            Step.Consent => Step.Person,
             Step.Captcha => Step.Consent,
             _ => _step
         };
@@ -441,10 +403,6 @@
             var cmd = new RegisterMemberCommand(
                 _selectedField!.Value,
                 _firstName, _lastName,
-                _addressLine,
-                string.IsNullOrWhiteSpace(_addressLine2) ? null : _addressLine2,
-                _postalCode, _city,
-                string.IsNullOrWhiteSpace(_phone) ? null : _phone,
                 _email, _levelKey,
                 _showNameOnFloor,
                 _showNameOnFloor ? _displayName : null,
@@ -477,9 +435,8 @@
         Step.Field   => 1,
         Step.Level   => 2,
         Step.Person  => 3,
-        Step.Address => 4,
-        Step.Consent => 5,
-        Step.Captcha => 6,
+        Step.Consent => 4,
+        Step.Captcha => 5,
         _ => 1
     };
 }

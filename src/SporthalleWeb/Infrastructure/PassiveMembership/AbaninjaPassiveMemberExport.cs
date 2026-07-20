@@ -10,8 +10,7 @@ public sealed class AbaninjaPassiveMemberExport : IPassiveMemberAbaninja
     [
         "Benutzer", "Kundennummer", "Unternehmensname", "Anrede",
         "Vorname", "Nachname", "E-Mail Adresse", "Webseite",
-        "Telefon", "Mobiltelefon", "Strasse", "Hausnummer",
-        "Zusatzfeld", "Adresszusatz", "PLZ", "Stadt", "Land",
+        "Telefon", "Mobiltelefon",
         "Notizen", "Währung", "Kriterien",
         .. Enumerable.Range(1, 10).SelectMany(i => new[]
         {
@@ -38,8 +37,6 @@ public sealed class AbaninjaPassiveMemberExport : IPassiveMemberAbaninja
             {
                 "", $"PM{m.Id:D4}", "", "", m.FirstName, m.LastName,
                 m.Email.Value, "", m.Phone ?? "", "",
-                m.AddressLine, "", "", m.AddressLine2 ?? "",
-                m.PostalCode.Value, m.City, m.Country,
                 notes, "CHF", "PassivMitglied"
             };
             cols.AddRange(Enumerable.Repeat("", 50));

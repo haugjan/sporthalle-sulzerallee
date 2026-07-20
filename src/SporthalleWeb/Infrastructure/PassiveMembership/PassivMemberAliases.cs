@@ -8,11 +8,6 @@ internal static class PassivMemberAliases
     internal const string FieldNumber       = "fieldNumber";
     internal const string MembershipLevel   = "membershipLevel";
 
-    internal const string BillingAddress    = "billingAddress";
-    internal const string AddressLine2      = "addressLine2";
-    internal const string BillingPostalCode = "billingPostalCode";
-    internal const string BillingCity       = "billingCity";
-    internal const string BillingCountry    = "billingCountry";
     internal const string Phone             = "phone";
 
     internal const string ShowNameOnFloor   = "showNameOnFloor";
@@ -29,8 +24,7 @@ internal static class PassivMemberAliases
 
     internal static readonly IReadOnlySet<string> All = new HashSet<string>
     {
-        Email, FirstName, LastName, FieldNumber, MembershipLevel,
-        BillingAddress, AddressLine2, BillingPostalCode, BillingCity, BillingCountry, Phone,
+        Email, FirstName, LastName, FieldNumber, MembershipLevel, Phone,
         ShowNameOnFloor, FloorDisplayName,
         Status, PaidAt, PaidBy, ConfirmedAt, ConfirmedBy,
         ExportedToAccountingAt, ExportedToAccountingBy, Notes

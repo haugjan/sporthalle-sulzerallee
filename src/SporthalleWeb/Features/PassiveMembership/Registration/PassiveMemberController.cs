@@ -28,8 +28,7 @@ public class PassiveMemberController(
             return BadRequest(new { error = "consent_required" });
 
         if (string.IsNullOrWhiteSpace(req.FirstName) || string.IsNullOrWhiteSpace(req.LastName) ||
-            string.IsNullOrWhiteSpace(req.AddressLine) || string.IsNullOrWhiteSpace(req.PostalCode) ||
-            string.IsNullOrWhiteSpace(req.City) || string.IsNullOrWhiteSpace(req.Email))
+            string.IsNullOrWhiteSpace(req.Email))
             return BadRequest(new { error = "missing_fields" });
 
         if (string.IsNullOrWhiteSpace(req.CaptchaToken))
@@ -43,8 +42,7 @@ public class PassiveMemberController(
         {
             var cmd = new RegisterMemberCommand(
                 req.FieldNumber, req.FirstName, req.LastName,
-                req.AddressLine, req.AddressLine2, req.PostalCode, req.City,
-                req.Phone, req.Email, req.LevelKey,
+                req.Email, req.LevelKey,
                 req.ShowNameOnFloor, req.DisplayName, req.Consent);
 
             var member = await registerMember.ExecuteAsync(cmd);

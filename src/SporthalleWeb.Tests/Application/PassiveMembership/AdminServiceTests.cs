@@ -20,7 +20,7 @@ public sealed class AdminServiceTests
 
     private static PassiveMember MakeMember(int id = 1, string status = "Pending") =>
         PassiveMember.Reconstitute(
-            id, 1, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
+            id, 1, "Max", "Muster",
             null, "max@muster.ch", "Bronze", false, null,
             DateTime.UtcNow, status, null, null, null, null, null, null, null);
 

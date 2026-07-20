@@ -6,11 +6,6 @@ public sealed class PassiveMember
     public FieldNumber FieldNumber { get; private set; } = null!;
     public string FirstName { get; private set; } = "";
     public string LastName { get; private set; } = "";
-    public string AddressLine { get; private set; } = "";
-    public string? AddressLine2 { get; private set; }
-    public PostalCode PostalCode { get; private set; } = null!;
-    public string City { get; private set; } = "";
-    public string Country { get; private set; } = "Schweiz";
     public string? Phone { get; private set; }
     public MemberEmail Email { get; private set; } = null!;
     public MembershipLevel Level { get; private set; } = null!;
@@ -33,11 +28,6 @@ public sealed class PassiveMember
         FieldNumber fieldNumber,
         string firstName,
         string lastName,
-        string addressLine,
-        string? addressLine2,
-        string postalCode,
-        string city,
-        string? phone,
         MemberEmail email,
         MembershipLevel level,
         bool showNameOnFloor,
@@ -55,12 +45,6 @@ public sealed class PassiveMember
             FieldNumber = fieldNumber,
             FirstName = firstName.Trim(),
             LastName = lastName.Trim(),
-            AddressLine = addressLine.Trim(),
-            AddressLine2 = string.IsNullOrWhiteSpace(addressLine2) ? null : addressLine2.Trim(),
-            PostalCode = PostalCode.Create(postalCode, "Schweiz"),
-            City = city.Trim(),
-            Country = "Schweiz",
-            Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
             Email = email,
             Level = level,
             ShowNameOnFloor = showNameOnFloor,
@@ -72,7 +56,6 @@ public sealed class PassiveMember
 
     public static PassiveMember Reconstitute(
         int id, int fieldNumber, string firstName, string lastName,
-        string addressLine, string? addressLine2, string postalCode, string city, string country,
         string? phone, string email, string levelKey,
         bool showNameOnFloor, string? displayName,
         DateTime createdAt, string status,
@@ -85,11 +68,6 @@ public sealed class PassiveMember
         FieldNumber = new FieldNumber(fieldNumber),
         FirstName = firstName,
         LastName = lastName,
-        AddressLine = addressLine,
-        AddressLine2 = addressLine2,
-        PostalCode = PostalCode.FromPersistence(postalCode),
-        City = city,
-        Country = country,
         Phone = phone,
         Email = new MemberEmail(email),
         Level = MembershipLevel.FromKey(levelKey),

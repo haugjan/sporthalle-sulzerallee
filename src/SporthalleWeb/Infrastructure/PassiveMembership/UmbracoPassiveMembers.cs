@@ -170,11 +170,6 @@ public class UmbracoPassiveMembers(
         m.SetValue(PassivMemberAliases.LastName,               pm.LastName);
         m.SetValue(PassivMemberAliases.FieldNumber,            pm.FieldNumber.Value.ToString());
         m.SetValue(PassivMemberAliases.MembershipLevel,        pm.Level.Key);
-        m.SetValue(PassivMemberAliases.BillingAddress,         pm.AddressLine);
-        m.SetValue(PassivMemberAliases.AddressLine2,           pm.AddressLine2 ?? "");
-        m.SetValue(PassivMemberAliases.BillingPostalCode,      pm.PostalCode.Value);
-        m.SetValue(PassivMemberAliases.BillingCity,            pm.City);
-        m.SetValue(PassivMemberAliases.BillingCountry,         pm.Country);
         m.SetValue(PassivMemberAliases.Phone,                  pm.Phone ?? "");
         m.SetValue(PassivMemberAliases.ShowNameOnFloor,        pm.ShowNameOnFloor);
         m.SetValue(PassivMemberAliases.FloorDisplayName,       pm.DisplayName ?? "");
@@ -196,11 +191,6 @@ public class UmbracoPassiveMembers(
             fieldNumber:            fieldNumber,
             firstName:              m.GetValue<string>(PassivMemberAliases.FirstName) ?? "",
             lastName:               m.GetValue<string>(PassivMemberAliases.LastName) ?? "",
-            addressLine:            m.GetValue<string>(PassivMemberAliases.BillingAddress) ?? "",
-            addressLine2:           m.GetValue<string>(PassivMemberAliases.AddressLine2).NullIfEmpty(),
-            postalCode:             m.GetValue<string>(PassivMemberAliases.BillingPostalCode) ?? "",
-            city:                   m.GetValue<string>(PassivMemberAliases.BillingCity) ?? "",
-            country:                m.GetValue<string>(PassivMemberAliases.BillingCountry).NullIfEmpty() ?? "Schweiz",
             phone:                  m.GetValue<string>(PassivMemberAliases.Phone).NullIfEmpty(),
             email:                  m.GetValue<string>(PassivMemberAliases.Email) ?? "",
             levelKey:               UmbracoDropdownHelper.ParseDropdownValue(m.GetValue<string>(PassivMemberAliases.MembershipLevel), null),

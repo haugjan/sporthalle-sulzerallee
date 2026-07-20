@@ -288,14 +288,9 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, textBox,                 PassivMemberAliases.LastName,        "Last Name",          mandatory: true,  sort: 2,  infoG, infoGn);
         EnsureProperty(memberType, textBox,                 PassivMemberAliases.FieldNumber,     "Field Number",       mandatory: true,  sort: 3,  infoG, infoGn);
         EnsureProperty(memberType, membershipLevelDropdown, PassivMemberAliases.MembershipLevel, "Membership Level",   mandatory: true,  sort: 4,  infoG, infoGn);
-        EnsureProperty(memberType, textBox, PassivMemberAliases.BillingAddress,    "Billing Address",     mandatory: true,  sort: 5,  infoG, infoGn);
-        EnsureProperty(memberType, textBox, PassivMemberAliases.AddressLine2,      "Address Line 2",      mandatory: false, sort: 6,  infoG, infoGn);
-        EnsureProperty(memberType, textBox, PassivMemberAliases.BillingPostalCode, "Billing Postal Code", mandatory: true,  sort: 7,  infoG, infoGn);
-        EnsureProperty(memberType, textBox, PassivMemberAliases.BillingCity,       "Billing City",        mandatory: true,  sort: 8,  infoG, infoGn);
-        EnsureProperty(memberType, textBox, PassivMemberAliases.BillingCountry,    "Billing Country",     mandatory: false, sort: 9,  infoG, infoGn);
-        EnsureProperty(memberType, textBox, PassivMemberAliases.Phone,             "Phone",               mandatory: false, sort: 10, infoG, infoGn);
-        EnsureProperty(memberType, trueFalse, PassivMemberAliases.ShowNameOnFloor,  "Show Name on Floor", mandatory: false, sort: 11, infoG, infoGn);
-        EnsureProperty(memberType, textBox,   PassivMemberAliases.FloorDisplayName, "Floor Display Name", mandatory: false, sort: 12, infoG, infoGn);
+        EnsureProperty(memberType, textBox, PassivMemberAliases.Phone,             "Phone",               mandatory: false, sort: 5,  infoG, infoGn);
+        EnsureProperty(memberType, trueFalse, PassivMemberAliases.ShowNameOnFloor,  "Show Name on Floor", mandatory: false, sort: 6,  infoG, infoGn);
+        EnsureProperty(memberType, textBox,   PassivMemberAliases.FloorDisplayName, "Floor Display Name", mandatory: false, sort: 7,  infoG, infoGn);
 
         EnsureProperty(memberType, statusDropdown, PassivMemberAliases.Status,                 "Status",                    mandatory: false, sort: 0, adminG, adminGn);
         EnsureProperty(memberType, dateType,       PassivMemberAliases.PaidAt,                 "Paid At",                   mandatory: false, sort: 1, adminG, adminGn);

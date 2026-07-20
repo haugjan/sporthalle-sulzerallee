@@ -95,8 +95,7 @@ public sealed class PassiveMemberDropdownParsingTests
     {
         var nullLevel = UmbracoDropdownHelper.ParseDropdownValue(null, null);
         Assert.Throws<DomainException>(() => PassiveMember.Reconstitute(
-            1, 42, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
-            null, "max@muster.ch", nullLevel!, false, null,
+            1, 42, "Max", "Muster", null,"max@muster.ch", nullLevel!, false, null,
             DateTime.UtcNow, "Pending", null, null, null, null, null, null, null));
     }
 
@@ -104,8 +103,7 @@ public sealed class PassiveMemberDropdownParsingTests
     public void Reconstitute_InvalidFieldNumber_ThrowsDomainException()
     {
         Assert.Throws<DomainException>(() => PassiveMember.Reconstitute(
-            1, 0, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
-            null, "max@muster.ch", "Bronze", false, null,
+            1, 0, "Max", "Muster", null,"max@muster.ch", "Bronze", false, null,
             DateTime.UtcNow, "Pending", null, null, null, null, null, null, null));
     }
 
@@ -120,8 +118,7 @@ public sealed class PassiveMemberDropdownParsingTests
     {
         var levelKey = UmbracoDropdownHelper.ParseDropdownValue(rawLevel, "Bronze") ?? "Bronze";
         var member = PassiveMember.Reconstitute(
-            1, 42, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
-            null, "max@muster.ch", levelKey, false, null,
+            1, 42, "Max", "Muster", null,"max@muster.ch", levelKey, false, null,
             DateTime.UtcNow, MemberStatus.Pending.Key, null, null, null, null, null, null, null);
 
         Assert.Equal(expectedKey, member.Level.Key);
@@ -138,8 +135,7 @@ public sealed class PassiveMemberDropdownParsingTests
     {
         var status = UmbracoDropdownHelper.ParseDropdownValue(rawStatus, MemberStatus.Pending.Key) ?? MemberStatus.Pending.Key;
         var member = PassiveMember.Reconstitute(
-            1, 42, "Max", "Muster", "Str 1", null, "8400", "Winterthur", "Schweiz",
-            null, "max@muster.ch", "Bronze", false, null,
+            1, 42, "Max", "Muster", null,"max@muster.ch", "Bronze", false, null,
             DateTime.UtcNow, status, null, null, null, null, null, null, null);
 
         Assert.Equal(expectedStatusKey, member.Status.Key);

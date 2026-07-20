@@ -25,9 +25,6 @@ public sealed class RegisterMemberUseCaseTests
     private static RegisterMemberCommand ValidCommand(int field = 1) => new(
         FieldNumber: field,
         FirstName: "Max", LastName: "Muster",
-        AddressLine: "Musterstrasse 1", AddressLine2: null,
-        PostalCode: "8400", City: "Winterthur",
-        Phone: null,
         Email: "max@muster.ch",
         LevelKey: "Bronze",
         ShowNameOnFloor: false, DisplayName: null,
