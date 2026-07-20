@@ -16,7 +16,7 @@ Live site: `https://app-sporthalle-sulzerallee.azurewebsites.net/`
 | Email | Brevo REST API |
 | CAPTCHA | Cloudflare Turnstile |
 | Schema sync | uSync |
-| CI/CD | GitHub Actions → Azure ZipDeploy |
+| CI/CD | GitHub Actions (OIDC) → Azure App Service deploy |
 | Hosting | Azure App Service Linux B1 |
 
 ## Language Convention
@@ -39,7 +39,7 @@ Code namespace: `SporthalleWeb.*.Booking`
 
 Supporters can symbolically adopt one square metre of the unihockey hall floor and become passive members at CHF 50, 100, or 200 per year.
 
-**Public:** `/passivmitgliedschaft` — interactive SVG floor plan of the hall (300 fields, rendered as a Blazor Server component). Clicking a free field opens a 6-step registration wizard with Cloudflare Turnstile CAPTCHA.
+**Public:** `/passivmitgliedschaft` — interactive SVG floor plan of the hall (1000 fields, rendered as a Blazor Server component). Clicking a free field opens a 5-step registration wizard (first name, last name, email, consent, CAPTCHA) with Cloudflare Turnstile. Address details are collected separately via RaiseNow during payment.
 
 **Admin:** Umbraco backoffice → "Passivmitglieder" section. Blazor Server admin UI with member table (sortable, mark as paid, notes), Excel export, and AbaNinja CSV export.
 
@@ -114,11 +114,13 @@ src/SporthalleWeb/
 
 ## Deployment
 
-Push to `main` triggers GitHub Actions:
-1. `dotnet publish` with Release configuration
-2. ZipDeploy to Azure App Service via Kudu API
+Every push to `main` or `feature/**` triggers a three-job GitHub Actions pipeline:
 
-`appsettings.Production.json` is injected from a GitHub Actions secret at deploy time and is never in git.
+1. **build** — restore, build, test, publish, upload `app.zip` artifact
+2. **deploy-dev** — authenticate via OIDC (no passwords), deploy to `app-sporthalle-sulzerallee-dev`; runs on every push including feature branches
+3. **deploy-prod** — same, to `app-sporthalle-sulzerallee`; runs only on `main`
+
+`appsettings.Production.json` is injected from a GitHub Actions secret (`APPSETTINGS_PRODUCTION`) at deploy time and is never in git.
 
 **Required Azure App Service environment variables:**
 

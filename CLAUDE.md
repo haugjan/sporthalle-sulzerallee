@@ -187,7 +187,13 @@ if (builder.Environment.IsDevelopment())
 
 ## Deployment
 
-GitHub Actions (`deploy.yml`) builds and ZipDeploys to Azure on push to `main`. The deploy uses Kudu's `/api/zipdeploy?async=true` with a 600 s timeout (large zip due to media files ~119 MB).
+GitHub Actions (`deploy.yml`) runs on every push to `main` or `feature/**`. Three jobs run in sequence:
+
+1. **build** — `dotnet restore` + `dotnet build` + `dotnet test` + `dotnet publish` + upload `app.zip` artifact
+2. **deploy-dev** — Azure login via OIDC (no passwords), `az webapp deploy` to `app-sporthalle-sulzerallee-dev`; triggered on every push including feature branches
+3. **deploy-prod** — same, to `app-sporthalle-sulzerallee`; only runs when the ref is `main`
+
+Authentication uses Microsoft Entra federated credentials (OIDC): no long-lived publish passwords. Repository secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` are shared; the per-environment `AZURE_WEBAPP_NAME` variable selects the target app.
 
 `appsettings.Production.json` is injected at deploy time from a GitHub Actions secret (`APPSETTINGS_PRODUCTION`) and is NOT in git.
 
@@ -245,7 +251,6 @@ you change one of these files, read the matching entry first.
 - **`FloorGrid`** is the single source of truth for the floor-plan grid resolution (40 columns × 25 rows = 1000 fields), referenced by both the domain (`FieldNumber`, `VipField`) and the presentation (`FloorPlanComponent`) so the field count stays consistent.
 - **`SpecialFieldMap`** is the special-field policy: a list of `SpecialArea(Label, From, To)` where `From`/`To` are opposite-corner field numbers of a rectangle (a single field has `From == To`). `GetLabel`/`IsVip` convert a field number to col/row via `FloorGrid` and test rectangle membership. The active map comes from the floor plan element config (`IFloorPlanSettings`); when nothing is configured it falls back to **`VipField.Default`**, the built-in layout (two `Torraum` rectangles 408..611 and 434..637 plus `Mittelpunkt` 502). `VipField` is only the default provider now, not the enforcement path. `PassiveMember.Register` takes a `SpecialFieldMap` argument so the Bronze-block rule uses the configured fields.
 - **`GridRegion`** (X0,Y0,X1,Y1 normalised fractions) locates the grid over the background image; `GridRegion.Default` is the built-in blue-surface rectangle. `Create` clamps to 0..1 and falls back to `Default` if inverted/degenerate. The active region comes from the element config, default otherwise.
-- **`PostalCode`**: Swiss codes must be 4 digits (1000–9999); foreign codes are accepted leniently (non-empty, max 10 chars). `FromStorage` rehydrates without validation so legacy/imported values never block loading; new values go through `Create`.
 - **`MemberEmail` / `RenterEmail`**: use `MailAddress.TryCreate` (basic `local@domain` structure) rather than a stricter check, so addresses already stored under the previous `@`-only rule are not rejected on reload.
 
 ### Umbraco dropdown & ColorPicker value parsing
@@ -262,7 +267,7 @@ you change one of these files, read the matching entry first.
 
 - Each migration version runs exactly once (framework-tracked), so migrations need no column-existence checks. `ALTER TABLE ... DROP COLUMN` is supported by both SQLite (3.35+) and SQL Server.
 - Booking history: **v1.2.0** simplified the slot model (`SlotType` replaced `BookingStatus`, `Title` replaced `EventType`, pricing/recurring fields and the `RecurringRules`/`SchoolHolidays` tables dropped; drop/recreate was safe as no production data existed). **v1.5.0** renamed `SlotType.Serie` → `Recurring` in existing rows. **v1.6.0** added `IsBlocker`/`MemberId` to `RecurringSlots`. **v1.11.0** dropped the per-slot `Color` columns (display colour now derives from the renting hall member). **v1.12.0** is a no-op that aligns the plan's terminal state with databases that reached it via a worktree.
-- Passive-member history: **v1** no-op, **v2** creates the definitive table (IDENTITY PK, explicitly named PK constraint because SQL Server requires it), **v3** no-op, **v9** drops the dedicated table (passive members moved to Umbraco Members).
+- Passive-member history: **v1** no-op, **v2** creates the dedicated `PassivMitglieder` table (IDENTITY PK, explicitly named PK constraint because SQL Server requires it), **v3** no-op, **v9** drops the table (passive members moved to Umbraco Members, see "Umbraco Member Properties" above).
 
 ### Calendar availability — `GetAvailableTimeSlots`, `GetAvailableDays`, `GetWeekSlots`
 
@@ -271,7 +276,7 @@ you change one of these files, read the matching entry first.
 
 ### Email routing
 
-- Reservation mails are sent from (and replies go to) the reservations inbox, always with a BCC to the reservations address. Passive-membership registrations instead notify the general office inbox.
+- Reservation mails are sent from (and replies go to) the reservations inbox, always with a BCC to the reservations address. Passive-membership registrations notify `passivmitglieder@sporthalle-sulzerallee.ch`.
 - `BookingMailTemplates` placeholders: `{Vorname}`, `{Name}`, `{Anlass}`, `{Datum}`, `{Von}`, `{Bis}`. Admin-configured reservation/confirmation texts override the defaults; the defaults apply when nothing is configured.
 
 ### Floor-plan component — `FloorPlanComponent.razor`
@@ -349,7 +354,7 @@ Features/PassiveMembership/
     RegisterMemberRequest.cs, FieldStatusResponse.cs   API DTOs
     PassiveMemberController.cs       REST API (public: felder, register)
     FloorPlanController.cs           Public floor plan page (iframe)
-    FloorPlanComponent.razor         Interactive SVG floor plan + 6-step wizard
+    FloorPlanComponent.razor         Interactive SVG floor plan + 5-step wizard
     Views/FloorPlan.cshtml           Blazor host for FloorPlanComponent
   MemberAdmin/                                     ns ...Features.PassiveMembership.MemberAdmin
     PassiveMemberAdmin.cs            (was AdminService) MarkAsPaid, UpdateNotes, exports
@@ -397,7 +402,7 @@ Auth: Umbraco backoffice session cookie (inherited by the iframe).
 
 ### Public Floor Plan
 
-The `Views/Partials/Blocks/passivmitgliedschaftElement.cshtml` block partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The background defaults to the real hall floor plan (`wwwroot/img/hallenboden.png`); the component overlays a 40×25 SVG grid (1000 fields) positioned **only over the blue playing surface** (walls, ancillary rooms and the staircase stay unselectable) plus a 6-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain). The grid region and the special fields default to the built-in layout but are **admin-configurable** (see below). Special/VIP fields require Silber or Gold; Bronze is blocked for them (enforced server-side in `PassiveMember.Register` and mirrored in the wizard's level step).
+The `Views/Partials/Blocks/passivmitgliedschaftElement.cshtml` block partial embeds an `<iframe src="/passivmitglieder/hallenboden">`, which loads `FloorPlanComponent` (Blazor Server). The background defaults to the real hall floor plan (`wwwroot/img/hallenboden.png`); the component overlays a 40×25 SVG grid (1000 fields) positioned **only over the blue playing surface** (walls, ancillary rooms and the staircase stay unselectable) plus a 5-step registration wizard with Cloudflare Turnstile CAPTCHA. The grid resolution is centralised in `FloorGrid` (Domain). The grid region and the special fields default to the built-in layout but are **admin-configurable** (see below). Special/VIP fields require Silber or Gold; Bronze is blocked for them (enforced server-side in `PassiveMember.Register` and mirrored in the wizard's level step).
 
 **Configurable appearance (Darstellung group on `passivmitgliedschaftElement`)**: three element properties let an editor override the look from the Umbraco backoffice without a redeploy:
 - `bodenplanBild` (Media Picker, reuses the shared `Image Media Picker` data type) — the background image.
@@ -423,27 +428,25 @@ Admin-configurable via the `bodenplanRaster` visual editor (see "Public Floor Pl
 | Torraum | Rectangle 408..611 (24 fields) and rectangle 434..637 (24 fields) |
 | Mittelpunkt | Field 502 |
 
-### Database Table: `PassivMitglieder`
+### Umbraco Member Properties (`passivMember`)
 
-Table name kept in German to avoid a destructive migration. All column names are English.
+Passive members are stored as Umbraco Members (member type `passivMember`). The single source of truth for property aliases is `PassivMemberAliases.cs`. `MemberTypeSeeder` creates all properties on first boot.
 
-| Column | Type | Notes |
+| Alias | Type | Notes |
 |---|---|---|
-| Id | INT IDENTITY | PK |
-| FieldNumber | INT UNIQUE | 1–1000 |
-| FirstName, LastName | NVARCHAR(100) | |
-| AddressLine | NVARCHAR(300) | |
-| PostalCode, City | NVARCHAR | |
-| Country | NVARCHAR(100) | Default 'Schweiz' |
-| Email | NVARCHAR(200) | |
-| MembershipLevel | NVARCHAR(20) | 'Bronze'/'Silber'/'Gold' |
-| ShowNameOnFloor | BIT | |
-| DisplayName | NVARCHAR(200) NULL | |
-| CreatedAt | DATETIME | |
-| PaidAt | DATETIME NULL | |
-| Notes | NVARCHAR(MAX) NULL | |
+| `fieldNumber` | TextBox | 1–1000 |
+| `firstName`, `lastName` | TextBox | |
+| `membershipLevel` | DropDown | Bronze / Silber / Gold |
+| `phone` | TextBox | Retained for existing members; no longer collected in registration |
+| `showNameOnFloor` | Checkbox | |
+| `floorDisplayName` | TextBox | |
+| `status` | DropDown | Pending / Confirmed / Deleted |
+| `paidAt`, `paidBy` | TextBox | |
+| `confirmedAt`, `confirmedBy` | TextBox | |
+| `exportedToAccountingAt`, `exportedToAccountingBy` | TextBox | |
+| `notes` | TextArea | |
 
-Migration: `PassiveMemberMigration` plan (v1: create table, v2: drop+recreate for correct IDENTITY). Runs automatically via `PassiveMemberComposer`.
+Migration history: **v1** no-op, **v2** creates the old dedicated `PassivMitglieder` table, **v3** no-op, **v9** drops the table (passive members moved to Umbraco Members). The old table name was kept in German to avoid a destructive rename migration.
 
 ### REST API
 
@@ -452,7 +455,7 @@ GET  /api/passivmitglieder/felder
      → { occupiedFields: [{fieldNumber, displayName, vipLabel}], totalFields: 1000 }
 
 POST /api/passivmitglieder/register
-     Body: { fieldNumber, firstName, lastName, addressLine, postalCode, city,
+     Body: { fieldNumber, firstName, lastName,
              email, levelKey, showNameOnFloor, displayName, captchaToken }
      → 200 | 409 Conflict (field taken) | 400 Bad Request
 
@@ -469,7 +472,7 @@ Routes use the German URL segment `/passivmitglieder/` intentionally — it is p
 ### Email
 
 All emails via Brevo REST API, Template ID 1.
-Admin BCC: `bettina.zahnd@`, `matthias.lehner@`, `jan.haug@` (all `@sporthalle-sulzerallee.ch`)
+Admin BCC: `passivmitglieder@sporthalle-sulzerallee.ch`
 Brevo API key: `Brevo:ApiKey` config — `dotnet user-secrets` locally, Azure App Service env var in production.
 
 ---
