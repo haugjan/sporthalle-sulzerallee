@@ -97,9 +97,9 @@ jobs:
         run: |
           BASE="https://$WEBAPP.azurewebsites.net"
           for i in $(seq 1 40); do
-            S=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 "$BASE/" || echo "000")
+            S=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 120 "$BASE/" || echo "000")
             echo "Attempt $i: GET / -> $S"
-            case "$S" in 2*|3*) echo "Up."; exit 0 ;; esac
+            case "$S" in [2-5]*) echo "Up (HTTP $S)."; exit 0 ;; esac
             sleep 15
           done
           echo "App did not respond within the warm-up window (best-effort)."; exit 0
@@ -139,9 +139,9 @@ jobs:
         run: |
           BASE="https://$WEBAPP.azurewebsites.net"
           for i in $(seq 1 40); do
-            S=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 "$BASE/" || echo "000")
+            S=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 120 "$BASE/" || echo "000")
             echo "Attempt $i: GET / -> $S"
-            case "$S" in 2*|3*) echo "Up."; exit 0 ;; esac
+            case "$S" in [2-5]*) echo "Up (HTTP $S)."; exit 0 ;; esac
             sleep 15
           done
           echo "App did not respond within the warm-up window (best-effort)."; exit 0
