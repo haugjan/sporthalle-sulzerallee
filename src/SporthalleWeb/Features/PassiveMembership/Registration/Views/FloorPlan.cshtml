@@ -40,6 +40,9 @@
             });
         };
         window.pmClearTurnstile = function() {
+            if (_pmWidgetId !== null && window.turnstile) {
+                window.turnstile.remove(_pmWidgetId);
+            }
             _pmTurnstileToken = null;
             _pmWidgetId = null;
         };
