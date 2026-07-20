@@ -1,0 +1,82 @@
+name: Weekly Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Sundays 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      RESOURCE_GROUP: ${{ secrets.BACKUP_RESOURCE_GROUP }}
+      SQL_SERVER: ${{ secrets.BACKUP_SQL_SERVER }}
+      SQL_DATABASE: ${{ secrets.BACKUP_SQL_DATABASE }}
+      STORAGE_ACCOUNT: ${{ secrets.BACKUP_STORAGE_ACCOUNT }}
+      BACKUP_CONTAINER: sql-backups
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure blob protection (soft delete 30 d + versioning, idempotent)
+        run: |
+          az storage account blob-service-properties update \
+            --account-name "$STORAGE_ACCOUNT" \
+            --resource-group "$RESOURCE_GROUP" \
+            --enable-delete-retention true \
+            --delete-retention-days 30 \
+            --enable-versioning true
+
+      - name: Retrieve storage key
+        run: |
+          KEY=$(az storage account keys list \
+            --resource-group "$RESOURCE_GROUP" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --query "[0].value" -o tsv)
+          echo "::add-mask::$KEY"
+          echo "STORAGE_KEY=$KEY" >> "$GITHUB_ENV"
+
+      - name: Ensure sql-backups container exists
+        run: |
+          az storage container create \
+            --name "$BACKUP_CONTAINER" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --account-key "$STORAGE_KEY"
+
+      - name: Export SQL database as BACPAC
+        run: |
+          BACKUP_DATE=$(date -u +%Y-%m-%d)
+          BACPAC_URI="https://${STORAGE_ACCOUNT}.blob.core.windows.net/${BACKUP_CONTAINER}/sporthalle-${BACKUP_DATE}.bacpac"
+          echo "Exporting to $BACPAC_URI ..."
+          az sql db export \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER" \
+            --name "$SQL_DATABASE" \
+            --admin-user "${{ secrets.BACKUP_SQL_ADMIN_USER }}" \
+            --admin-password "${{ secrets.BACKUP_SQL_ADMIN_PASSWORD }}" \
+            --storage-key-type StorageAccessKey \
+            --storage-key "$STORAGE_KEY" \
+            --storage-uri "$BACPAC_URI"
+          echo "Export done: sporthalle-${BACKUP_DATE}.bacpac"
+
+      - name: Delete BACPAC files older than 90 days
+        run: |
+          CUTOFF=$(date -u -d "-90 days" +%Y-%m-%dT%H:%M:%SZ)
+          az storage blob list \
+            --container-name "$BACKUP_CONTAINER" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --account-key "$STORAGE_KEY" \
+            --query "[?properties.lastModified < '${CUTOFF}'].name" \
+            -o tsv | \
+          while IFS= read -r blob; do
+            [ -z "$blob" ] && continue
+            echo "Deleting: $blob"
+            az storage blob delete \
+              --container-name "$BACKUP_CONTAINER" \
+              --name "$blob" \
+              --account-name "$STORAGE_ACCOUNT" \
+              --account-key "$STORAGE_KEY"
+          done
