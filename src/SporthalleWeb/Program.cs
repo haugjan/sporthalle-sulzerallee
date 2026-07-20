@@ -66,8 +66,23 @@ umbracoBuilder.Build();
 
 WebApplication app = builder.Build();
 
-
 await app.BootUmbracoAsync();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.Use(async (context, next) =>
+    {
+        var host = context.Request.Host.Host;
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+        {
+            var proto = context.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? "https";
+            var url = $"{proto}://{host[4..]}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+            context.Response.Redirect(url, permanent: true);
+            return;
+        }
+        await next(context);
+    });
+}
 
 app.UseStaticFiles();
 
