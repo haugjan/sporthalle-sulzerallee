@@ -21,14 +21,17 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Configure blob protection (soft delete 30 d + versioning, idempotent)
+      - name: Configure blob protection (soft delete 14 d + container soft delete 14 d + versioning + change feed, idempotent)
         run: |
           az storage account blob-service-properties update \
             --account-name "$STORAGE_ACCOUNT" \
             --resource-group "$RESOURCE_GROUP" \
             --enable-delete-retention true \
-            --delete-retention-days 30 \
-            --enable-versioning true
+            --delete-retention-days 14 \
+            --enable-container-delete-retention true \
+            --container-delete-retention-days 14 \
+            --enable-versioning true \
+            --enable-change-feed true
 
       - name: Retrieve storage key
         run: |
