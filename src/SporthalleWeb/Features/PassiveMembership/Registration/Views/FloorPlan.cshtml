@@ -16,6 +16,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
     <style>html, body { margin: 0; padding: 0; font-family: "Manrope", sans-serif; }</style>
+    @if (viewOnly)
+    {
+    <style>
+        html, body { height: 100%; overflow: hidden; background: #111; }
+        .pm-floor-section {
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .pm-counter { display: none !important; }
+        #pm-svg-container {
+            display: inline-block !important;
+            position: relative !important;
+            max-width: 100% !important;
+            max-height: 100vh !important;
+            line-height: 0;
+        }
+        #pm-floor-img {
+            max-width: 100% !important;
+            max-height: 100vh !important;
+            width: auto !important;
+            height: auto !important;
+        }
+    </style>
+    }
 </head>
 <body>
     <component type="typeof(FloorPlanComponent)" render-mode="ServerPrerendered"
