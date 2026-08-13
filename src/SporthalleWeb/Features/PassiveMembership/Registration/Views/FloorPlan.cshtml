@@ -1,8 +1,9 @@
 @using SporthalleWeb.Features.PassiveMembership.Registration
-@model string
+@model (string SiteKey, bool ViewOnly)
 @{
     Layout = null;
-    var siteKey = Model ?? "1x00000000000000000000AA";
+    var siteKey = Model.SiteKey ?? "1x00000000000000000000AA";
+    var viewOnly = Model.ViewOnly;
 }
 <!DOCTYPE html>
 <html lang="de">
@@ -18,7 +19,7 @@
 </head>
 <body>
     <component type="typeof(FloorPlanComponent)" render-mode="ServerPrerendered"
-               param-TurnstileSiteKey="@siteKey" />
+               param-TurnstileSiteKey="@siteKey" param-ViewOnly="@viewOnly" />
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script src="/_framework/blazor.server.js"></script>
     <script>

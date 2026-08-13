@@ -1,0 +1,55 @@
+@model int
+@{
+    Layout = null;
+    var count = Model;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="10" />
+    <title>Hallenboden – Sporthalle Sulzerallee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; background: #101010; color: #fff; font-family: "Manrope", sans-serif; overflow: hidden; }
+        .page { display: flex; flex-direction: column; height: 100vh; }
+        .header {
+            flex: 0 0 auto;
+            padding: 18px 28px 14px;
+            display: flex; align-items: baseline; gap: 16px;
+            background: #101010;
+            border-bottom: 3px solid #EB504B;
+        }
+        .header__count {
+            font-family: "Anton", "Arial Black", sans-serif;
+            font-size: clamp(28px, 5vw, 52px);
+            font-weight: 400;
+            letter-spacing: .5px;
+            color: #EB504B;
+            line-height: 1;
+        }
+        .header__label {
+            font-size: clamp(14px, 2vw, 22px);
+            font-weight: 600;
+            color: #e0e0e0;
+            white-space: nowrap;
+        }
+        .floor { flex: 1 1 auto; width: 100%; border: none; display: block; background: #101010; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <span class="header__count">@count</span>
+            <span class="header__label">von 1000 Feldern belegt</span>
+        </div>
+        <iframe class="floor"
+                src="/passivmitglieder/hallenboden?viewOnly=true"
+                title="Hallenboden Sulzerallee"></iframe>
+    </div>
+</body>
+</html>

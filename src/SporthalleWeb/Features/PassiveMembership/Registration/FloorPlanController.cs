@@ -6,10 +6,10 @@ namespace SporthalleWeb.Features.PassiveMembership.Registration;
 public sealed class FloorPlanController(IConfiguration config, IFloorPlanSettings settings) : Controller
 {
     [HttpGet("")]
-    public IActionResult Index()
+    public IActionResult Index([FromQuery] bool viewOnly = false)
     {
         var siteKey = config["Turnstile:SiteKey"] is { Length: > 0 } k ? k : "1x00000000000000000000AA";
-        return View("~/Features/PassiveMembership/Registration/Views/FloorPlan.cshtml", siteKey);
+        return View("~/Features/PassiveMembership/Registration/Views/FloorPlan.cshtml", (siteKey, viewOnly));
     }
 
     [HttpGet("config")]

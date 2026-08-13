@@ -11,8 +11,10 @@
 
 <link rel="stylesheet" href="/css/passivmitglied.css" />
 
-<section class="pm-floor-section @(_expanded ? "is-expanded" : "")" id="pm-floor-section">
+<section class="pm-floor-section @(_expanded || ViewOnly ? "is-expanded" : "")" id="pm-floor-section">
 
+  @if (!ViewOnly)
+  {
   <button class="pm-floor-toggle" id="pm-floor-toggle" @onclick="ToggleExpand"
           aria-label="@(_expanded ? "Bodenplan verkleinern" : "Bodenplan vergrössern")">
     @if (_expanded)
@@ -30,6 +32,7 @@
       </svg>
     }
   </button>
+  }
 
   <p class="pm-counter"><span id="pm-counter">@_occupiedCount von @FloorGrid.TotalFields Feldern belegt</span></p>
 
@@ -103,7 +106,7 @@
   </div>
 </section>
 
-@if (_success)
+@if (!ViewOnly && _success)
 {
   <div class="pm-success-wrap">
     <div class="pm-message pm-message--success">
@@ -113,7 +116,7 @@
   </div>
 }
 
-@if (_step != Step.None)
+@if (!ViewOnly && _step != Step.None)
 {
   <div class="pm-wizard-overlay" role="dialog" aria-modal="true" aria-label="Anmeldung Passivmitgliedschaft"
        style="display:flex;">
@@ -265,6 +268,7 @@
 
 @code {
     [Parameter] public string TurnstileSiteKey { get; set; } = "1x00000000000000000000AA";
+    [Parameter] public bool ViewOnly { get; set; }
 
     private enum Step { None, Field, Level, Person, Consent, Captcha }
 
@@ -324,6 +328,7 @@
 
     private async Task CellClicked(int fieldNum, bool isOccupied)
     {
+        if (ViewOnly) return;
         if (!_expanded) { await SetExpanded(true); return; }
         if (isOccupied) return;
         _selectedField = fieldNum;
