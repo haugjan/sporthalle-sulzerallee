@@ -48,6 +48,11 @@ public sealed class OutboxDispatcher(
             {
                 break;
             }
+            catch (Exception ex) when (IsTableNotFound(ex))
+            {
+                logger.LogWarning("Outbox table not ready yet, retrying in 10s.");
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Outbox dispatcher loop error.");
@@ -120,5 +125,13 @@ public sealed class OutboxDispatcher(
     {
         var seconds = Math.Min(900d, 60d * Math.Pow(2, Math.Max(0, attempts - 1)));
         return TimeSpan.FromSeconds(seconds);
+    }
+
+    private static bool IsTableNotFound(Exception ex)
+    {
+        var msg = ex.Message;
+        return msg.Contains("OutboxEmails", StringComparison.OrdinalIgnoreCase) &&
+               (msg.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("no such table", StringComparison.OrdinalIgnoreCase));
     }
 }
