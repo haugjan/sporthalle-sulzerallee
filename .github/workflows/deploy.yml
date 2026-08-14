@@ -1,18 +1,18 @@
 name: Deploy to Azure
 
-# Two-stage deploy (Switzerland North), Microsoft Entra / OIDC — no basic auth,
-# no long-lived publish password.
+# Pipeline strategy:
+#   push to feature/**          -> build + test -> deploy DEV
+#   pull_request targeting main -> build + test (status check for branch protection)
+#   push to main (PR merge)     -> build + test -> deploy PROD
 #
-#   push to feature/**  -> build + test -> deploy DEV
-#   push to main        -> build + test -> deploy DEV -> deploy PROD
+# Direct push to main is blocked by branch protection rules.
+# OIDC authentication — no long-lived publish passwords.
 #
-# GitHub Environments 'dev' and 'prod' each carry a per-environment variable
-# AZURE_WEBAPP_NAME (app-sporthalle-sulzerallee-dev / app-sporthalle-sulzerallee)
-# and match the OIDC federated-credential subjects:
-#   repo:haugjan/sporthalle-sulzerallee:environment:dev
-#   repo:haugjan/sporthalle-sulzerallee:environment:prod
+# GitHub Environments 'dev' and 'prod' each carry:
+#   - AZURE_WEBAPP_NAME (app-sporthalle-sulzerallee-dev / app-sporthalle-sulzerallee)
+#   - Federated credential subject (repo:haugjan/sporthalle-sulzerallee:environment:<env>)
 #
-# Repository secrets (same app registration for both environments):
+# Repository secrets (shared across both environments):
 #   AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_SUBSCRIPTION_ID
 
 on:
@@ -20,6 +20,9 @@ on:
     branches:
       - main
       - 'feature/**'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -49,12 +52,15 @@ jobs:
         run: dotnet test src/SporthalleWeb.Tests/SporthalleWeb.Tests.csproj --configuration Release --no-restore --verbosity normal
 
       - name: Publish
+        if: github.event_name == 'push'
         run: dotnet publish src/SporthalleWeb/SporthalleWeb.csproj --configuration Release --output ./publish --no-build
 
       - name: Package
+        if: github.event_name == 'push'
         run: cd ./publish && zip -r ../app.zip . && cd ..
 
       - name: Upload build artifact
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: app
@@ -63,11 +69,11 @@ jobs:
 
   deploy-dev:
     needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
     environment: dev
-    # Serialize all writes to the DEV app across branches (feature/** and main both deploy here).
-    # Queue instead of cancel: never interrupt an in-flight az webapp deploy, which could leave
-    # the App Service with a half-extracted zip. A newer run waits; a still-pending run is replaced.
+    # Serialize writes to the DEV app — queue instead of cancel so an in-flight
+    # az webapp deploy is never interrupted mid-extraction.
     concurrency:
       group: deploy-dev
       cancel-in-progress: false
@@ -105,8 +111,8 @@ jobs:
           echo "App did not respond within the warm-up window (best-effort)."; exit 0
 
   deploy-prod:
-    needs: [build, deploy-dev]
-    if: github.ref == 'refs/heads/main'
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     # Same queueing as dev: only one PROD deploy writes at a time, never cancelled mid-write.
