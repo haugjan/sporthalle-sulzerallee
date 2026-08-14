@@ -386,6 +386,44 @@
   cursor: default;
 }
 
+/* Name popup shown when clicking an occupied field */
+.pm-name-popup {
+  position: absolute;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(20,20,20,0.92);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem 0.35rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100% - 2rem);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+.pm-name-popup__name {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pm-name-popup__close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.pm-name-popup__close:hover { color: #fff; }
+
 /* SVG grid cells */
 .pm-cell { transition: opacity 0.1s; }
 .pm-floor-section:not(.is-expanded) .pm-cell--free:focus {

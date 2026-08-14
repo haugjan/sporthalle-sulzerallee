@@ -79,25 +79,32 @@
           var vipLbl = !isOccupied ? _settings.SpecialFields.GetLabel(fn) : null;
 
           <g @key="fn" @onclick="() => CellClicked(fn, isOccupied)" @onclick:stopPropagation="true">
-            @if (vipLbl is not null)
-            {
-              @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}'><title>{HtmlEncoder.Default.Encode($"Spezialfeld: {vipLbl}")}</title></rect>")
+            @{
+              var titleAttr = vipLbl is not null
+                ? $"<title>{HtmlEncoder.Default.Encode($"Spezialfeld: {vipLbl}")}</title>"
+                : dn is not null
+                  ? $"<title>{HtmlEncoder.Default.Encode(dn)}</title>"
+                  : "";
             }
-            else
-            {
-              @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}' />")
-            }
+            @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}'>{titleAttr}</rect>")
             @if (dn is not null)
             {
-              var truncated = dn.Length > 6 ? dn[..5] + "…" : dn;
-              var fullAttr  = dn.Length > 6 ? $" data-fullname=\"{HtmlEncoder.Default.Encode(dn)}\"" : "";
-              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'{fullAttr}>{HtmlEncoder.Default.Encode(truncated)}</text>")
+              var truncated = dn.Length > 11 ? dn[..10] + "…" : dn;
+              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none' textLength='{cw * 0.82:F2}' lengthAdjust='spacingAndGlyphs'>{HtmlEncoder.Default.Encode(truncated)}</text>")
             }
           </g>
         }
       }
     </svg>
   </div>
+
+  @if (_occupiedPopupName is not null)
+  {
+    <div class="pm-name-popup" @onclick:stopPropagation="true">
+      <span class="pm-name-popup__name">@_occupiedPopupName</span>
+      <button class="pm-name-popup__close" @onclick="() => _occupiedPopupName = null" aria-label="Schliessen">&times;</button>
+    </div>
+  }
 
   <div class="pm-legend">
     <div class="pm-legend__item"><span class="pm-legend__swatch pm-legend__swatch--free"></span> Frei</div>
@@ -323,14 +330,22 @@
 
     private async Task OnContainerClick()
     {
+        _occupiedPopupName = null;
         if (!_expanded) await SetExpanded(true);
     }
+
+    private string? _occupiedPopupName;
 
     private async Task CellClicked(int fieldNum, bool isOccupied)
     {
         if (ViewOnly) return;
         if (!_expanded) { await SetExpanded(true); return; }
-        if (isOccupied) return;
+        if (isOccupied)
+        {
+            _occupiedPopupName = _displayNames.TryGetValue(fieldNum, out var n) ? n : null;
+            return;
+        }
+        _occupiedPopupName = null;
         _selectedField = fieldNum;
         if (_settings.SpecialFields.IsVip(fieldNum) && _levelKey == "Bronze") _levelKey = "";
         _step          = Step.Field;
