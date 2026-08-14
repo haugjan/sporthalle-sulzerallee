@@ -85,7 +85,7 @@
                             </td>
                             <td>
                                 <span class="badge @StatusClass(m.Status)">@StatusLabel(m.Status)</span>
-                                @if (m.Status == OutboxStatus.Failed && !string.IsNullOrWhiteSpace(m.LastError))
+                                @if (!string.IsNullOrWhiteSpace(m.LastError))
                                 {
                                     <div><small class="text-danger" title="@m.LastError">@Truncate(m.LastError, 80)</small></div>
                                 }
