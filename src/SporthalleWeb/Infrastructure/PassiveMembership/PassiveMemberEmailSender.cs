@@ -1,16 +1,17 @@
 using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
+using SporthalleWeb.Features.Email;
 using SporthalleWeb.Features.PassiveMembership.Registration;
 using SporthalleWeb.Infrastructure.Shared;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership;
 
-public sealed class GraphPassiveMemberEmail(GraphMailClient graph) : IPassiveMemberEmail
+public sealed class PassiveMemberEmailSender(IEmailOutbox outbox) : IPassiveMemberEmail
 {
-    private const string SenderEmail = "noreply@sporthalle-sulzerallee.ch";
+    private const string SenderEmail = "passivmitglieder@sporthalle-sulzerallee.ch";
     private const string SenderName = "Sporthalle Sulzerallee";
     private const string BccEmail = "passivmitglieder@sporthalle-sulzerallee.ch";
 
-    public async Task SendRegistrationConfirmationAsync(PassiveMember member)
+    public Task SendRegistrationConfirmationAsync(PassiveMember member)
     {
         var vipLabel = VipField.GetLabel(member.FieldNumber.Value);
         var fieldDesc = vipLabel != null
@@ -21,7 +22,7 @@ public sealed class GraphPassiveMemberEmail(GraphMailClient graph) : IPassiveMem
                       $"Stufe: {member.Level.DisplayName} ({member.Level.Key}) – CHF {member.Level.YearlyFee}.–/Jahr\n" +
                       $"Anmeldedatum: {member.CreatedAt:dd.MM.yyyy}";
 
-        var htmlContent = EmailLayout.Render(
+        var htmlBody = EmailLayout.Render(
             title: "Passivmitgliedschaft bestätigt",
             body: "Herzlich willkommen bei der Sporthalle Sulzerallee! " +
                   $"Deine Anmeldung als Passivmitglied ({member.Level.DisplayName}) ist eingegangen. " +
@@ -33,11 +34,13 @@ public sealed class GraphPassiveMemberEmail(GraphMailClient graph) : IPassiveMem
             ctaUrl: PaymentLink.ForField(member.FieldNumber.Value, member.Email.Value, $"{member.FirstName} {member.LastName}"),
             ctaLabel: "Jetzt per TWINT bezahlen");
 
-        await graph.SendAsync(
+        return outbox.EnqueueAsync(new OutboxEnqueueRequest(
             SenderEmail, SenderName,
             member.Email.Value, $"{member.FirstName} {member.LastName}",
+            BccEmail,
             $"Willkommen als Passivmitglied – {fieldDesc}",
-            htmlContent,
-            BccEmail);
+            htmlBody,
+            Source: "Passivmitgliedschaft",
+            Reference: member.FieldNumber.Value.ToString()));
     }
 }

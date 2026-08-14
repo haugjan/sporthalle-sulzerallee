@@ -25,7 +25,7 @@ public sealed class GraphMailClient(
         && !string.IsNullOrWhiteSpace(config["Graph:ClientId"])
         && !string.IsNullOrWhiteSpace(config["Graph:ClientSecret"]);
 
-    public async Task<bool> SendAsync(
+    public async Task<string?> SendAsync(
         string fromEmail, string fromName,
         string toEmail, string toName,
         string subject, string htmlBody,
@@ -35,7 +35,7 @@ public sealed class GraphMailClient(
         if (!IsConfigured)
         {
             logger.LogWarning("Graph mail not configured — skipping email to {Email}", toEmail);
-            return false;
+            return "Graph not configured (Graph:TenantId/ClientId/ClientSecret).";
         }
 
         var tenantId = config["Graph:TenantId"]!;
@@ -46,7 +46,7 @@ public sealed class GraphMailClient(
         if (token is null)
         {
             logger.LogError("Graph token acquisition failed — skipping email to {Email}", toEmail);
-            return false;
+            return "Graph token acquisition failed (client secret expired or invalid?).";
         }
 
         var payload = new GraphSendMail(
@@ -71,17 +71,17 @@ public sealed class GraphMailClient(
             if (response.IsSuccessStatusCode)
             {
                 logger.LogInformation("Graph email sent to {Recipient} from {Sender}", toEmail, fromEmail);
-                return true;
+                return null;
             }
 
             var error = await response.Content.ReadAsStringAsync(ct);
             logger.LogError("Graph email to {Recipient} failed: {Status} {Error}", toEmail, (int)response.StatusCode, error);
-            return false;
+            return $"HTTP {(int)response.StatusCode}: {error[..Math.Min(error.Length, 500)]}";
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Graph email to {Recipient} threw", toEmail);
-            return false;
+            return ex.Message;
         }
     }
 
