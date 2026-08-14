@@ -1,17 +1,14 @@
-using System.Text;
-using System.Text.Json;
-using Microsoft.Extensions.Options;
-using SporthalleWeb.Features.PassiveMembership.Registration;
 using SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate;
+using SporthalleWeb.Features.PassiveMembership.Registration;
 using SporthalleWeb.Infrastructure.Shared;
 
 namespace SporthalleWeb.Infrastructure.PassiveMembership;
 
-public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions> opts) : IPassiveMemberEmail
+public sealed class GraphPassiveMemberEmail(GraphMailClient graph) : IPassiveMemberEmail
 {
-    private readonly BrevoEmailOptions _opts = opts.Value;
-
-    private const string AdminBcc = "passivmitglieder@sporthalle-sulzerallee.ch";
+    private const string SenderEmail = "noreply@sporthalle-sulzerallee.ch";
+    private const string SenderName = "Sporthalle Sulzerallee";
+    private const string BccEmail = "passivmitglieder@sporthalle-sulzerallee.ch";
 
     public async Task SendRegistrationConfirmationAsync(PassiveMember member)
     {
@@ -36,21 +33,11 @@ public class BrevoPassiveMemberEmail(HttpClient http, IOptions<BrevoEmailOptions
             ctaUrl: PaymentLink.ForField(member.FieldNumber.Value, member.Email.Value, $"{member.FirstName} {member.LastName}"),
             ctaLabel: "Jetzt per TWINT bezahlen");
 
-        var payload = new
-        {
-            sender = new { name = "Sporthalle Sulzerallee", email = "noreply@sporthalle-sulzerallee.ch" },
-            to = new[] { new { email = member.Email.Value, name = $"{member.FirstName} {member.LastName}" } },
-            bcc = new[] { new { email = AdminBcc } },
-            subject = $"Willkommen als Passivmitglied – {fieldDesc}",
-            htmlContent
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
-        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-        request.Headers.Add("api-key", _opts.ApiKey);
-
-        var response = await http.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await graph.SendAsync(
+            SenderEmail, SenderName,
+            member.Email.Value, $"{member.FirstName} {member.LastName}",
+            $"Willkommen als Passivmitglied – {fieldDesc}",
+            htmlContent,
+            BccEmail);
     }
 }

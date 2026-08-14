@@ -16,8 +16,8 @@ public class BookingComposer : IComposer
     {
         builder.AddComponent<BookingMigrationComponent>();
 
-        builder.Services.AddHttpClient("Brevo");
         builder.Services.AddHttpClient("Turnstile");
+        builder.Services.AddSingleton<GraphMailClient>();
 
         builder.Services.AddScoped<IBookingSlots, BookingSlotRepository>();
         builder.Services.AddScoped<IRecurringSlots, RecurringSlotRepository>();
@@ -25,7 +25,7 @@ public class BookingComposer : IComposer
 
         builder.Services.AddScoped<IHallMembers, UmbracoHallMembers>();
         builder.Services.AddScoped<IHallConfiguration, UmbracoHallConfiguration>();
-        builder.Services.AddScoped<IBookingEmail, BrevoBookingEmail>();
+        builder.Services.AddScoped<IBookingEmail, GraphBookingEmail>();
         builder.Services.AddScoped<IBookingCsv, BookingCsvExport>();
         builder.Services.AddScoped<ICaptcha, TurnstileBookingCaptcha>();
 
