@@ -90,7 +90,7 @@ if (!app.Environment.IsDevelopment())
         }
         if ((host.Equals("admin.sporthalle-sulzerallee.ch", StringComparison.OrdinalIgnoreCase) ||
              host.Equals("admin-dev.sporthalle-sulzerallee.ch", StringComparison.OrdinalIgnoreCase)) &&
-            !context.Request.Path.StartsWithSegments("/umbraco"))
+            (context.Request.Path == "/" || context.Request.Path == ""))
         {
             var proto = context.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? "https";
             context.Response.Redirect($"{proto}://{context.Request.Host}/umbraco", permanent: false);
