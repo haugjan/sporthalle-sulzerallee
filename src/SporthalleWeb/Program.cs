@@ -72,6 +72,12 @@ if (!builder.Environment.IsDevelopment())
 
 umbracoBuilder.Build();
 
+builder.Services.PostConfigureAll<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+{
+    if (options.JsonSerializerOptions.TypeInfoResolver is { } inner)
+        options.JsonSerializerOptions.TypeInfoResolver = new SporthalleWeb.Infrastructure.Shared.FaultTolerantJsonTypeInfoResolver(inner);
+});
+
 WebApplication app = builder.Build();
 
 await app.BootUmbracoAsync();
