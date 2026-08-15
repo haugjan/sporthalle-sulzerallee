@@ -54,6 +54,7 @@
 
   <script src="/js/sporthalle.js"></script>
   @RenderSection("Scripts", required: false)
-  <script src="_framework/blazor.server.js"></script>
+  <script src="/_framework/blazor.server.js" autostart="false"></script>
+  <script>Blazor.start({ reconnectionOptions: { maxRetries: 10, retryIntervalMilliseconds: 3000 } });</script>
 </body>
 </html>

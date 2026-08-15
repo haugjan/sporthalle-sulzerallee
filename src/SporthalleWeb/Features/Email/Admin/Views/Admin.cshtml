@@ -14,6 +14,7 @@
 <body>
     <component type="typeof(EmailAdminComponent)" render-mode="Server" />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/_framework/blazor.server.js"></script>
+    <script src="/_framework/blazor.server.js" autostart="false"></script>
+    <script>Blazor.start({ reconnectionOptions: { maxRetries: 10, retryIntervalMilliseconds: 3000 } });</script>
 </body>
 </html>

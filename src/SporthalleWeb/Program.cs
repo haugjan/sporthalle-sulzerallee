@@ -43,7 +43,15 @@ builder.Services.Configure<HostOptions>(options =>
 });
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddServerSideBlazor(options =>
+{
+    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(3);
+});
+builder.Services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
+{
+    options.ClientTimeoutInterval  = TimeSpan.FromSeconds(60);
+    options.KeepAliveInterval      = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddHttpContextAccessor();
 
 var umbracoBuilder = builder.CreateUmbracoBuilder()

@@ -49,7 +49,8 @@
     <component type="typeof(FloorPlanComponent)" render-mode="ServerPrerendered"
                param-TurnstileSiteKey="@siteKey" param-ViewOnly="@viewOnly" />
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <script src="/_framework/blazor.server.js"></script>
+    <script src="/_framework/blazor.server.js" autostart="false"></script>
+    <script>Blazor.start({ reconnectionOptions: { maxRetries: 10, retryIntervalMilliseconds: 3000 } });</script>
     <script>
         var _pmTurnstileToken = null;
         var _pmWidgetId = null;
