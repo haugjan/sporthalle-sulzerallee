@@ -56,11 +56,10 @@ else
                     E-Mail: Reservationsbestätigung (Angefragt)
                 </h6>
                 <div class="row g-3">
-                    <div class="col-sm-6">
-                        <label class="form-label fw-semibold">Absender / Admin-Adresse</label>
-                        <input type="email" class="form-control" @bind="_mailReservationAdresse"
-                               placeholder="admin@sporthalle-sulzerallee.ch" />
-                        <div class="form-text">Wird als CC oder Reply-To verwendet.</div>
+                    <div class="col-sm-8">
+                        <label class="form-label fw-semibold">Betreff</label>
+                        <input type="text" class="form-control" @bind="_mailReservationBetreff"
+                               placeholder="Reservationsanfrage erhalten – Sporthalle Sulzerallee" />
                     </div>
                 </div>
                 <div class="mt-3">
@@ -77,10 +76,10 @@ else
                     E-Mail: Reservationsbestätigung (Bestätigt)
                 </h6>
                 <div class="row g-3">
-                    <div class="col-sm-6">
-                        <label class="form-label fw-semibold">Absender / Admin-Adresse</label>
-                        <input type="email" class="form-control" @bind="_mailBestaetigungAdresse"
-                               placeholder="admin@sporthalle-sulzerallee.ch" />
+                    <div class="col-sm-8">
+                        <label class="form-label fw-semibold">Betreff</label>
+                        <input type="text" class="form-control" @bind="_mailBestaetigungBetreff"
+                               placeholder="Reservation bestätigt – Sporthalle Sulzerallee" />
                     </div>
                 </div>
                 <div class="mt-3">
@@ -117,9 +116,9 @@ else
     private string _kalenderEndeTime = "23:00";
     private int _noticeDays = 3;
     private DateOnly? _bookingCutoffDate;
-    private string _mailReservationAdresse = "";
+    private string _mailReservationBetreff = "";
     private string _mailReservationText = "";
-    private string _mailBestaetigungAdresse = "";
+    private string _mailBestaetigungBetreff = "";
     private string _mailBestaetigungText = "";
 
     protected override async Task OnInitializedAsync()
@@ -129,10 +128,10 @@ else
         _kalenderEndeTime        = IntToTime(Parse(cfg, "kalender_ende", 23));
         _noticeDays         = Parse(cfg, "vorlaufzeit_tage", 3);
         _bookingCutoffDate    = DateOnly.TryParse(cfg.GetValueOrDefault("buchungs_cutoff_datum"), out var cd) ? cd : (DateOnly?)null;
-        _mailReservationAdresse  = cfg.GetValueOrDefault("mail_reservation_adresse") ?? "";
+        _mailReservationBetreff  = cfg.GetValueOrDefault("mail_reservation_betreff") ?? "";
         _mailReservationText     = cfg.GetValueOrDefault("mail_reservation_text") is { Length: > 0 } rt
             ? rt : BookingMailTemplates.ReservationDefault;
-        _mailBestaetigungAdresse = cfg.GetValueOrDefault("mail_bestaetigung_adresse") ?? "";
+        _mailBestaetigungBetreff = cfg.GetValueOrDefault("mail_bestaetigung_betreff") ?? "";
         _mailBestaetigungText    = cfg.GetValueOrDefault("mail_bestaetigung_text") is { Length: > 0 } bt
             ? bt : BookingMailTemplates.ConfirmationDefault;
         _loading = false;
@@ -155,9 +154,9 @@ else
                 ["kalender_ende"]             = TimeToInt(_kalenderEndeTime).ToString(),
                 ["vorlaufzeit_tage"]          = _noticeDays.ToString(),
                 ["buchungs_cutoff_datum"]     = _bookingCutoffDate?.ToString("yyyy-MM-dd"),
-                ["mail_reservation_adresse"]  = _mailReservationAdresse.Trim(),
+                ["mail_reservation_betreff"]  = _mailReservationBetreff.Trim(),
                 ["mail_reservation_text"]     = _mailReservationText,
-                ["mail_bestaetigung_adresse"] = _mailBestaetigungAdresse.Trim(),
+                ["mail_bestaetigung_betreff"] = _mailBestaetigungBetreff.Trim(),
                 ["mail_bestaetigung_text"]    = _mailBestaetigungText,
             });
             _saved = true;

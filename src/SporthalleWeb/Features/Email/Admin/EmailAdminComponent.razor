@@ -1,0 +1,189 @@
+@namespace SporthalleWeb.Features.Email.Admin
+@using SporthalleWeb.Features.Email
+@using System.Globalization
+@inject IOutboxAdminReport Report
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+
+<div class="container-fluid py-3">
+    <h4 class="mb-3">E-Mails</h4>
+
+    @if (_secretWarning is not null)
+    {
+        <div class="alert @(_secretExpired ? "alert-danger" : "alert-warning") py-2 mb-3" role="alert">
+            @_secretWarning
+        </div>
+    }
+
+    @if (_flash is not null)
+    {
+        <div class="alert alert-info alert-dismissible py-2 mb-3" role="alert">
+            @_flash
+            <button type="button" class="btn-close" @onclick="() => _flash = null"></button>
+        </div>
+    }
+
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="includeSent" @bind="_includeSent" @bind:after="ReloadAsync" />
+            <label class="form-check-label" for="includeSent">Gesendete der letzten 30 Tage anzeigen</label>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ReloadAsync">Aktualisieren</button>
+    </div>
+
+    @if (_loading)
+    {
+        <p class="text-muted">Wird geladen …</p>
+    }
+    else if (_entries.Count == 0)
+    {
+        <p class="text-muted">@(_includeSent ? "Keine E-Mails in den letzten 30 Tagen." : "Keine offenen E-Mails. Alles versendet.")</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Zeitpunkt</th>
+                        <th>Empfänger</th>
+                        <th>Betreff</th>
+                        <th>Quelle</th>
+                        <th>Status</th>
+                        <th class="text-end">Versuche</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in _entries)
+                    {
+                        <tr>
+                            <td style="white-space:nowrap">
+                                <div>@ToZurich(m.CreatedAt).ToString("dd.MM.yyyy HH:mm")</div>
+                                @if (m.Status == OutboxStatus.Sent && m.SentAt is { } sent)
+                                {
+                                    <small class="text-muted">gesendet @ToZurich(sent).ToString("dd.MM.yyyy HH:mm")</small>
+                                }
+                                else if (m.Status != OutboxStatus.Sent && m.NextAttemptAt > DateTime.UtcNow)
+                                {
+                                    <small class="text-muted">nächster Versuch @ToZurich(m.NextAttemptAt).ToString("HH:mm")</small>
+                                }
+                            </td>
+                            <td>
+                                <div>@(string.IsNullOrWhiteSpace(m.ToName) ? m.ToEmail : m.ToName)</div>
+                                @if (!string.IsNullOrWhiteSpace(m.ToName))
+                                {
+                                    <small class="text-muted">@m.ToEmail</small>
+                                }
+                            </td>
+                            <td>@m.Subject</td>
+                            <td>
+                                <div>@(string.IsNullOrWhiteSpace(m.Source) ? "—" : m.Source)</div>
+                                @if (!string.IsNullOrWhiteSpace(m.Reference))
+                                {
+                                    <small class="text-muted">@m.Reference</small>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @StatusClass(m.Status)">@StatusLabel(m.Status)</span>
+                                @if (!string.IsNullOrWhiteSpace(m.LastError))
+                                {
+                                    <div><small class="text-danger" title="@m.LastError">@Truncate(m.LastError, 80)</small></div>
+                                }
+                            </td>
+                            <td class="text-end">@m.Attempts</td>
+                            <td>
+                                @if (m.Status is OutboxStatus.Failed or OutboxStatus.Pending)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => RequeueAsync(m.Id)">
+                                        Erneut senden
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small">
+            @OpenCount offen · @FailedCount fehlgeschlagen@(_includeSent ? $" · {SentCount} gesendet" : "")
+        </p>
+    }
+</div>
+
+@code {
+    private static readonly TimeZoneInfo Zurich =
+        TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+
+    private bool _loading = true;
+    private bool _includeSent;
+    private string? _flash;
+    private string? _secretWarning;
+    private bool _secretExpired;
+    private IReadOnlyList<OutboxEntry> _entries = [];
+
+    private int OpenCount => _entries.Count(e => e.Status is OutboxStatus.Pending or OutboxStatus.Sending);
+    private int FailedCount => _entries.Count(e => e.Status == OutboxStatus.Failed);
+    private int SentCount => _entries.Count(e => e.Status == OutboxStatus.Sent);
+
+    protected override async Task OnInitializedAsync()
+    {
+        ComputeSecretWarning();
+        await ReloadAsync();
+        _loading = false;
+    }
+
+    private void ComputeSecretWarning()
+    {
+        var raw = Config["Graph:ClientSecretExpires"];
+        if (!DateTime.TryParse(raw, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var expires)) return;
+
+        var days = (int)Math.Floor((expires.Date - DateTime.UtcNow.Date).TotalDays);
+        if (days < 0)
+        {
+            _secretExpired = true;
+            _secretWarning = $"Das Graph Client-Secret ist am {expires:dd.MM.yyyy} abgelaufen. Der E-Mail-Versand ist gestört. " +
+                             "Bitte in Entra ein neues Secret erstellen und in den App-Settings hinterlegen.";
+        }
+        else if (days <= 30)
+        {
+            _secretWarning = $"Das Graph Client-Secret läuft am {expires:dd.MM.yyyy} ab (in {days} Tagen). " +
+                             "Bitte rechtzeitig in Entra erneuern.";
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        _entries = await Report.ListAsync(_includeSent, DateTime.UtcNow.AddDays(-30));
+    }
+
+    private async Task RequeueAsync(int id)
+    {
+        _flash = await Report.RequeueAsync(id)
+            ? "E-Mail wurde erneut in die Warteschlange gestellt."
+            : "E-Mail konnte nicht erneut gesendet werden.";
+        await ReloadAsync();
+    }
+
+    private static DateTime ToZurich(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(utc, Zurich);
+
+    private static string StatusLabel(OutboxStatus status) => status switch
+    {
+        OutboxStatus.Pending => "Offen",
+        OutboxStatus.Sending => "Wird gesendet",
+        OutboxStatus.Sent => "Gesendet",
+        OutboxStatus.Failed => "Fehlgeschlagen",
+        _ => status.ToString()
+    };
+
+    private static string StatusClass(OutboxStatus status) => status switch
+    {
+        OutboxStatus.Sent => "bg-success",
+        OutboxStatus.Failed => "bg-danger",
+        OutboxStatus.Sending => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+
+    private static string Truncate(string value, int max) => value.Length > max ? value[..max] + "…" : value;
+}

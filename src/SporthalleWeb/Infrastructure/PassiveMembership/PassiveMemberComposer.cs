@@ -14,7 +14,7 @@ public class PassiveMemberComposer : IComposer
         builder.AddComponent<PassiveMemberMigrationComponent>();
         builder.Services.AddScoped<IPassiveMembers, UmbracoPassiveMembers>();
 
-        builder.Services.AddScoped<IPassiveMemberEmail, GraphPassiveMemberEmail>();
+        builder.Services.AddScoped<IPassiveMemberEmail, PassiveMemberEmailSender>();
 
         builder.Services.Configure<TurnstileOptions>(builder.Config.GetSection("Turnstile"));
         builder.Services.AddHttpClient<TurnstilePassiveCaptcha>();

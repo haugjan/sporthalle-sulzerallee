@@ -173,18 +173,6 @@ dotnet user-secrets set "Brevo:ApiKey" "<key>"
 
 Secrets are stored at `%APPDATA%\Microsoft\UserSecrets\a2f4c8e1-3b7d-4f92-8a5e-6c1d9b0e2f47\secrets.json` and loaded automatically in Development mode.
 
-### HTTP vs HTTPS (local)
-
-Umbraco's OpenIddict requires HTTPS by default. `Program.cs` disables this in Development:
-
-```csharp
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.PostConfigure<OpenIddictServerAspNetCoreOptions>(
-        options => options.DisableTransportSecurityRequirement = true);
-}
-```
-
 ## Deployment
 
 GitHub Actions (`deploy.yml`) runs on every push to `main` or `feature/**`. Three jobs run in sequence:
@@ -266,8 +254,8 @@ you change one of these files, read the matching entry first.
 ### Migrations — `BookingMigration.cs`, `PassiveMemberMigration.cs`
 
 - Each migration version runs exactly once (framework-tracked), so migrations need no column-existence checks. `ALTER TABLE ... DROP COLUMN` is supported by both SQLite (3.35+) and SQL Server.
-- Booking history: **v1.2.0** simplified the slot model (`SlotType` replaced `BookingStatus`, `Title` replaced `EventType`, pricing/recurring fields and the `RecurringRules`/`SchoolHolidays` tables dropped; drop/recreate was safe as no production data existed). **v1.5.0** renamed `SlotType.Serie` → `Recurring` in existing rows. **v1.6.0** added `IsBlocker`/`MemberId` to `RecurringSlots`. **v1.11.0** dropped the per-slot `Color` columns (display colour now derives from the renting hall member). **v1.12.0** is a no-op that aligns the plan's terminal state with databases that reached it via a worktree.
-- Passive-member history: **v1** no-op, **v2** creates the dedicated `PassivMitglieder` table (IDENTITY PK, explicitly named PK constraint because SQL Server requires it), **v3** no-op, **v9** drops the table (passive members moved to Umbraco Members, see "Umbraco Member Properties" above).
+- Booking terminal version: **v1.12.0** (no-op aligning DBs that reached it via a worktree). Notable history: v1.11.0 dropped per-slot Color columns (colour now from `HallMember.Color`); v1.10.0 dropped `MagicLinkTokens` (auth removed); v1.2.0 simplified slot model (no production data existed at the time).
+- Passive-member terminal version: **v9** drops the legacy `PassivMitglieder` table (passive members are now Umbraco Members). **v2** created that table — its PK constraint is explicitly named because SQL Server requires it.
 
 ### Calendar availability — `GetAvailableTimeSlots`, `GetAvailableDays`, `GetWeekSlots`
 
@@ -331,65 +319,7 @@ Allows supporters to symbolically adopt one square metre of the unihockey hall f
 
 Note: code (namespace `SporthalleWeb.Features.PassiveMembership.*`, type names) is English. German remains only in user-visible/contract identifiers: the content type alias `passivMitgliedschaft`, the `App_Plugins/PassivMitglieder/` folder, the `passivMember` member type alias, and HTTP routes.
 
-### Architecture
-
-```
-Domain/PassiveMembership/PassiveMemberAggregate/   ns SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate
-  PassiveMember.cs               Aggregate Root
-  FieldNumber.cs                 Value Object (1–1000)
-  FloorGrid.cs                   Grid resolution constants (Columns 40 × Rows 25 = 1000 fields)
-  MemberEmail.cs                 Value Object (normalised lowercase)
-  MembershipLevel.cs             Value Object (Bronze / Silber / Gold)
-  MemberStatus.cs                Pending / Confirmed / Deleted
-  VipField.cs                    Special fields by number (Torraum rectangles, Mittelpunkt)
-  DomainException.cs             + FieldAlreadyTakenException + MemberNotFoundException
-
-Features/PassiveMembership/
-  Registration/                                   ns ...Features.PassiveMembership.Registration
-    IPassiveMembers.cs               (was IPassiveMemberRepository)
-    IPassiveMemberEmail.cs           (was IEmailPort)
-    ICaptcha.cs                      (was ICaptchaPort)
-    RegisterMember.cs                (was RegisterMemberUseCase + RegisterMemberCommand)
-    GetFieldStatuses.cs              (was GetFieldStatusesQuery + FieldStatusDto)
-    RegisterMemberRequest.cs, FieldStatusResponse.cs   API DTOs
-    PassiveMemberController.cs       REST API (public: felder, register)
-    FloorPlanController.cs           Public floor plan page (iframe)
-    FloorPlanComponent.razor         Interactive SVG floor plan + 5-step wizard
-    Views/FloorPlan.cshtml           Blazor host for FloorPlanComponent
-  MemberAdmin/                                     ns ...Features.PassiveMembership.MemberAdmin
-    PassiveMemberAdmin.cs            (was AdminService) MarkAsPaid, UpdateNotes, exports
-    IPassiveMemberExport.cs          (was IExcelPort)
-    IPassiveMemberAbaninja.cs        (was IAbaninjaCsvPort)
-    PassiveMemberAdminController.cs       REST admin API
-    PassiveMemberAdminViewController.cs   Backoffice iframe host
-    PmAdminComponent.razor           Admin shell: subnav + tab routing
-    PmMembersComponent.razor         Member table (sortable, mark as paid, notes)
-    PmExportsComponent.razor         Excel + AbaNinja CSV download buttons
-    PmRequestsComponent.razor        Pending requests
-    Views/Admin.cshtml               Blazor host for PmAdminComponent
-
-Infrastructure/PassiveMembership/    (flat, ns SporthalleWeb.Infrastructure.PassiveMembership)
-  PassiveMemberComposer.cs          IComposer, DI registration
-  PassiveMemberManifestReader.cs    Backoffice section manifest
-  PassivMemberAliases.cs            Member property aliases (single source of truth)
-  UmbracoPassiveMembers.cs          (was PassiveMemberRepository) Umbraco Members storage
-  BrevoPassiveMemberEmail.cs / BrevoEmailOptions.cs   Brevo REST API, Template ID 1
-  ClosedXmlPassiveMemberExport.cs   Excel export (ClosedXML)
-  AbaninjaPassiveMemberExport.cs    AbaNinja import CSV
-  TurnstilePassiveCaptcha.cs / TurnstileOptions.cs    Cloudflare Turnstile
-  PassiveMemberMigration.cs         migration plan (v9 drops legacy table)
-
-App_Plugins/PassivMitglieder/    Umbraco backoffice section registration
-  pm-entrypoint.js               Custom Element <pm-admin>: renders single iframe to /passivmitglieder/admin
-
-Views/PassivMitgliedschaft.cshtml  Umbraco template shell (filename matches template alias — stays in Views/)
-
-wwwroot/css/passivmitglied.css
-wwwroot/js/passivmitglied.js
-wwwroot/img/hallenboden.png       Floor plan background (real hall plan; blue playing surface)
-```
-
-Passive members are stored as **Umbraco Members** (member type `passivMember`); there is no longer a dedicated `PassivMitglieder` table (dropped in migration v9).
+Passive members are stored as **Umbraco Members** (member type `passivMember`); there is no longer a dedicated `PassivMitglieder` table (dropped in migration v9). See Repository Layout for the folder structure. Namespaces: `SporthalleWeb.Domain.PassiveMembership.PassiveMemberAggregate`, `SporthalleWeb.Features.PassiveMembership.Registration`, `SporthalleWeb.Features.PassiveMembership.MemberAdmin`, `SporthalleWeb.Infrastructure.PassiveMembership`.
 
 ### Admin UI
 
@@ -446,8 +376,6 @@ Passive members are stored as Umbraco Members (member type `passivMember`). The 
 | `exportedToAccountingAt`, `exportedToAccountingBy` | TextBox | |
 | `notes` | TextArea | |
 
-Migration history: **v1** no-op, **v2** creates the old dedicated `PassivMitglieder` table, **v3** no-op, **v9** drops the table (passive members moved to Umbraco Members). The old table name was kept in German to avoid a destructive rename migration.
-
 ### REST API
 
 ```
@@ -483,65 +411,7 @@ Allows hall renters to book time slots via an interactive weekly calendar. Booki
 
 All Booking feature code shares one flat namespace `SporthalleWeb.Features.Booking` (components set it via `@namespace`). The public-facing URL path and Umbraco content type alias remain `reservierung`.
 
-### Architecture
-
-The domain model lives in `Domain/Booking/` (namespace `SporthalleWeb.Domain.Booking`).
-All `Features/Booking/` files share namespace `SporthalleWeb.Features.Booking` (folders
-are organisation only) and reference the domain via `using SporthalleWeb.Domain.Booking`
-(added in `Features/Booking/_Imports.razor` for components). Ports lose the
-`Port`/`Repository` suffix; application classes lose `UseCase`/`Query`; adapters get a
-technology prefix.
-
-```
-Domain/Booking/         namespace SporthalleWeb.Domain.Booking
-  SlotAggregate/        BookingSlot (Aggregate Root), SlotType, TimeSlot, DomainException, SlotConflictException
-  RecurringAggregate/   RecurringSlot
-  HallMemberAggregate/  HallMember, RenterEmail, RenterType (Privatperson/Verein/Firma/Schule)
-
-Features/Booking/
-  Ports/                IBookingSlots, IRecurringSlots, IBookingAudit,
-                        IBookingEmail, IBookingCsv, IHallConfiguration, IHallConfigStore, IHallMembers, ICaptcha
-                        (port files are named exactly after the interface they declare, e.g. IHallMembers.cs)
-  Calendar/             GetWeekSlots, GetAvailableDays, GetAvailableTimeSlots, SlotOption, WeekSlotDto,
-                        BookingController (public REST), WeeklyCalendarComponent, BookingPickerComponent,
-                        DateInputComponent, TimePickerComponent
-  Requests/             CreateBooking (+CreateBookingCommand), ConfirmBooking, RejectBooking,
-                        RegisterRenterCommand (member detail carrier used when a booking creates/updates a member)
-  Admin/                BookingAdminService, BookingAdminApiController, BookingAdminController,
-                        BookingBackofficeAdminController, BookingManifestComposer (section alias Sporthalle.Booking),
-                        BookingAdminComponent (shell), AdminRequestsComponent (Anfragen), AdminBookingsComponent (Buchungen),
-                        AdminBlockerComponent (Blocker), AdminCreateComponent (Erfassen), AdminEditDialogComponent
-  Recurring/            CreateRecurringSlot (+RecurringSlotCommand), UpdateRecurringSlot, DeleteRecurringSlot,
-                        GetRecurringSlots, AdminRecurringComponent (Serientermine)
-  Configuration/        AdminConfigurationComponent (Konfiguration); raw key-value config is the IHallConfigStore port (adapter UmbracoHallConfigStore)
-  Dtos/                 BookingSlotDto, AdminBookingResponse, HallMemberDto, CreateBookingRequest
-
-Infrastructure/Booking/    (flat, ns SporthalleWeb.Infrastructure.Booking)
-  BookingComposer.cs                  IComposer, DI registration
-  UmbracoHallConfiguration.cs         IHallConfiguration (typed, domain-shaped config reader)
-  UmbracoHallConfigStore.cs           IHallConfigStore (raw key-value access to the HallConfig table; owns all HallConfig SQL)
-  UmbracoHallMembers.cs               IHallMembers via IMemberManager + IMemberService
-  BrevoBookingEmail.cs                IBookingEmail (Brevo REST API)
-  BookingCsvExport.cs                 IBookingCsv
-  TurnstileBookingCaptcha.cs          ICaptcha (Cloudflare Turnstile)
-  BookingSlotRepository.cs, BookingAuditRepository.cs, RecurringSlotRepository.cs
-  *Record.cs                          NPoco POCOs (BookingSlot, BookingAuditLog, HallConfig, RecurringSlot)
-  HallMemberAliases.cs                Member property aliases
-  BookingMigration.cs                 BookingMigrationPlan v1.0.0 → v1.10.0
-
-Infrastructure/Shared/
-  UmbracoDropdownHelper.cs            shared by Booking + PassiveMembership
-
-Views/Reservierung.cshtml                     Umbraco template (alias Reservierung — stays in Views/)
-Views/BookingAdmin/Index.cshtml               Admin dashboard shell
-Views/BookingBackofficeAdmin/Index.cshtml     Backoffice admin view
-Views/Partials/_BookingCalendar.cshtml        Booking calendar partial
-Views/Shared/_BackofficeLayout.cshtml         Admin backoffice layout
-
-wwwroot/css/reservierung.css
-wwwroot/js/reservierung.js        Public calendar
-wwwroot/js/reservierung-admin.js  Admin backoffice
-```
+See Repository Layout for the folder structure. All `Features/Booking/` files share namespace `SporthalleWeb.Features.Booking` (single flat namespace, set via `@namespace` in components). Domain: `SporthalleWeb.Domain.Booking`. Infrastructure: `SporthalleWeb.Infrastructure.Booking` (flat).
 
 ### Slot Types
 
@@ -557,30 +427,13 @@ The `Type` column in `BookingSlots` stores the enum name as a string (e.g. `"Rec
 
 ### Database Tables
 
-**BookingSlots**
-
-| Column | Type | Notes |
-|---|---|---|
-| Id | INT IDENTITY | PK |
-| MemberId | INT NULL | Umbraco IMember.Id |
-| Type | NVARCHAR(20) | Blocker/Reserved/Booked/Rejected/Recurring |
-| StartUtc | DATETIME2 | |
-| EndUtc | DATETIME2 | |
-| Title | NVARCHAR(300) | Event name |
-| Color | NVARCHAR(7) NULL | Hex color |
-| Notes | NVARCHAR(MAX) NULL | |
-| CreatedAt, UpdatedAt | DATETIME2 | |
-| CreatedBy | NVARCHAR(200) | |
-
-(The `MagicLinkTokens` table was dropped with the auth removal; migration `DropMagicLinkTokensV11`, v1.10.0.)
+**BookingSlots**: `Id` (PK), `MemberId` (INT NULL, Umbraco member), `Type` (NVARCHAR, enum name), `StartUtc`/`EndUtc`, `Title`, `Notes`, `CreatedAt`/`UpdatedAt`/`CreatedBy`. No per-slot Color column (dropped in v1.11.0; colour comes from `HallMember.Color`).
 
 **BookingAuditLog**: append-only log of all state changes.
 
-**HallConfig**: key-value store for booking settings. Keys: `openingHourStart`, `openingHourEnd`, `blockDurationMinutes`, `pricePerBlock`, `buchbareDauern`, `anlaesse`, `preisText`, `bookingCutoffDate`.
+**HallConfig**: key-value store. Keys: `openingHourStart`, `openingHourEnd`, `blockDurationMinutes`, `pricePerBlock`, `buchbareDauern`, `anlaesse`, `preisText`, `bookingCutoffDate`. The German keys pre-date the English convention; C# methods are English: `GetBookableDurationsAsync`, `GetEventTypesAsync`, `GetPreisTextAsync`.
 
-Note: the HallConfig keys `buchbareDauern`, `anlaesse`, `preisText` are stored DB strings (not code identifiers); they pre-date the English convention and are not changed to avoid a data migration. The C# methods accessing them are English: `GetBookableDurationsAsync`, `GetEventTypesAsync`, `GetPreisTextAsync`.
-
-Migration plan: `BookingMigrationPlan` versions v1.0.0–v1.10.0. Runs via `BookingMigrationComponent`.
+Migration plan: `BookingMigrationPlan` v1.0.0–v1.12.0. Runs via `BookingMigrationComponent`.
 
 ### Renter Accounts (Hall Members)
 
@@ -619,31 +472,9 @@ GET    /api/reservierung/admin/export?von=YYYY-MM-DD&bis=YYYY-MM-DD
 
 Note: HTTP routes are German (user-visible URLs). Controller class names and action method names are English.
 
-### MVC Pages
-
-```
-GET  /reservierung   Public calendar (Umbraco template Reservierung.cshtml)
-```
-
-The login, registration, and magic-link validation pages were removed with member authentication.
-
 ### Admin Backoffice
 
-URL: `/reservierung/admin/` (Umbraco section alias `Sporthalle.Booking`, weight 101, appears after Content)
-Tabs: Anfragen (pending Reserved), Buchungen (all), Blocker (all Blockers), Serientermine (recurring slots), Erfassen (admin booking with full calendar UI), Konfiguration (HallConfig editor)
-
-Tab labels are German (public-facing). The Blazor component names behind them are English:
-
-| Tab label | Component |
-|---|---|
-| Anfragen | `AdminRequestsComponent` |
-| Buchungen | `AdminBookingsComponent` |
-| Blocker | `AdminBlockerComponent` |
-| Serientermine | `AdminRecurringComponent` |
-| Erfassen | `AdminCreateComponent` |
-| Konfiguration | `AdminConfigurationComponent` |
-
-The shared edit dialog for Buchungen and Blocker tabs is `AdminEditDialogComponent` — it exposes a public `OpenAsync(int id)` method and is referenced via Blazor `@ref`.
+URL: `/reservierung/admin/` (Umbraco section alias `Sporthalle.Booking`, weight 101). Tabs (German labels): Anfragen → `AdminRequestsComponent`, Buchungen → `AdminBookingsComponent`, Blocker → `AdminBlockerComponent`, Serientermine → `AdminRecurringComponent`, Erfassen → `AdminCreateComponent`, Konfiguration → `AdminConfigurationComponent`. The shared edit dialog is `AdminEditDialogComponent` (`OpenAsync(int id)`, referenced via `@ref`).
 
 ### Email
 
