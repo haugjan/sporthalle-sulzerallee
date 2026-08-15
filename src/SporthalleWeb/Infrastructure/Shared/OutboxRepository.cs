@@ -10,27 +10,29 @@ public sealed class OutboxRepository(IScopeProvider scopeProvider, OutboxSignal 
     public async Task EnqueueAsync(OutboxEnqueueRequest request, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        using var scope = scopeProvider.CreateScope();
-        await scope.Database.InsertAsync(new OutboxEmailRecord
+        using (var scope = scopeProvider.CreateScope())
         {
-            FromEmail = request.FromEmail,
-            FromName = request.FromName,
-            ToEmail = request.ToEmail,
-            ToName = request.ToName,
-            BccEmail = request.BccEmail,
-            Subject = request.Subject,
-            BodyHtml = request.HtmlBody,
-            Status = (int)OutboxStatus.Pending,
-            Attempts = 0,
-            SentVia = null,
-            LastError = null,
-            Source = request.Source,
-            Reference = request.Reference,
-            CreatedAt = now,
-            NextAttemptAt = now,
-            SentAt = null
-        });
-        scope.Complete();
+            await scope.Database.InsertAsync(new OutboxEmailRecord
+            {
+                FromEmail = request.FromEmail,
+                FromName = request.FromName,
+                ToEmail = request.ToEmail,
+                ToName = request.ToName,
+                BccEmail = request.BccEmail,
+                Subject = request.Subject,
+                BodyHtml = request.HtmlBody,
+                Status = (int)OutboxStatus.Pending,
+                Attempts = 0,
+                SentVia = null,
+                LastError = null,
+                Source = request.Source,
+                Reference = request.Reference,
+                CreatedAt = now,
+                NextAttemptAt = now,
+                SentAt = null
+            });
+            scope.Complete();
+        }
         signal.Notify();
     }
 
@@ -127,11 +129,14 @@ public sealed class OutboxRepository(IScopeProvider scopeProvider, OutboxSignal 
 
     public async Task<bool> RequeueAsync(int id)
     {
-        using var scope = scopeProvider.CreateScope();
-        var affected = await scope.Database.ExecuteAsync(
-            new Sql("UPDATE OutboxEmails SET Status = 0, NextAttemptAt = @1, LastError = NULL WHERE Id = @0 AND Status <> 2",
-                id, DateTime.UtcNow));
-        scope.Complete();
+        int affected;
+        using (var scope = scopeProvider.CreateScope())
+        {
+            affected = await scope.Database.ExecuteAsync(
+                new Sql("UPDATE OutboxEmails SET Status = 0, NextAttemptAt = @1, LastError = NULL WHERE Id = @0 AND Status <> 2",
+                    id, DateTime.UtcNow));
+            scope.Complete();
+        }
         if (affected > 0) signal.Notify();
         return affected > 0;
     }
