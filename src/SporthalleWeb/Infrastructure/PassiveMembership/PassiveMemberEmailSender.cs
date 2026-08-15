@@ -8,7 +8,7 @@ namespace SporthalleWeb.Infrastructure.PassiveMembership;
 public sealed class PassiveMemberEmailSender(IEmailOutbox outbox) : IPassiveMemberEmail
 {
     private const string SenderEmail = "passivmitglieder@sporthalle-sulzerallee.ch";
-    private const string SenderName = "Sporthalle Sulzerallee";
+    private const string SenderName = "Passivmitgliedschaft Sporthalle Sulzerallee";
     private const string BccEmail = "passivmitglieder@sporthalle-sulzerallee.ch";
 
     public Task SendRegistrationConfirmationAsync(PassiveMember member)

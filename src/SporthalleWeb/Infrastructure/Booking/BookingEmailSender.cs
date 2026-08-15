@@ -6,23 +6,25 @@ using SporthalleWeb.Infrastructure.Shared;
 
 namespace SporthalleWeb.Infrastructure.Booking;
 
-public sealed class BookingEmailSender(IEmailOutbox outbox) : IBookingEmail
+public sealed class BookingEmailSender(IEmailOutbox outbox, IHallConfigStore config) : IBookingEmail
 {
     private static readonly TimeZoneInfo Zurich =
         TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
 
     private const string SenderEmail = "reservation@sporthalle-sulzerallee.ch";
-    private const string SenderName = "Sporthalle Sulzerallee";
+    private const string SenderName = "Reservation Sporthalle Sulzerallee";
     private const string BccEmail = "reservation@sporthalle-sulzerallee.ch";
 
-    public Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
+    public async Task SendProvisionConfirmationToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
     {
         var contactName = ContactName(member);
+        var subject = await config.GetAsync("mail_reservation_betreff") is { Length: > 0 } s
+            ? s : "Reservationsanfrage erhalten – Sporthalle Sulzerallee";
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Deine Reservationsanfrage für <strong>{FormatSlot(slot)}</strong> ist bei uns eingegangen und wird geprüft.";
-        return EnqueueAsync(member.Email.Value, contactName,
-            "Reservationsanfrage erhalten – Sporthalle Sulzerallee",
+        await EnqueueAsync(member.Email.Value, contactName,
+            subject,
             EmailLayout.Render(
                 title: "Reservationsanfrage erhalten",
                 greeting: customEmailBody is null ? $"Hallo {contactName}" : null,
@@ -32,14 +34,16 @@ public sealed class BookingEmailSender(IEmailOutbox outbox) : IBookingEmail
             slot.Id.ToString());
     }
 
-    public Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
+    public async Task SendBookingConfirmedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
     {
         var contactName = ContactName(member);
+        var subject = await config.GetAsync("mail_bestaetigung_betreff") is { Length: > 0 } s
+            ? s : "Reservation bestätigt – Sporthalle Sulzerallee";
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Deine Reservation für <strong>{FormatSlot(slot)}</strong> wurde bestätigt.";
-        return EnqueueAsync(member.Email.Value, contactName,
-            "Reservation bestätigt – Sporthalle Sulzerallee",
+        await EnqueueAsync(member.Email.Value, contactName,
+            subject,
             EmailLayout.Render(
                 title: "Reservation bestätigt",
                 greeting: customEmailBody is null ? $"Hallo {contactName}" : null,
@@ -49,13 +53,13 @@ public sealed class BookingEmailSender(IEmailOutbox outbox) : IBookingEmail
             slot.Id.ToString());
     }
 
-    public Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
+    public async Task SendBookingRejectedToRenterAsync(BookingSlot slot, HallMember member, string? customEmailBody = null)
     {
         var contactName = ContactName(member);
         var body = customEmailBody is not null
             ? System.Net.WebUtility.HtmlEncode(customEmailBody).Replace("\n", "<br>")
             : $"Leider können wir deine Reservationsanfrage für <strong>{FormatSlot(slot)}</strong> nicht bestätigen.";
-        return EnqueueAsync(member.Email.Value, contactName,
+        await EnqueueAsync(member.Email.Value, contactName,
             "Reservationsanfrage abgelehnt – Sporthalle Sulzerallee",
             EmailLayout.Render(
                 title: "Reservationsanfrage abgelehnt",
