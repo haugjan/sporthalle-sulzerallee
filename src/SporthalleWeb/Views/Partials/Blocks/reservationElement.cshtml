@@ -8,7 +8,7 @@
 
     // Nutzungsvereinbarung (verlinkte Datei unter den Preisen und im Buchungsmodal)
     var nvTitel = Model.Content.Value<string>("nutzungsvereinbarungTitel");
-    if (string.IsNullOrWhiteSpace(nvTitel)) nvTitel = "Nutzungsvereinbarung";
+    if (string.IsNullOrWhiteSpace(nvTitel)) nvTitel = "Nutzungsvereinbarung und Hausordnung";
     var nvMedia = Model.Content.GetProperty("nutzungsvereinbarungDatei")?.GetValue() as Umbraco.Cms.Core.Models.PublishedContent.IPublishedContent;
     var nvUrl   = nvMedia?.Url() ?? "";
     var nvDatum = Model.Content.Value<DateTime>("nutzungsvereinbarungDatum");
@@ -101,7 +101,7 @@
         @if (hasNv)
         {
           <div class="nv-link-wrap">
-            <a href="@nvUrl" class="nv-link" target="_blank" rel="noopener">@nvLinkText →</a>
+            <a href="@nvUrl" class="nv-link" target="_blank" rel="noopener">@nvLinkText</a>
           </div>
         }
       </div>
