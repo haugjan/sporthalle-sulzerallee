@@ -90,7 +90,7 @@ public sealed class MicrosoftEntraAuthProviderManifestReader : IPackageManifestR
                     forProviderName = BackOfficeAuthComposer.Scheme,
                     meta = new
                     {
-                        label = "Mit Microsoft anmelden",
+                        label = "Microsoft",
                         defaultView = new
                         {
                             icon = "icon-cloud",
