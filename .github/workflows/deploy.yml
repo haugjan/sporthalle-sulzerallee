@@ -3,7 +3,7 @@ name: Deploy to Azure
 # Pipeline strategy:
 #   push to feature/**          -> build + test -> deploy DEV
 #   pull_request targeting main -> build + test (status check for branch protection)
-#   push to main (PR merge)     -> build + test -> deploy PROD
+#   push to main                -> build + test -> deploy DEV -> deploy PROD
 #
 # Direct push to main is blocked by branch protection rules.
 # OIDC authentication — no long-lived publish passwords.
@@ -69,7 +69,7 @@ jobs:
 
   deploy-dev:
     needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/feature/') || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     environment: dev
     # Serialize writes to the DEV app — queue instead of cancel so an in-flight
