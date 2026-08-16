@@ -1,0 +1,408 @@
+@{
+    Layout = null;
+    var secret = (string)ViewBag.Secret;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glücksziehung – Sporthalle Sulzerallee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            background: #0d0d0d;
+            color: #fff;
+            font-family: 'Manrope', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .page {
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2.5rem;
+            padding: 2rem;
+        }
+
+        /* Fullscreen button */
+        .btn-fullscreen {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.45);
+            border-radius: 8px;
+            padding: 0.45rem 0.8rem;
+            font-size: 0.8rem;
+            font-family: 'Manrope', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .btn-fullscreen:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+        /* Header */
+        header { text-align: center; line-height: 1; }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3.5rem, 10vw, 7rem);
+            color: #EB5047;
+            letter-spacing: 3px;
+            line-height: 1;
+        }
+
+        .subtitle {
+            font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 0.4rem;
+        }
+
+        /* Slot machine */
+        .slot-outer {
+            position: relative;
+            width: min(480px, 88vw);
+        }
+
+        .slot-outer::before,
+        .slot-outer::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background: #EB5047;
+            border-radius: 50%;
+            box-shadow: 0 0 16px #EB5047, 0 0 32px rgba(235,80,71,0.5);
+        }
+        .slot-outer::before { left: -22px; }
+        .slot-outer::after  { right: -22px; }
+
+        .slot-window {
+            height: 90px;
+            overflow: hidden;
+            position: relative;
+            border-top: 2px solid rgba(235,80,71,0.5);
+            border-bottom: 2px solid rgba(235,80,71,0.5);
+        }
+
+        .slot-fade-top,
+        .slot-fade-bottom {
+            position: absolute;
+            left: 0; right: 0;
+            height: 28px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .slot-fade-top    { top: 0;    background: linear-gradient(to bottom, #0d0d0d 20%, transparent); }
+        .slot-fade-bottom { bottom: 0; background: linear-gradient(to top,    #0d0d0d 20%, transparent); }
+
+        .slot-inner {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            will-change: transform;
+        }
+
+        .slot-item {
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 1rem;
+        }
+
+        /* Winner display */
+        .winner-display {
+            text-align: center;
+        }
+
+        .winner-display.reveal {
+            animation: popIn 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.6); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .winner-label {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            color: #EB5047;
+            letter-spacing: 5px;
+            margin-bottom: 0.6rem;
+        }
+
+        .winner-name {
+            font-size: clamp(2.8rem, 8vw, 5.5rem);
+            font-weight: 800;
+            line-height: 1.05;
+            color: #fff;
+        }
+
+        .winner-field {
+            font-size: clamp(0.9rem, 2vw, 1.15rem);
+            color: rgba(255,255,255,0.4);
+            margin-top: 0.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Draw button */
+        .btn-draw {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.4rem, 3vw, 1.8rem);
+            letter-spacing: 4px;
+            padding: 0.8rem 3.5rem;
+            background: #EB5047;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+            box-shadow: 0 4px 28px rgba(235,80,71,0.45);
+        }
+        .btn-draw:hover:not(:disabled) {
+            background: #d43e36;
+            box-shadow: 0 6px 36px rgba(235,80,71,0.65);
+            transform: translateY(-2px);
+        }
+        .btn-draw:active:not(:disabled) { transform: translateY(0); }
+        .btn-draw:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Error */
+        .error-msg {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.9rem;
+        }
+
+        /* Confetti canvas */
+        #confetti-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="page">
+        <button class="btn-fullscreen" id="btn-fullscreen">⤢ Vollbild</button>
+
+        <header>
+            <h1>Glücksziehung</h1>
+            <div class="subtitle">Sporthalle Sulzerallee</div>
+        </header>
+
+        <div class="slot-outer" id="slot-outer">
+            <div class="slot-window">
+                <div class="slot-fade-top"></div>
+                <div class="slot-fade-bottom"></div>
+                <div class="slot-inner" id="slot-inner">
+                    <div class="slot-item">–</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="winner-display" id="winner-display" style="display:none">
+            <div class="winner-label">Gewinner</div>
+            <div class="winner-name" id="winner-name"></div>
+            <div class="winner-field" id="winner-field"></div>
+        </div>
+
+        <div class="error-msg" id="error-msg" style="display:none"></div>
+
+        <button class="btn-draw" id="btn-draw">Ziehen</button>
+    </div>
+
+    <script>
+        const SECRET = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(secret));
+        const ITEM_H  = 90;
+        const DECOYS  = 200;
+
+        const slotOuter    = document.getElementById('slot-outer');
+        const slotInner    = document.getElementById('slot-inner');
+        const winnerDisplay = document.getElementById('winner-display');
+        const winnerName   = document.getElementById('winner-name');
+        const winnerField  = document.getElementById('winner-field');
+        const btnDraw      = document.getElementById('btn-draw');
+        const errorMsg     = document.getElementById('error-msg');
+
+        let isSpinning = false;
+        let currentWinner = null;
+
+        // Fullscreen
+        const btnFs = document.getElementById('btn-fullscreen');
+        btnFs.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        });
+        document.addEventListener('fullscreenchange', () => {
+            btnFs.textContent = document.fullscreenElement ? '✕ Vollbild' : '⤢ Vollbild';
+        });
+
+        function shuffle(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function esc(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+        function buildSequence(pool, winnerFirst) {
+            const cycles = Math.max(1, Math.ceil(DECOYS / pool.length));
+            const seq = [];
+            for (let i = 0; i < cycles; i++) seq.push(...shuffle([...pool]));
+            seq.push(winnerFirst);
+            return seq;
+        }
+
+        function animateSlot(sequence, onDone) {
+            slotInner.innerHTML = sequence.map(n => `<div class="slot-item">${esc(n)}</div>`).join('');
+            const totalScroll = (sequence.length - 1) * ITEM_H;
+            const duration = 5000;
+            let startTime = null;
+
+            function step(ts) {
+                if (!startTime) startTime = ts;
+                const t = Math.min((ts - startTime) / duration, 1);
+                slotInner.style.transform = `translateY(-${easeOutCubic(t) * totalScroll}px)`;
+                if (t < 1) requestAnimationFrame(step);
+                else onDone();
+            }
+            requestAnimationFrame(step);
+        }
+
+        function launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            const colors = ['#EB5047', '#FF8A80', '#ffffff', '#FFD700', '#aaaaaa', '#FF6D6D'];
+
+            const particles = Array.from({ length: 200 }, () => ({
+                x:    Math.random() * canvas.width,
+                y:    -Math.random() * 250,
+                vx:   (Math.random() - 0.5) * 6,
+                vy:   Math.random() * 3.5 + 1.5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                w:    Math.random() * 14 + 5,
+                h:    Math.random() * 7 + 3,
+                rot:  Math.random() * Math.PI * 2,
+                rotV: (Math.random() - 0.5) * 0.18,
+            }));
+
+            let start = null;
+            const dur = 4000;
+
+            (function draw(ts) {
+                if (!start) start = ts;
+                const elapsed = ts - start;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const alpha = Math.max(0, 1 - Math.max(0, elapsed - 2200) / 1800);
+                for (const p of particles) {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.07; p.rot += p.rotV;
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rot);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                    ctx.restore();
+                }
+                if (elapsed < dur) requestAnimationFrame(draw);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            })();
+        }
+
+        function showWinner() {
+            slotOuter.style.display = 'none';
+            winnerDisplay.style.display = 'block';
+            winnerDisplay.classList.remove('reveal');
+            void winnerDisplay.offsetWidth; // reflow to restart animation
+            winnerDisplay.classList.add('reveal');
+            winnerName.textContent  = currentWinner.firstName;
+            winnerField.textContent = `Feld Nr. ${currentWinner.fieldNumber}`;
+            launchConfetti();
+            btnDraw.textContent = 'Wieder ziehen';
+            btnDraw.disabled = false;
+            isSpinning = false;
+        }
+
+        function reset() {
+            slotOuter.style.display = '';
+            winnerDisplay.style.display = 'none';
+            winnerDisplay.classList.remove('reveal');
+            slotInner.innerHTML = '<div class="slot-item">–</div>';
+            slotInner.style.transform = '';
+            errorMsg.style.display = 'none';
+        }
+
+        btnDraw.addEventListener('click', async () => {
+            if (isSpinning) return;
+            reset();
+            isSpinning = true;
+            btnDraw.disabled = true;
+
+            let data;
+            try {
+                const res = await fetch(`/glueck/${SECRET}/draw`);
+                if (!res.ok) {
+                    const json = await res.json().catch(() => ({}));
+                    throw new Error(json.error || 'Fehler beim Laden der Mitglieder.');
+                }
+                data = await res.json();
+            } catch (e) {
+                errorMsg.textContent = e.message;
+                errorMsg.style.display = 'block';
+                btnDraw.disabled = false;
+                isSpinning = false;
+                return;
+            }
+
+            currentWinner = data.winner;
+            const sequence = buildSequence(data.pool, currentWinner.firstName);
+            animateSlot(sequence, () => setTimeout(showWinner, 450));
+        });
+    </script>
+</body>
+</html>
