@@ -11,5 +11,6 @@
     <PackageVersion Include="Umbraco.StorageProviders.AzureBlob" Version="17.0.0" />
     <PackageVersion Include="uSync" Version="17.3.5" />
     <PackageVersion Include="ClosedXML" Version="0.104.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.10" />
   </ItemGroup>
 </Project>
