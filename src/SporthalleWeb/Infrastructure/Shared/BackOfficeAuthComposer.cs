@@ -54,9 +54,15 @@ public sealed class BackOfficeAuthComposer : IComposer
                     providerOptions.DenyLocalLogin = true;
                     providerOptions.AutoLinkOptions = new ExternalSignInAutoLinkOptions(
                         autoLinkExternalAccount: true,
-                        defaultUserGroups: [Umbraco.Cms.Core.Constants.Security.AdminGroupAlias],
+                        defaultUserGroups: [],
                         allowManualLinking: false)
                     {
+                        OnAutoLinking = (user, _) =>
+                        {
+                            if (!user.HasIdentity)
+                                throw new InvalidOperationException(
+                                    "No existing Umbraco user found for this address; auto-creation is disabled.");
+                        },
                         OnExternalLogin = (_, loginInfo) => IsSporthalleAddress(loginInfo),
                     };
                 }));
