@@ -229,6 +229,27 @@
                                  Step="5" />
           </div>
 
+          <div id="admin-bm-recurring-member-wrapper">
+            <div class="bm-field bm-field--2col" style="position:relative">
+              <label>Mieter suchen *
+                <input type="text" id="admin-bm-recurring-member-search"
+                       placeholder="Name, Firma oder E-Mail eingeben…"
+                       autocomplete="off" />
+                <div id="admin-bm-recurring-member-results" class="bm-search-results" hidden></div>
+              </label>
+            </div>
+            <div id="admin-bm-recurring-member-selected" class="bm-field bm-field--2col" hidden>
+              <div class="bm-member-badge">
+                <div>
+                  <span id="admin-bm-recurring-member-badge-name" class="bm-member-badge__name"></span>
+                  <span id="admin-bm-recurring-member-badge-email" class="bm-member-badge__email"></span>
+                </div>
+                <button type="button" id="admin-bm-recurring-member-clear" class="bm-member-badge__clear" aria-label="Auswahl aufheben">&#x2715;</button>
+              </div>
+              <input type="hidden" id="admin-bm-recurring-member-id" value="" />
+            </div>
+          </div>
+
           <div class="bm-field">
             <label class="d-block">Serie von *</label>
             <DateInputComponent Value="_seriesStart" ValueChanged="@(d => { if (d.HasValue) _seriesStart = d.Value; })"
@@ -433,6 +454,7 @@
             var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var payload = JsonSerializer.Deserialize<RecurringSlotPayload>(payloadJson, opts);
             if (payload is null) return Err("Ungültige Daten.");
+            if (!payload.IsBlocker && !payload.MemberId.HasValue) return Err("Bitte wähle einen Mieter aus.");
 
             var cmd = BuildRecurringSlotCommand(payload) with { ShowTitlePublic = _seriesShowTitlePublic };
             var result = await CreateRecurring.ExecuteAsync(cmd, AdminUser, skipConflicts);
@@ -451,7 +473,8 @@
         DateOnly.Parse(p.SeriesStart!, CultureInfo.InvariantCulture),
         DateOnly.Parse(p.SeriesEnd!, CultureInfo.InvariantCulture),
         string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes.Trim(),
-        IsBlocker: p.IsBlocker);
+        IsBlocker: p.IsBlocker,
+        MemberId: p.MemberId);
 
     public async ValueTask DisposeAsync()
     {
@@ -478,6 +501,7 @@
         public string? SeriesEnd { get; set; }
         public string? Notes { get; set; }
         public bool IsBlocker { get; set; }
+        public int? MemberId { get; set; }
     }
 
     private sealed class AdminBookingPayload

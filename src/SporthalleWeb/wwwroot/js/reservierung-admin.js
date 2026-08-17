@@ -486,6 +486,7 @@ window.SporthalleAdmin = (function () {
   var _modalSched = 'single'; // 'single' | 'recurring'
   var _recurringPayload = null;
   var _memberSearchTimer = null;
+  var _recurringMemberSearchTimer = null;
 
   function openAdminModal() {
     if (!selectedSlot) return;
@@ -527,6 +528,7 @@ window.SporthalleAdmin = (function () {
     setEl('admin-bm-event', '');
     setEl('admin-bm-notes', '');
     clearSelectedMember();
+    clearSelectedRecurringMember();
     hideError('admin-bm-error-blocker');
     hideError('admin-bm-error');
     hideError('admin-bm-error-recurring');
@@ -577,6 +579,9 @@ window.SporthalleAdmin = (function () {
     if (bodyBlockerSingle) bodyBlockerSingle.hidden = !(_modalType === 'blocker' && _modalSched === 'single');
     if (bodyBookingSingle) bodyBookingSingle.hidden = !(_modalType === 'booking' && _modalSched === 'single');
     if (bodyRecurring)         bodyRecurring.hidden         = (_modalSched !== 'recurring');
+
+    var recurringMemberWrapper = document.getElementById('admin-bm-recurring-member-wrapper');
+    if (recurringMemberWrapper) recurringMemberWrapper.hidden = _modalType !== 'booking';
   }
 
   function prefillRecurringForm() {
@@ -602,6 +607,83 @@ window.SporthalleAdmin = (function () {
   function hideMemberResults() {
     var results = document.getElementById('admin-bm-member-results');
     if (results) results.hidden = true;
+  }
+
+  function clearSelectedRecurringMember() {
+    setEl('admin-bm-recurring-member-id', '');
+    setEl('admin-bm-recurring-member-search', '');
+    hideRecurringMemberResults();
+    var selected = document.getElementById('admin-bm-recurring-member-selected');
+    if (selected) selected.hidden = true;
+  }
+
+  function hideRecurringMemberResults() {
+    var results = document.getElementById('admin-bm-recurring-member-results');
+    if (results) results.hidden = true;
+  }
+
+  function selectRecurringMember(m) {
+    var name = m.name
+      ? m.name + ' (' + (m.contactFirstName + ' ' + m.contactLastName).trim() + ')'
+      : (m.contactFirstName + ' ' + m.contactLastName).trim();
+    setEl('admin-bm-recurring-member-id', String(m.id));
+    setEl('admin-bm-recurring-member-search', '');
+    hideRecurringMemberResults();
+    var badgeName = document.getElementById('admin-bm-recurring-member-badge-name');
+    if (badgeName) badgeName.textContent = name;
+    var badgeEmail = document.getElementById('admin-bm-recurring-member-badge-email');
+    if (badgeEmail) badgeEmail.textContent = m.email;
+    var selected = document.getElementById('admin-bm-recurring-member-selected');
+    if (selected) selected.hidden = false;
+  }
+
+  function showRecurringMemberResults(members) {
+    var results = document.getElementById('admin-bm-recurring-member-results');
+    if (!results) return;
+    results.innerHTML = '';
+    if (!members || members.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'bm-search-result bm-search-result--empty';
+      empty.textContent = 'Keine Mitglieder gefunden';
+      results.appendChild(empty);
+      results.hidden = false;
+      return;
+    }
+    members.forEach(function (m) {
+      var el = document.createElement('div');
+      el.className = 'bm-search-result';
+      var name = m.name
+        ? m.name + ' (' + escHtml(m.contactFirstName + ' ' + m.contactLastName) + ')'
+        : escHtml((m.contactFirstName + ' ' + m.contactLastName).trim());
+      el.innerHTML = '<strong>' + name + '</strong><br><small class="text-muted">' + escHtml(m.email) + '</small>';
+      el.addEventListener('click', function () { selectRecurringMember(m); });
+      results.appendChild(el);
+    });
+    results.hidden = false;
+  }
+
+  function initRecurringMemberSearch() {
+    var searchInput = document.getElementById('admin-bm-recurring-member-search');
+    if (!searchInput) return;
+
+    addHandler(searchInput, 'input', function () {
+      clearTimeout(_recurringMemberSearchTimer);
+      var q = searchInput.value.trim();
+      if (q.length < 2) { hideRecurringMemberResults(); return; }
+      _recurringMemberSearchTimer = setTimeout(function () {
+        if (!_dotNet) return;
+        _dotNet.invokeMethodAsync('SearchMembersAsync', q)
+          .then(function (json) { showRecurringMemberResults(JSON.parse(json)); })
+          .catch(function () { hideRecurringMemberResults(); });
+      }, 300);
+    });
+
+    addHandler(searchInput, 'blur', function () {
+      setTimeout(hideRecurringMemberResults, 200);
+    });
+
+    var clearBtn = document.getElementById('admin-bm-recurring-member-clear');
+    addHandler(clearBtn, 'click', clearSelectedRecurringMember);
   }
 
   function selectMember(m) {
@@ -771,6 +853,10 @@ window.SporthalleAdmin = (function () {
     if (!startTime || !endTime) { showError('admin-bm-error-recurring', 'Zeiten sind erforderlich.'); return; }
     if (endTime <= startTime) { showError('admin-bm-error-recurring', 'Endzeit muss nach Startzeit liegen.'); return; }
 
+    var isBooking = _modalType === 'booking';
+    var memberId = isBooking ? getVal('admin-bm-recurring-member-id') : null;
+    if (isBooking && !memberId) { showError('admin-bm-error-recurring', 'Bitte wähle einen Mieter aus.'); return; }
+
     var payload = {
       title: title,
       weekday: parseInt(getVal('admin-bm-recurring-weekday'), 10),
@@ -779,7 +865,8 @@ window.SporthalleAdmin = (function () {
       seriesStart: seriesStart,
       seriesEnd: seriesEnd,
       notes: getVal('admin-bm-recurring-notes') || null,
-      isBlocker: _modalType === 'blocker'
+      isBlocker: !isBooking,
+      memberId: memberId ? parseInt(memberId, 10) : null
     };
 
     disableSubmit('admin-bm-submit-recurring', 'Prüfen…');
@@ -1084,6 +1171,7 @@ window.SporthalleAdmin = (function () {
       addHandler(document.getElementById('admin-sched-single'), 'click', function () { setModalSched('single'); });
       addHandler(document.getElementById('admin-sched-recurring'), 'click', function () { setModalSched('recurring'); });
       initMemberSearch();
+      initRecurringMemberSearch();
 
       var modal = document.getElementById('admin-booking-modal');
       addHandler(modal, 'click', function (e) { if (e.target === modal) closeAdminModal(); });
