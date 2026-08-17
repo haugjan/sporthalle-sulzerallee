@@ -23,19 +23,26 @@ public class GluecksspielController(IPassiveMembers members, IConfiguration conf
         if (string.IsNullOrEmpty(ConfigSecret) || !secret.Equals(ConfigSecret, StringComparison.Ordinal))
             return NotFound();
 
-        var confirmed = await members.GetConfirmedAsync();
-        var paid = confirmed.Where(m => m.PaidAt != null).ToList();
-
-        if (paid.Count == 0)
-            return BadRequest(new { error = "Keine bezahlten Mitglieder gefunden." });
-
-        var winner = paid[Random.Shared.Next(paid.Count)];
-        var pool = paid.Select(m => m.FirstName).ToList();
-
-        return Json(new
+        try
         {
-            winner = new { firstName = winner.FirstName, fieldNumber = winner.FieldNumber.Value },
-            pool
-        });
+            var confirmed = await members.GetConfirmedAsync();
+            var paid = confirmed.Where(m => m.PaidAt != null).ToList();
+
+            if (paid.Count == 0)
+                return BadRequest(new { error = "Keine bezahlten Mitglieder gefunden." });
+
+            var winner = paid[Random.Shared.Next(paid.Count)];
+            var pool = paid.Select(m => m.FirstName).ToList();
+
+            return Json(new
+            {
+                winner = new { firstName = winner.FirstName, fieldNumber = winner.FieldNumber.Value },
+                pool
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 }
