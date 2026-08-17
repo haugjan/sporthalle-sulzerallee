@@ -1,0 +1,14 @@
+{
+  "name": "Sporthalle Login Background",
+  "extensions": [
+    {
+      "type": "loginScreen",
+      "alias": "Sporthalle.LoginBackground",
+      "name": "Sporthalle Login Background",
+      "weight": 100,
+      "meta": {
+        "backgroundImage": "/img/login-bg.jpg"
+      }
+    }
+  ]
+}
