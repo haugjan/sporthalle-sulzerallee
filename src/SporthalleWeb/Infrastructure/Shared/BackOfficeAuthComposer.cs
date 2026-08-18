@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Cms.Api.Management.Security;
@@ -48,6 +49,14 @@ public sealed class BackOfficeAuthComposer : IComposer
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
                     options.TokenValidationParameters.NameClaimType = "preferred_username";
+                    options.Events = new OpenIdConnectEvents
+                    {
+                        OnRedirectToIdentityProvider = ctx =>
+                        {
+                            ctx.ProtocolMessage.Prompt = "select_account";
+                            return Task.CompletedTask;
+                        }
+                    };
                 }),
                 providerOptions =>
                 {
