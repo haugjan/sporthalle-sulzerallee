@@ -401,7 +401,7 @@
         var result = members.Select(m => new
         {
             id = m.Id,
-            email = m.Email,
+            email = m.Email.Value,
             name = m.Name,
             contactFirstName = m.ContactFirstName,
             contactLastName = m.ContactLastName,
