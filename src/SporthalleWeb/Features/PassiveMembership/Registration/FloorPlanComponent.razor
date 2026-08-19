@@ -89,8 +89,19 @@
             @((MarkupString)$"<rect x='{cx:F2}' y='{cy:F2}' width='{cw:F2}' height='{ch:F2}' class='{cssClass}'>{titleAttr}</rect>")
             @if (dn is not null)
             {
-              var truncated = dn.Length > 11 ? dn[..10] + "…" : dn;
-              @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none' textLength='{cw * 0.82:F2}' lengthAdjust='spacingAndGlyphs'>{HtmlEncoder.Default.Encode(truncated)}</text>")
+              var (dnLine1, dnLine2) = SplitDisplayName(dn);
+              if (dnLine2 is null)
+              {
+                @((MarkupString)$"<text x='{midX:F2}' y='{midY:F2}' text-anchor='middle' dominant-baseline='middle' font-size='2.6' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none' textLength='{cw * 0.82:F2}' lengthAdjust='spacingAndGlyphs'>{HtmlEncoder.Default.Encode(dnLine1)}</text>")
+              }
+              else
+              {
+                @((MarkupString)(
+                  $"<text text-anchor='middle' font-size='2.4' font-family='Manrope,sans-serif' fill='rgba(255,255,255,0.9)' pointer-events='none'>" +
+                  $"<tspan x='{midX:F2}' y='{midY - 1.5:F2}' dominant-baseline='middle' textLength='{cw * 0.82:F2}' lengthAdjust='spacingAndGlyphs'>{HtmlEncoder.Default.Encode(dnLine1)}</tspan>" +
+                  $"<tspan x='{midX:F2}' y='{midY + 1.5:F2}' dominant-baseline='middle' textLength='{cw * 0.82:F2}' lengthAdjust='spacingAndGlyphs'>{HtmlEncoder.Default.Encode(dnLine2)}</tspan>" +
+                  $"</text>"))
+              }
             }
           </g>
         }
@@ -459,4 +470,31 @@
         Step.Captcha => 5,
         _ => 1
     };
+
+    private static (string Line1, string? Line2) SplitDisplayName(string name)
+    {
+        if (name.Length <= 12) return (name, null);
+
+        // Find the space that produces the most balanced two-line split
+        int bestIdx = -1, bestImbalance = int.MaxValue;
+        for (int i = 1; i < name.Length - 1; i++)
+        {
+            if (name[i] != ' ') continue;
+            var imbalance = Math.Abs(i - (name.Length - i - 1));
+            if (imbalance < bestImbalance) { bestImbalance = imbalance; bestIdx = i; }
+        }
+
+        if (bestIdx > 0)
+        {
+            var l1 = name[..bestIdx];
+            var l2 = name[(bestIdx + 1)..];
+            if (l1.Length > 13) l1 = l1[..12] + "…";
+            if (l2.Length > 13) l2 = l2[..12] + "…";
+            return (l1, l2);
+        }
+
+        // No space: single line with compression; only truncate truly long names
+        if (name.Length > 14) name = name[..13] + "…";
+        return (name, null);
+    }
 }
