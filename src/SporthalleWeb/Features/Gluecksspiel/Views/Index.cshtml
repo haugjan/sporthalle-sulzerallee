@@ -200,6 +200,22 @@
             font-size: 0.9rem;
         }
 
+        /* Keyboard hint */
+        .key-hint {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: -1rem;
+        }
+        .key-hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 3px;
+            padding: 0 0.35em;
+        }
+
         /* Confetti canvas */
         #confetti-canvas {
             position: fixed;
@@ -239,6 +255,7 @@
         <div class="error-msg" id="error-msg" style="display:none"></div>
 
         <button class="btn-draw" id="btn-draw">Ziehen</button>
+        <div class="key-hint"><kbd>Leertaste</kbd> zum Ziehen</div>
     </div>
 
     <script>
@@ -376,6 +393,13 @@
             slotInner.style.transform = '';
             errorMsg.style.display = 'none';
         }
+
+        document.addEventListener('keydown', e => {
+            if (e.code !== 'Space') return;
+            if (e.target === btnDraw || e.target === btnFs) return;
+            e.preventDefault();
+            if (!isSpinning && !btnDraw.disabled) btnDraw.click();
+        });
 
         btnDraw.addEventListener('click', async () => {
             if (isSpinning) return;
