@@ -163,17 +163,21 @@ public class UmbracoPassiveMembers(
     private static string Username(int fieldNumber) => $"pm-{fieldNumber:D3}";
     private static string SyntheticEmail(int fieldNumber) => $"pm-{fieldNumber:D3}@passiv.internal";
 
+    // Store single-select dropdown values in the same JSON-array format the back-office uses,
+    // so that opening and re-saving a member in the Umbraco back-office doesn't clear the value.
+    private static string DropdownJson(string key) => $"[\"{key}\"]";
+
     internal static void SetProperties(IMember m, PassiveMember pm)
     {
         m.SetValue(PassivMemberAliases.Email,                  pm.Email.Value);
         m.SetValue(PassivMemberAliases.FirstName,              pm.FirstName);
         m.SetValue(PassivMemberAliases.LastName,               pm.LastName);
         m.SetValue(PassivMemberAliases.FieldNumber,            pm.FieldNumber.Value.ToString());
-        m.SetValue(PassivMemberAliases.MembershipLevel,        pm.Level.Key);
+        m.SetValue(PassivMemberAliases.MembershipLevel,        DropdownJson(pm.Level.Key));
         m.SetValue(PassivMemberAliases.Phone,                  pm.Phone ?? "");
         m.SetValue(PassivMemberAliases.ShowNameOnFloor,        pm.ShowNameOnFloor);
         m.SetValue(PassivMemberAliases.FloorDisplayName,       pm.DisplayName ?? "");
-        m.SetValue(PassivMemberAliases.Status,                 pm.Status.Key);
+        m.SetValue(PassivMemberAliases.Status,                 DropdownJson(pm.Status.Key));
         m.SetValue(PassivMemberAliases.PaidAt,                 pm.PaidAt);
         m.SetValue(PassivMemberAliases.PaidBy,                 pm.PaidBy ?? "");
         m.SetValue(PassivMemberAliases.ConfirmedAt,            pm.ConfirmedAt);
