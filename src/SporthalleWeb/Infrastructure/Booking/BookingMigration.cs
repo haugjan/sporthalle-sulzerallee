@@ -29,7 +29,8 @@ public class BookingMigrationPlan : MigrationPlan
             .To<AddShowTitlePublicV10>("v1.9.0")
             .To<DropMagicLinkTokensV11>("v1.10.0")
             .To<DropSlotColorColumnsV12>("v1.11.0")
-            .To<AlignStateV13>("v1.12.0");
+            .To<AlignStateV13>("v1.12.0")
+        .To<MakeAllMemberPropertiesOptionalV14>("v1.13.0");
     }
 }
 
@@ -171,6 +172,19 @@ public class DropSlotColorColumnsV12(IMigrationContext context) : AsyncMigration
 public class AlignStateV13(IMigrationContext context) : AsyncMigrationBase(context)
 {
     protected override Task MigrateAsync() => Task.CompletedTask;
+}
+
+public class MakeAllMemberPropertiesOptionalV14(IMigrationContext context) : AsyncMigrationBase(context)
+{
+    protected override Task MigrateAsync()
+    {
+        Execute.Sql(
+            "UPDATE cmsPropertyType SET mandatory = 0 " +
+            "WHERE contentTypeId IN (" +
+            "  SELECT nodeId FROM cmsContentType WHERE alias IN ('hallMember', 'passivMember')" +
+            ")").Do();
+        return Task.CompletedTask;
+    }
 }
 
 public class BookingMigrationComponent(
