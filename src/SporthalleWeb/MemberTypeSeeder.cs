@@ -242,10 +242,10 @@ public sealed class MemberTypeSeeder(
         EnsureProperty(memberType, textBox,            HallMemberAliases.OrgName,           "Organisation / Name", mandatory: false, sort: 1,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.ContactFirstName,  "Contact First Name",  mandatory: true,  sort: 2,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.ContactLastName,   "Contact Last Name",   mandatory: true,  sort: 3,  g, gn);
-        EnsureProperty(memberType, textBox,            HallMemberAliases.BillingAddress,    "Billing Address",     mandatory: true,  sort: 4,  g, gn);
+        EnsureProperty(memberType, textBox,            HallMemberAliases.BillingAddress,    "Billing Address",     mandatory: false, sort: 4,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.AddressLine2,      "Address Line 2",      mandatory: false, sort: 5,  g, gn);
-        EnsureProperty(memberType, textBox,            HallMemberAliases.BillingPostalCode, "Billing Postal Code", mandatory: true,  sort: 6,  g, gn);
-        EnsureProperty(memberType, textBox,            HallMemberAliases.BillingCity,       "Billing City",        mandatory: true,  sort: 7,  g, gn);
+        EnsureProperty(memberType, textBox,            HallMemberAliases.BillingPostalCode, "Billing Postal Code", mandatory: false, sort: 6,  g, gn);
+        EnsureProperty(memberType, textBox,            HallMemberAliases.BillingCity,       "Billing City",        mandatory: false, sort: 7,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.BillingCountry,    "Billing Country",     mandatory: false, sort: 8,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.Phone,             "Phone",               mandatory: false, sort: 9,  g, gn);
         EnsureProperty(memberType, trueFalse,          HallMemberAliases.HasKey,            "Has Key",             mandatory: false, sort: 10, g, gn);
@@ -317,6 +317,7 @@ public sealed class MemberTypeSeeder(
             if (existing is null) return;
 
             if (existing.Name != name) { existing.Name = name; _propertyChanges++; }
+            if (existing.Mandatory != mandatory) { existing.Mandatory = mandatory; _propertyChanges++; }
 
             if (existing.DataTypeKey == dataType.Key) return;
 
