@@ -316,12 +316,13 @@ public sealed class MemberTypeSeeder(
             var existing = memberType.PropertyTypes.FirstOrDefault(p => p.Alias == alias);
             if (existing is null) return;
 
-            if (existing.Name != name) { existing.Name = name; _propertyChanges++; }
-            if (existing.Mandatory != mandatory) { existing.Mandatory = mandatory; _propertyChanges++; }
-
-            if (existing.DataTypeKey == dataType.Key) return;
+            // PropertyTypes returns copies, so in-place mutation has no effect.
+            // Remove and re-add whenever any attribute drifts from the desired value.
+            if (existing.Name == name && existing.DataTypeKey == dataType.Key && existing.Mandatory == mandatory)
+                return;
 
             memberType.RemovePropertyType(alias);
+            _propertyChanges++;
         }
 
         memberType.AddPropertyType(Prop(dataType, alias, name, mandatory, sort), groupAlias, groupName);
