@@ -238,10 +238,10 @@ public sealed class MemberTypeSeeder(
         const string gn = "Renter Info";
         var before = _propertyChanges;
 
-        EnsureProperty(memberType, renterTypeDropdown, HallMemberAliases.RenterType,        "Renter Type",         mandatory: true,  sort: 0,  g, gn);
+        EnsureProperty(memberType, renterTypeDropdown, HallMemberAliases.RenterType,        "Renter Type",         mandatory: false, sort: 0,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.OrgName,           "Organisation / Name", mandatory: false, sort: 1,  g, gn);
-        EnsureProperty(memberType, textBox,            HallMemberAliases.ContactFirstName,  "Contact First Name",  mandatory: true,  sort: 2,  g, gn);
-        EnsureProperty(memberType, textBox,            HallMemberAliases.ContactLastName,   "Contact Last Name",   mandatory: true,  sort: 3,  g, gn);
+        EnsureProperty(memberType, textBox,            HallMemberAliases.ContactFirstName,  "Contact First Name",  mandatory: false, sort: 2,  g, gn);
+        EnsureProperty(memberType, textBox,            HallMemberAliases.ContactLastName,   "Contact Last Name",   mandatory: false, sort: 3,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.BillingAddress,    "Billing Address",     mandatory: false, sort: 4,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.AddressLine2,      "Address Line 2",      mandatory: false, sort: 5,  g, gn);
         EnsureProperty(memberType, textBox,            HallMemberAliases.BillingPostalCode, "Billing Postal Code", mandatory: false, sort: 6,  g, gn);
@@ -283,11 +283,11 @@ public sealed class MemberTypeSeeder(
         const string adminGn = "Admin";
         var before = _propertyChanges;
 
-        EnsureProperty(memberType, emailType,               PassivMemberAliases.Email,           "E-Mail",             mandatory: true,  sort: 0,  infoG, infoGn);
-        EnsureProperty(memberType, textBox,                 PassivMemberAliases.FirstName,       "First Name",         mandatory: true,  sort: 1,  infoG, infoGn);
-        EnsureProperty(memberType, textBox,                 PassivMemberAliases.LastName,        "Last Name",          mandatory: true,  sort: 2,  infoG, infoGn);
-        EnsureProperty(memberType, textBox,                 PassivMemberAliases.FieldNumber,     "Field Number",       mandatory: true,  sort: 3,  infoG, infoGn);
-        EnsureProperty(memberType, membershipLevelDropdown, PassivMemberAliases.MembershipLevel, "Membership Level",   mandatory: true,  sort: 4,  infoG, infoGn);
+        EnsureProperty(memberType, emailType,               PassivMemberAliases.Email,           "E-Mail",             mandatory: false, sort: 0,  infoG, infoGn);
+        EnsureProperty(memberType, textBox,                 PassivMemberAliases.FirstName,       "First Name",         mandatory: false, sort: 1,  infoG, infoGn);
+        EnsureProperty(memberType, textBox,                 PassivMemberAliases.LastName,        "Last Name",          mandatory: false, sort: 2,  infoG, infoGn);
+        EnsureProperty(memberType, textBox,                 PassivMemberAliases.FieldNumber,     "Field Number",       mandatory: false, sort: 3,  infoG, infoGn);
+        EnsureProperty(memberType, membershipLevelDropdown, PassivMemberAliases.MembershipLevel, "Membership Level",   mandatory: false, sort: 4,  infoG, infoGn);
         EnsureProperty(memberType, textBox, PassivMemberAliases.Phone,             "Phone",               mandatory: false, sort: 5,  infoG, infoGn);
         EnsureProperty(memberType, trueFalse, PassivMemberAliases.ShowNameOnFloor,  "Show Name on Floor", mandatory: false, sort: 6,  infoG, infoGn);
         EnsureProperty(memberType, textBox,   PassivMemberAliases.FloorDisplayName, "Floor Display Name", mandatory: false, sort: 7,  infoG, infoGn);
