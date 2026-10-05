@@ -1,5 +1,6 @@
-
+﻿
 using System.Globalization;
+using SporthalleWeb.Infrastructure.Shared;
 
 var swissCulture = new CultureInfo("de-CH");
 CultureInfo.DefaultThreadCurrentCulture   = swissCulture;
@@ -87,6 +88,14 @@ if (!app.Environment.IsDevelopment())
     app.Use(async (context, next) =>
     {
         var host = context.Request.Host.Host;
+        if (context.Request.Path.StartsWithSegments(BackOfficeSite.Path, StringComparison.OrdinalIgnoreCase)
+            && BackOfficeSite.AdminHostFor(host) is { } backOfficeHost)
+        {
+            var proto = context.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? "https";
+            var url = $"{proto}://{backOfficeHost}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+            context.Response.Redirect(url, permanent: false);
+            return;
+        }
         if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
         {
             var proto = context.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? "https";
